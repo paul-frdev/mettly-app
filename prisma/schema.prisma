@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  password      String
+  telegram_id   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  accounts      Account[]
+  appointments  Appointment[]
+  clients       Client[]
+  sessions      Session[]
+  subscriptions Subscription[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Client {
+  id           String        @id @default(uuid())
+  userId       String
+  name         String
+  phone        String?
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Appointment {
+  id        String     @id @default(uuid())
+  userId    String
+  clientId  String?
+  date      DateTime   @db.Date
+  time      DateTime   @db.Time(6)
+  duration  Int?
+  notes     String?
+  isPaid    Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  client    Client?    @relation(fields: [clientId], references: [id])
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments  Payment[]
+  reminders Reminder[]
+}
+
+model Payment {
+  id            String       @id @default(uuid())
+  appointmentId String?
+  amount        Decimal      @db.Decimal(10, 2)
+  date          DateTime     @default(now())
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+}
+
+model Subscription {
+  id        String    @id @default(uuid())
+  userId    String
+  plan      Plan      @default(free)
+  isActive  Boolean   @default(true)
+  startedAt DateTime  @default(now())
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Reminder {
+  id            String       @id @default(uuid())
+  appointmentId String
+  type          ReminderType
+  sentAt        DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  appointment   Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+}
+
+enum Plan {
+  free
+  pro
+}
+
+enum ReminderType {
+  email
+  telegram
+}
