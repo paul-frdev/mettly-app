@@ -2,6 +2,7 @@ import Hero from '@/components/landing/Hero';
 import Features from '@/components/landing/Features';
 import TargetAudience from '@/components/landing/TargetAudience';
 import HowItWorks from '@/components/landing/HowItWorks';
+import Footer from '@/components/landing/Footer';
 
 export default function Home() {
   return (
@@ -10,6 +11,7 @@ export default function Home() {
       <Features />
       <TargetAudience />
       <HowItWorks />
+      <Footer />
     </main>
   );
 }
