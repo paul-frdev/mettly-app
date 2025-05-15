@@ -1,22 +1,32 @@
-import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
+import { NextRequest } from 'next/server';
 
-export default withAuth(
-  function middleware() {
-    // Return response to continue if user is authenticated
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token,
-    },
-    pages: {
-      signIn: '/auth/login',
-    },
+export default async function middleware(req: NextRequest) {
+  const token = await getToken({ req });
+  const isAuth = !!token;
+  const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
+  const isApiRoute = req.nextUrl.pathname.startsWith('/api');
+  const isLandingPage = req.nextUrl.pathname === '/';
+
+  // Redirect authenticated users from landing to dashboard
+  if (isLandingPage && isAuth) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
   }
-);
 
-// Protect all routes under /dashboard, /clients, /calendar, /settings, /profile, /appointments
+  // Redirect authenticated users from auth pages to dashboard
+  if (isAuthPage && isAuth) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+
+  // Redirect unauthenticated users to login
+  if (!isAuth && !isAuthPage && !isApiRoute && !isLandingPage) {
+    return NextResponse.redirect(new URL('/auth/login', req.url));
+  }
+
+  return NextResponse.next();
+}
+
 export const config = {
-  matcher: ['/dashboard/:path*', '/clients/:path*', '/calendar/:path*', '/settings/:path*', '/profile/:path*', '/appointments/:path*'],
+  matcher: ['/', '/dashboard/:path*', '/clients/:path*', '/calendar/:path*', '/settings/:path*', '/profile/:path*', '/appointments/:path*', '/auth/:path*'],
 };
