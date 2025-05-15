@@ -60,32 +60,33 @@ model VerificationToken {
 }
 
 model Client {
-  id           String        @id @default(uuid())
-  userId       String
-  name         String
-  phone        String?
-  notes        String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  appointments Appointment[]
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String        @id @default(uuid())
+  userId        String
+  name          String
+  email         String?
+  phone         String?
+  notes         String?       @db.Text
+  status        String?       @default("active") // active, inactive, new
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
 }
 
 model Appointment {
-  id        String     @id @default(uuid())
-  userId    String
-  clientId  String?
-  date      DateTime   @db.Date
-  time      DateTime   @db.Time(6)
-  duration  Int?
-  notes     String?
-  isPaid    Boolean    @default(false)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  client    Client?    @relation(fields: [clientId], references: [id])
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payments  Payment[]
-  reminders Reminder[]
+  id          String      @id @default(uuid())
+  userId      String
+  clientId    String?
+  date        DateTime
+  duration    Int?        // in minutes
+  notes       String?     @db.Text
+  status      String      @default("scheduled") // scheduled, completed, cancelled
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client      Client?     @relation(fields: [clientId], references: [id])
+  payments    Payment[]
+  reminders   Reminder[]
 }
 
 model Payment {

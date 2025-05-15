@@ -1,109 +1,137 @@
 'use client';
 
-import { Client } from '@/lib/types';
 import { useState } from 'react';
+import { ClientFormData } from '@/lib/validations/client';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { DialogFooter } from "@/components/ui/dialog";
 
 interface ClientFormProps {
-  client?: Partial<Client>;
-  onSubmit: (data: Partial<Client>) => void;
+  client?: Partial<ClientFormData>;
+  onSubmit: (data: ClientFormData) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
-  const [formData, setFormData] = useState<Partial<Client>>({
+export default function ClientForm({ client, onSubmit, onCancel, isSubmitting = false }: ClientFormProps) {
+  const [formData, setFormData] = useState<ClientFormData>({
     name: client?.name || '',
     email: client?.email || '',
     phone: client?.phone || '',
     notes: client?.notes || '',
   });
 
+  const [errors, setErrors] = useState<Partial<ClientFormData>>({});
+
+  const validateForm = (): boolean => {
+    const newErrors: Partial<ClientFormData> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Invalid email format';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    if (validateForm()) {
+      onSubmit(formData);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user starts typing
+    if (errors[name as keyof ClientFormData]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium leading-6 text-gray-900">
-          Name
-        </label>
-        <div className="mt-2">
-          <input
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-4">
+        <div className="grid w-full items-center gap-1.5">
+          <Label htmlFor="name">Name *</Label>
+          <Input
             type="text"
-            name="name"
             id="name"
-            required
+            name="name"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+            onChange={handleChange}
+            disabled={isSubmitting}
+            className={errors.name ? 'border-destructive' : ''}
           />
+          {errors.name && (
+            <p className="text-sm text-destructive">{errors.name}</p>
+          )}
         </div>
-      </div>
 
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium leading-6 text-gray-900">
-          Email
-        </label>
-        <div className="mt-2">
-          <input
+        <div className="grid w-full items-center gap-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input
             type="email"
-            name="email"
             id="email"
+            name="email"
             value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+            onChange={handleChange}
+            disabled={isSubmitting}
+            className={errors.email ? 'border-destructive' : ''}
           />
+          {errors.email && (
+            <p className="text-sm text-destructive">{errors.email}</p>
+          )}
         </div>
-      </div>
 
-      <div>
-        <label htmlFor="phone" className="block text-sm font-medium leading-6 text-gray-900">
-          Phone
-        </label>
-        <div className="mt-2">
-          <input
+        <div className="grid w-full items-center gap-1.5">
+          <Label htmlFor="phone">Phone</Label>
+          <Input
             type="tel"
-            name="phone"
             id="phone"
+            name="phone"
             value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+            onChange={handleChange}
+            disabled={isSubmitting}
           />
         </div>
-      </div>
 
-      <div>
-        <label htmlFor="notes" className="block text-sm font-medium leading-6 text-gray-900">
-          Notes
-        </label>
-        <div className="mt-2">
-          <textarea
-            name="notes"
+        <div className="grid w-full items-center gap-1.5">
+          <Label htmlFor="notes">Notes</Label>
+          <Textarea
             id="notes"
-            rows={3}
+            name="notes"
             value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+            onChange={handleChange}
+            disabled={isSubmitting}
+            rows={4}
           />
         </div>
       </div>
 
-      <div className="flex justify-end gap-x-4">
-        <button
+      <DialogFooter>
+        <Button
           type="button"
+          variant="outline"
           onClick={onCancel}
-          className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+          disabled={isSubmitting}
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
-          className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          disabled={isSubmitting}
         >
-          Save
-        </button>
-      </div>
+          {isSubmitting ? 'Saving...' : 'Save'}
+        </Button>
+      </DialogFooter>
     </form>
   );
 } 
