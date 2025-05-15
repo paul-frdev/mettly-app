@@ -2,6 +2,11 @@
 
 import { useState } from 'react';
 import { ClientFormData } from '@/lib/validations/client';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { DialogFooter } from "@/components/ui/dialog";
 
 interface ClientFormProps {
   client?: Partial<ClientFormData>;
@@ -53,87 +58,80 @@ export default function ClientForm({ client, onSubmit, onCancel, isSubmitting = 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Name *
-        </label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          disabled={isSubmitting}
-          className={`mt-1 block w-full rounded-md border ${errors.name ? 'border-red-500' : 'border-gray-300'
-            } px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-        />
-        {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+      <div className="space-y-4">
+        <div className="grid w-full items-center gap-1.5">
+          <Label htmlFor="name">Name *</Label>
+          <Input
+            type="text"
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            disabled={isSubmitting}
+            className={errors.name ? 'border-destructive' : ''}
+          />
+          {errors.name && (
+            <p className="text-sm text-destructive">{errors.name}</p>
+          )}
+        </div>
+
+        <div className="grid w-full items-center gap-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            disabled={isSubmitting}
+            className={errors.email ? 'border-destructive' : ''}
+          />
+          {errors.email && (
+            <p className="text-sm text-destructive">{errors.email}</p>
+          )}
+        </div>
+
+        <div className="grid w-full items-center gap-1.5">
+          <Label htmlFor="phone">Phone</Label>
+          <Input
+            type="tel"
+            id="phone"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div className="grid w-full items-center gap-1.5">
+          <Label htmlFor="notes">Notes</Label>
+          <Textarea
+            id="notes"
+            name="notes"
+            value={formData.notes}
+            onChange={handleChange}
+            disabled={isSubmitting}
+            rows={4}
+          />
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Email
-        </label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          disabled={isSubmitting}
-          className={`mt-1 block w-full rounded-md border ${errors.email ? 'border-red-500' : 'border-gray-300'
-            } px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-        />
-        {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Phone
-        </label>
-        <input
-          type="tel"
-          id="phone"
-          name="phone"
-          value={formData.phone}
-          onChange={handleChange}
-          disabled={isSubmitting}
-          className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Notes
-        </label>
-        <textarea
-          id="notes"
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          disabled={isSubmitting}
-          rows={4}
-          className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-        />
-      </div>
-
-      <div className="flex justify-end space-x-3 mt-6">
-        <button
+      <DialogFooter>
+        <Button
           type="button"
+          variant="outline"
           onClick={onCancel}
           disabled={isSubmitting}
-          className={`px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
           disabled={isSubmitting}
-          className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {isSubmitting ? 'Saving...' : 'Save'}
-        </button>
-      </div>
+        </Button>
+      </DialogFooter>
     </form>
   );
 } 

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { Prisma } from '@prisma/client';
+import type { Client, Prisma } from '@prisma/client';
 import { clientSchema, clientValidationErrors } from '@/lib/validations/client';
 
 export async function GET(request: Request) {
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
 
-    const where: Prisma.ClientWhereInput = {
+    const where = {
       userId: session.user.id,
       ...(search
         ? {
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
             status: status,
           }
         : {}),
-    };
+    } satisfies Prisma.ClientWhereInput;
 
     const clients = await prisma.client.findMany({
       where,
@@ -67,16 +67,23 @@ export async function GET(request: Request) {
       },
     });
 
-    const formattedClients = clients.map((client) => ({
-      id: client.id,
-      name: client.name,
-      email: client.email || '',
-      phone: client.phone || '',
-      notes: client.notes || '',
-      status: client.status || 'active',
-      appointmentsCount: client._count?.appointments || 0,
-      lastAppointment: client.appointments[0]?.date || null,
-    }));
+    const formattedClients = clients.map(
+      (
+        client: Client & {
+          _count: { appointments: number };
+          appointments: { date: Date }[];
+        }
+      ) => ({
+        id: client.id,
+        name: client.name,
+        email: client.email || '',
+        phone: client.phone || '',
+        notes: client.notes || '',
+        status: client.status || 'active',
+        appointmentsCount: client._count?.appointments || 0,
+        lastAppointment: client.appointments[0]?.date || null,
+      })
+    );
 
     return NextResponse.json(formattedClients);
   } catch (error) {
