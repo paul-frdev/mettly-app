@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { Prisma } from '@prisma/client';
+import { clientSchema, clientValidationErrors } from '@/lib/validations/client';
 
 export async function GET(request: Request) {
   try {
@@ -92,10 +93,41 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
-    const { name, email, phone, notes } = data;
 
-    if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    // Validate the input data using Zod
+    const validationResult = clientSchema.safeParse(data);
+    if (!validationResult.success) {
+      return NextResponse.json({ error: validationResult.error.errors[0].message }, { status: 400 });
+    }
+
+    const { name, email, phone, notes } = validationResult.data;
+
+    // Check for duplicate email
+    if (email) {
+      const existingClientWithEmail = await prisma.client.findFirst({
+        where: {
+          userId: session.user.id,
+          email: email,
+        },
+      });
+
+      if (existingClientWithEmail) {
+        return NextResponse.json({ error: clientValidationErrors.DUPLICATE_EMAIL }, { status: 400 });
+      }
+    }
+
+    // Check for duplicate phone
+    if (phone) {
+      const existingClientWithPhone = await prisma.client.findFirst({
+        where: {
+          userId: session.user.id,
+          phone: phone,
+        },
+      });
+
+      if (existingClientWithPhone) {
+        return NextResponse.json({ error: clientValidationErrors.DUPLICATE_PHONE }, { status: 400 });
+      }
     }
 
     const client = await prisma.client.create({

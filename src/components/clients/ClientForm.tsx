@@ -1,21 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-
-interface ClientFormData {
-  name: string;
-  email: string;
-  phone: string;
-  notes: string;
-}
+import { ClientFormData } from '@/lib/validations/client';
 
 interface ClientFormProps {
   client?: Partial<ClientFormData>;
   onSubmit: (data: ClientFormData) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-export default function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
+export default function ClientForm({ client, onSubmit, onCancel, isSubmitting = false }: ClientFormProps) {
   const [formData, setFormData] = useState<ClientFormData>({
     name: client?.name || '',
     email: client?.email || '',
@@ -68,8 +63,9 @@ export default function ClientForm({ client, onSubmit, onCancel }: ClientFormPro
           name="name"
           value={formData.name}
           onChange={handleChange}
+          disabled={isSubmitting}
           className={`mt-1 block w-full rounded-md border ${errors.name ? 'border-red-500' : 'border-gray-300'
-            } px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white`}
+            } px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
         />
         {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
       </div>
@@ -84,8 +80,9 @@ export default function ClientForm({ client, onSubmit, onCancel }: ClientFormPro
           name="email"
           value={formData.email}
           onChange={handleChange}
+          disabled={isSubmitting}
           className={`mt-1 block w-full rounded-md border ${errors.email ? 'border-red-500' : 'border-gray-300'
-            } px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white`}
+            } px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
         />
         {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
       </div>
@@ -100,7 +97,8 @@ export default function ClientForm({ client, onSubmit, onCancel }: ClientFormPro
           name="phone"
           value={formData.phone}
           onChange={handleChange}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          disabled={isSubmitting}
+          className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
         />
       </div>
 
@@ -113,8 +111,9 @@ export default function ClientForm({ client, onSubmit, onCancel }: ClientFormPro
           name="notes"
           value={formData.notes}
           onChange={handleChange}
+          disabled={isSubmitting}
           rows={4}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
         />
       </div>
 
@@ -122,15 +121,17 @@ export default function ClientForm({ client, onSubmit, onCancel }: ClientFormPro
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+          disabled={isSubmitting}
+          className={`px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          disabled={isSubmitting}
+          className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          Save
+          {isSubmitting ? 'Saving...' : 'Save'}
         </button>
       </div>
     </form>
