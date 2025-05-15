@@ -18,21 +18,34 @@ export default function ProfileClient() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
+  // Load initial profile data
   useEffect(() => {
-    if (status === 'loading') return;
+    async function loadProfile() {
+      if (status === 'loading') return;
 
-    if (status === 'unauthenticated') {
-      router.replace('/auth/login');
-      return;
+      if (status === 'unauthenticated') {
+        router.replace('/auth/login');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/profile');
+        if (response.ok) {
+          const userData = await response.json();
+          setFormData({
+            name: userData.name || '',
+            phone: userData.phone || '',
+            bio: userData.bio || '',
+            profession: userData.profession || '',
+          });
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      }
     }
 
-    if (session?.user) {
-      setFormData(prev => ({
-        ...prev,
-        name: session.user.name || '',
-      }));
-    }
-  }, [session, status, router]);
+    loadProfile();
+  }, [status, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +65,17 @@ export default function ProfileClient() {
       }
 
       const updatedUser = await response.json();
-      await updateSession({ user: updatedUser });
+
+      // Force session update and refresh
+      await updateSession({
+        ...session,
+        user: {
+          ...session?.user,
+          ...updatedUser
+        }
+      });
+
+      router.refresh();
       setIsEditing(false);
     } catch (error) {
       console.error('Error updating profile:', error);
