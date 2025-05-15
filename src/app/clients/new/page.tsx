@@ -1,6 +1,6 @@
 'use client';
 
-import { ClientForm } from '@/components/clients/ClientForm';
+import ClientForm from '@/components/clients/ClientForm';
 import { Client } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
