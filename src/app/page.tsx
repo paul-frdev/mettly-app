@@ -19,28 +19,22 @@ export default function Home() {
     }
   }, [status, router]);
 
-  if (status === 'loading') {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  // Show landing page only for non-authenticated users
-  if (status === 'unauthenticated') {
-    return (
-      <main className="min-h-screen bg-white dark:bg-gray-900">
-        <Hero />
-        <Features />
-        <TargetAudience />
-        <HowItWorks />
-        <Footer />
-      </main>
-    );
-  }
-
-  // This return is needed for TypeScript, but won't be rendered
-  // because authenticated users will be redirected
-  return null;
+  // Show landing page for unauthenticated users and during loading
+  return (
+    <main className="min-h-screen bg-white dark:bg-gray-900">
+      {status === 'loading' ? (
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <>
+          <Hero />
+          <Features />
+          <TargetAudience />
+          <HowItWorks />
+          <Footer />
+        </>
+      )}
+    </main>
+  );
 }

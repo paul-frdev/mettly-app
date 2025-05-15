@@ -4,15 +4,26 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 
-// Extend the built-in session types
+// Extend the built-in types
 declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
       email?: string | null;
       name?: string | null;
-      image?: string | null;
+      phone?: string | null;
+      bio?: string | null;
+      profession?: string | null;
     };
+  }
+
+  interface User {
+    id: string;
+    email: string;
+    name: string;
+    phone?: string | null;
+    bio?: string | null;
+    profession?: string | null;
   }
 }
 
@@ -34,6 +45,15 @@ export const authOptions: NextAuthOptions = {
           where: {
             email: credentials.email,
           },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            password: true,
+            phone: true,
+            bio: true,
+            profession: true,
+          },
         });
 
         if (!user) {
@@ -50,12 +70,16 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
+          phone: user.phone,
+          bio: user.bio,
+          profession: user.profession,
         };
       },
     }),
   ],
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
     signIn: '/auth/login',
@@ -63,17 +87,38 @@ export const authOptions: NextAuthOptions = {
     // Users will still be able to access the register page through your app's routing
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
+        token.phone = user.phone;
+        token.bio = user.bio;
+        token.profession = user.profession;
       }
+
+      // Handle session update
+      if (trigger === 'update' && session) {
+        token.phone = session.user.phone;
+        token.bio = session.user.bio;
+        token.profession = session.user.profession;
+        token.name = session.user.name;
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.phone = token.phone as string | null;
+        session.user.bio = token.bio as string | null;
+        session.user.profession = token.profession as string | null;
+        session.user.name = token.name as string | null;
       }
       return session;
+    },
+  },
+  events: {
+    async signOut() {
+      // Clear any server-side session data if needed
     },
   },
 };
