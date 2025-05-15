@@ -1,101 +1,81 @@
+'use client';
+
+import { Clock, Users, DollarSign } from 'lucide-react';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-            Dashboard
-          </h2>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {/* Quick Stats */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Upcoming Appointments</dt>
-                  <dd className="text-lg font-medium text-gray-900">3</dd>
-                </dl>
-              </div>
+    <DashboardLayout>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Upcoming Appointments */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
+                Upcoming Appointments
+              </p>
+              <h3 className="text-3xl font-bold mt-1">3</h3>
+            </div>
+            <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-full">
+              <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Clients</dt>
-                  <dd className="text-lg font-medium text-gray-900">12</dd>
-                </dl>
-              </div>
+        {/* Total Clients */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
+                Total Clients
+              </p>
+              <h3 className="text-3xl font-bold mt-1">12</h3>
+            </div>
+            <div className="bg-green-100 dark:bg-green-900 p-3 rounded-full">
+              <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Monthly Revenue</dt>
-                  <dd className="text-lg font-medium text-gray-900">$2,100</dd>
-                </dl>
-              </div>
+        {/* Monthly Revenue */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
+                Monthly Revenue
+              </p>
+              <h3 className="text-3xl font-bold mt-1">$2,100</h3>
+            </div>
+            <div className="bg-purple-100 dark:bg-purple-900 p-3 rounded-full">
+              <DollarSign className="w-6 h-6 text-purple-600 dark:text-purple-400" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Upcoming Appointments Section */}
-      <div className="bg-white shadow sm:rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg font-medium leading-6 text-gray-900">Upcoming Appointments</h3>
-          <div className="mt-5">
-            <div className="flow-root">
-              <ul role="list" className="-my-5 divide-y divide-gray-200">
-                <li className="py-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-500">
-                        <span className="text-sm font-medium leading-none text-white">JD</span>
-                      </span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-gray-900">John Doe</p>
-                      <p className="truncate text-sm text-gray-500">Tomorrow at 10:00 AM</p>
-                    </div>
-                    <div>
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                        Confirmed
-                      </span>
-                    </div>
-                  </div>
-                </li>
-              </ul>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Upcoming Appointments</h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold">
+                  JD
+                </div>
+                <div>
+                  <h3 className="font-semibold">John Doe</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Tomorrow at 10:00 AM</p>
+                </div>
+              </div>
+              <span className="px-3 py-1 text-sm text-green-700 bg-green-100 rounded-full">
+                Confirmed
+              </span>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 } 
