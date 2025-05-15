@@ -106,11 +106,11 @@ export default function Header() {
                   Clients
                 </Link>
                 <Link
-                  href="/calendar"
-                  onClick={(e) => handleNavigation(e, '/calendar')}
+                  href="/appointments"
+                  onClick={(e) => handleNavigation(e, '/appointments')}
                   className="hover:text-blue-500 transition-colors"
                 >
-                  Calendar
+                  Appointment
                 </Link>
                 <Link
                   href="/settings"
