@@ -1,12 +1,11 @@
 'use client';
 
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import { NotificationSettings } from '@/components/settings/NotificationSettings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function SettingsPage() {
   return (
-    <DashboardLayout>
+    <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Settings</h1>
       </div>
@@ -35,6 +34,6 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
       </Tabs>
-    </DashboardLayout>
+    </>
   );
 } 
