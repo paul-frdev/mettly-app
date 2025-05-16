@@ -136,30 +136,40 @@ export default function CreateAppointment() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    // Финальная проверка перед отправкой
-    if (!isTimeSlotAvailable(formData.date, formData.duration)) {
-      alert('This time slot is no longer available. Please select another time.');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
+      if (!formData.clientId) {
+        alert('Please select a client');
+        return;
+      }
+
+      if (!formData.date || !formData.duration) {
+        alert('Please select date and duration');
+        return;
+      }
+
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          date: formData.date.toISOString(),
+          clientId: formData.clientId,
+          duration: formData.duration,
+          notes: formData.notes || undefined,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create appointment');
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to create appointment');
       }
 
+      alert('Appointment created successfully');
       router.push('/appointments');
     } catch (error) {
       console.error('Error creating appointment:', error);

@@ -22,7 +22,11 @@ export async function GET() {
       include: {
         client: {
           select: {
+            id: true,
             name: true,
+            email: true,
+            phone: true,
+            notes: true,
           },
         },
       },
@@ -44,20 +48,60 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
     const { date, clientId, duration, notes } = body;
 
+    // Validate required fields
+    if (!clientId) {
+      return NextResponse.json({ error: 'Client is required' }, { status: 400 });
+    }
+
+    if (!date) {
+      return NextResponse.json({ error: 'Date and time are required' }, { status: 400 });
+    }
+
+    // Check if client exists
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+    });
+
+    if (!client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    }
+
+    // Check for overlapping appointments
+    const appointmentDate = new Date(date);
+    const appointmentEnd = new Date(appointmentDate.getTime() + (duration || 30) * 60000);
+
+    const overlappingAppointment = await prisma.appointment.findFirst({
+      where: {
+        userId: session.user.id,
+        date: {
+          lt: appointmentEnd,
+        },
+        AND: {
+          date: {
+            gte: appointmentDate,
+          },
+        },
+      },
+    });
+
+    if (overlappingAppointment) {
+      return NextResponse.json({ error: 'This time slot is already booked' }, { status: 400 });
+    }
+
+    // Create the appointment
     const appointment = await prisma.appointment.create({
       data: {
+        date: appointmentDate,
+        duration: duration || 30,
+        notes: notes,
         userId: session.user.id,
-        date: new Date(date),
-        clientId,
-        duration,
-        notes,
-        status: 'scheduled',
+        clientId: clientId,
       },
       include: {
         client: {
@@ -68,18 +112,10 @@ export async function POST(request: Request) {
       },
     });
 
-    // Create a reminder for the appointment
-    await prisma.reminder.create({
-      data: {
-        appointmentId: appointment.id,
-        type: 'email', // Default to email reminder
-      },
-    });
-
     return NextResponse.json(appointment);
   } catch (error) {
     console.error('Error creating appointment:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });
   }
 }
 

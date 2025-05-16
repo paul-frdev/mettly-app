@@ -5,15 +5,32 @@ import { Clock, Users, DollarSign } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { DaySchedule } from '@/components/dashboard/DaySchedule';
 import { ClientInfo } from '@/components/dashboard/ClientInfo';
+import { showError } from '@/lib/utils/notifications';
+
+interface Client {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+}
+
+interface ApiAppointment {
+  id: string;
+  date: string;
+  duration: number;
+  client: Client;
+  status: string;
+  notes?: string;
+}
 
 interface Appointment {
   id: string;
   date: Date;
   duration: number;
-  client?: {
-    name: string;
-  };
+  client: Client;
   status: string;
+  notes?: string;
 }
 
 export default function DashboardPage() {
@@ -32,12 +49,19 @@ export default function DashboardPage() {
 
   const fetchAppointments = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch('/api/appointments');
       if (!response.ok) throw new Error('Failed to fetch appointments');
       const data = await response.json();
-      setAppointments(data);
+      // Transform dates from strings to Date objects
+      const transformedData = data.map((apt: ApiAppointment) => ({
+        ...apt,
+        date: new Date(apt.date)
+      }));
+      setAppointments(transformedData);
     } catch (error) {
       console.error('Error fetching appointments:', error);
+      showError(error);
     } finally {
       setIsLoading(false);
     }
@@ -119,13 +143,19 @@ export default function DashboardPage() {
         {/* Client Information Section */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
           <h2 className="text-xl font-semibold mb-6">Information about the client</h2>
-          <ClientInfo appointments={appointments} />
+          <ClientInfo
+            appointments={appointments}
+            onAppointmentUpdate={fetchAppointments}
+          />
         </div>
 
         {/* Day Schedule Section */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
           <h2 className="text-xl font-semibold mb-6">Ability to change day</h2>
-          <DaySchedule appointments={appointments} />
+          <DaySchedule
+            appointments={appointments}
+            onAppointmentUpdate={fetchAppointments}
+          />
         </div>
       </div>
     </DashboardLayout>
