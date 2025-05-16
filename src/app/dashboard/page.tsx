@@ -1,9 +1,69 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Clock, Users, DollarSign } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { DaySchedule } from '@/components/dashboard/DaySchedule';
+import { ClientInfo } from '@/components/dashboard/ClientInfo';
+
+interface Appointment {
+  id: string;
+  date: Date;
+  duration: number;
+  client?: {
+    name: string;
+  };
+  status: string;
+}
 
 export default function DashboardPage() {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    upcomingAppointments: 0,
+    totalClients: 0,
+    monthlyRevenue: 0
+  });
+
+  useEffect(() => {
+    fetchAppointments();
+    fetchStats();
+  }, []);
+
+  const fetchAppointments = async () => {
+    try {
+      const response = await fetch('/api/appointments');
+      if (!response.ok) throw new Error('Failed to fetch appointments');
+      const data = await response.json();
+      setAppointments(data);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/stats');
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       {/* Stats Grid */}
@@ -15,7 +75,7 @@ export default function DashboardPage() {
               <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
                 Upcoming Appointments
               </p>
-              <h3 className="text-3xl font-bold mt-1">3</h3>
+              <h3 className="text-3xl font-bold mt-1">{stats.upcomingAppointments}</h3>
             </div>
             <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-full">
               <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -30,7 +90,7 @@ export default function DashboardPage() {
               <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
                 Total Clients
               </p>
-              <h3 className="text-3xl font-bold mt-1">12</h3>
+              <h3 className="text-3xl font-bold mt-1">{stats.totalClients}</h3>
             </div>
             <div className="bg-green-100 dark:bg-green-900 p-3 rounded-full">
               <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -45,7 +105,7 @@ export default function DashboardPage() {
               <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
                 Monthly Revenue
               </p>
-              <h3 className="text-3xl font-bold mt-1">$2,100</h3>
+              <h3 className="text-3xl font-bold mt-1">${stats.monthlyRevenue}</h3>
             </div>
             <div className="bg-purple-100 dark:bg-purple-900 p-3 rounded-full">
               <DollarSign className="w-6 h-6 text-purple-600 dark:text-purple-400" />
@@ -54,26 +114,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Upcoming Appointments Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Upcoming Appointments</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4">
-              <div className="flex items-center space-x-4">
-                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold">
-                  JD
-                </div>
-                <div>
-                  <h3 className="font-semibold">John Doe</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Tomorrow at 10:00 AM</p>
-                </div>
-              </div>
-              <span className="px-3 py-1 text-sm text-green-700 bg-green-100 rounded-full">
-                Confirmed
-              </span>
-            </div>
-          </div>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Client Information Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-6">Information about the client</h2>
+          <ClientInfo appointments={appointments} />
+        </div>
+
+        {/* Day Schedule Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-6">Ability to change day</h2>
+          <DaySchedule appointments={appointments} />
         </div>
       </div>
     </DashboardLayout>
