@@ -1,7 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { MoreVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { showError, showPromise } from '@/lib/utils/notifications';
 
 interface Client {
   id: string;
@@ -15,32 +24,55 @@ interface Appointment {
   id: string;
   date: Date;
   duration: number;
-  client?: {
-    name: string;
-  };
+  client: Client;
   status: string;
+  notes?: string;
 }
 
 interface ClientInfoProps {
   appointments: Appointment[];
+  onAppointmentUpdate?: () => void;
 }
 
-export function ClientInfo({ appointments }: ClientInfoProps) {
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [clients, setClients] = useState<Client[]>([]);
+export function ClientInfo({ appointments, onAppointmentUpdate }: ClientInfoProps) {
+  const [expandedAppointments, setExpandedAppointments] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    fetchClients();
-  }, []);
+  const toggleAppointment = (appointmentId: string) => {
+    setExpandedAppointments(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(appointmentId)) {
+        newSet.delete(appointmentId);
+      } else {
+        newSet.add(appointmentId);
+      }
+      return newSet;
+    });
+  };
 
-  const fetchClients = async () => {
+  const handleDeleteAppointment = async (appointmentId: string) => {
     try {
-      const response = await fetch('/api/clients');
-      if (!response.ok) throw new Error('Failed to fetch clients');
-      const data = await response.json();
-      setClients(data);
+      const response = await fetch(`/api/appointments/${appointmentId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete appointment');
+      }
+
+      await showPromise(
+        Promise.resolve(response),
+        {
+          loading: 'Deleting appointment...',
+          success: 'Appointment deleted successfully',
+          error: 'Failed to delete appointment',
+        }
+      );
+
+      if (onAppointmentUpdate) {
+        onAppointmentUpdate();
+      }
     } catch (error) {
-      console.error('Error fetching clients:', error);
+      showError(error);
     }
   };
 
@@ -62,58 +94,107 @@ export function ClientInfo({ appointments }: ClientInfoProps) {
           todayAppointments
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
             .map((appointment) => {
-              const client = appointment.client?.name
-                ? clients.find(c => c.name === appointment.client?.name)
-                : undefined;
+              const isExpanded = expandedAppointments.has(appointment.id);
+              const appointmentDate = new Date(appointment.date);
+              const endTime = new Date(appointmentDate.getTime() + appointment.duration * 60000);
 
               return (
                 <Card
                   key={appointment.id}
                   className="p-4 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => setSelectedClient(client || null)}
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium">
-                        {appointment.client?.name || 'No client name'}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {format(new Date(appointment.date), 'HH:mm')}
-                        {' - '}
-                        {format(
-                          new Date(new Date(appointment.date).getTime() + appointment.duration * 60000),
-                          'HH:mm'
+                  <div
+                    className="flex justify-between items-start"
+                    onClick={() => toggleAppointment(appointment.id)}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium">
+                          {appointment.client?.name || 'No client name'}
+                        </h3>
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-gray-500" />
                         )}
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        {format(appointmentDate, 'HH:mm')}
+                        {' - '}
+                        {format(endTime, 'HH:mm')}
                       </p>
                     </div>
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${appointment.status === 'scheduled'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : appointment.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                        }`}
-                    >
-                      {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${appointment.status === 'scheduled'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : appointment.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                          }`}
+                      >
+                        {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteAppointment(appointment.id);
+                            }}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
-                  {client && selectedClient?.id === client.id && (
-                    <div className="mt-4 space-y-2 text-sm text-gray-600">
-                      {client.email && (
-                        <p>
-                          <span className="font-medium">Email:</span> {client.email}
-                        </p>
-                      )}
-                      {client.phone && (
-                        <p>
-                          <span className="font-medium">Phone:</span> {client.phone}
-                        </p>
-                      )}
-                      {client.notes && (
-                        <p>
-                          <span className="font-medium">Notes:</span> {client.notes}
-                        </p>
+                  {isExpanded && (
+                    <div className="mt-4 space-y-4 text-sm text-gray-600 border-t pt-4">
+                      {/* Appointment Details */}
+                      <div>
+                        <h4 className="font-medium text-gray-900">Appointment Details</h4>
+                        <div className="mt-2 space-y-2">
+                          <p>
+                            <span className="font-medium">Duration:</span> {appointment.duration} minutes
+                          </p>
+                          {appointment.notes && (
+                            <p>
+                              <span className="font-medium">Appointment Notes:</span> {appointment.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Client Details */}
+                      {appointment.client && (
+                        <div>
+                          <h4 className="font-medium text-gray-900">Client Details</h4>
+                          <div className="mt-2 space-y-2">
+                            {appointment.client.email && (
+                              <p>
+                                <span className="font-medium">Email:</span> {appointment.client.email}
+                              </p>
+                            )}
+                            {appointment.client.phone && (
+                              <p>
+                                <span className="font-medium">Phone:</span> {appointment.client.phone}
+                              </p>
+                            )}
+                            {appointment.client.notes && (
+                              <p>
+                                <span className="font-medium">Client Notes:</span> {appointment.client.notes}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}

@@ -36,3 +36,39 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
+
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const appointment = await prisma.appointment.delete({
+      where: {
+        id: params.id,
+      },
+    });
+
+    return NextResponse.json(appointment);
+  } catch (error) {
+    console.error('Error deleting appointment:', error);
+    return NextResponse.json({ error: 'Failed to delete appointment' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const body = await request.json();
+    const { date } = body;
+
+    const appointment = await prisma.appointment.update({
+      where: {
+        id: params.id,
+      },
+      data: {
+        date: new Date(date),
+      },
+    });
+
+    return NextResponse.json(appointment);
+  } catch (error) {
+    console.error('Error updating appointment:', error);
+    return NextResponse.json({ error: 'Failed to update appointment' }, { status: 500 });
+  }
+}
