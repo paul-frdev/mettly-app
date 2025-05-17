@@ -86,9 +86,9 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
               )}
             >
               <span className="inline-block w-16">{format(time, 'HH:mm')}</span>
-              {isBooked && appointment && (
+              {isBooked && appointment && appointment.client && (
                 <span className="text-sm text-blue-600 ml-2">
-                  {appointment.client.name}
+                  {appointment.client.name || 'Unnamed Client'}
                 </span>
               )}
               {isPast && (
