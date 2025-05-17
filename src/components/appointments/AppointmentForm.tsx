@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import * as z from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -21,15 +21,28 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import * as z from 'zod';
 import { showSuccess, showError } from '@/lib/utils/notifications';
 
+interface Client {
+  id: string;
+  name: string;
+}
+
 const appointmentSchema = z.object({
-  notes: z.string().optional(),
+  clientId: z.string({ required_error: "Please select a client" }),
   duration: z.number().min(30, 'Duration must be at least 30 minutes'),
+  notes: z.string().optional(),
 });
 
 type AppointmentFormData = z.infer<typeof appointmentSchema>;
@@ -38,21 +51,41 @@ interface AppointmentFormProps {
   isOpen: boolean;
   onClose: () => void;
   selectedTime: Date;
-  clientId?: string;
   onSuccess?: () => void;
 }
 
-export function AppointmentForm({ isOpen, onClose, selectedTime, clientId, onSuccess }: AppointmentFormProps) {
-  const router = useRouter();
+export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess }: AppointmentFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+  const router = useRouter();
 
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
-      notes: '',
       duration: 30,
+      notes: '',
     },
   });
+
+  useEffect(() => {
+    async function fetchClients() {
+      try {
+        const response = await fetch('/api/clients');
+        if (!response.ok) {
+          throw new Error('Failed to fetch clients');
+        }
+        const data = await response.json();
+        setClients(data);
+      } catch (error) {
+        console.error(error)
+        showError('Failed to load clients');
+      }
+    }
+
+    if (isOpen) {
+      fetchClients();
+    }
+  }, [isOpen]);
 
   async function onSubmit(data: AppointmentFormData) {
     setIsLoading(true);
@@ -63,19 +96,17 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, clientId, onSuc
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          ...data,
           date: selectedTime.toISOString(),
-          duration: data.duration,
-          notes: data.notes,
-          clientId,
         }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create appointment');
+        throw new Error('Failed to create appointment');
       }
 
       showSuccess('Appointment created successfully');
+      form.reset();
       onClose();
       if (onSuccess) {
         onSuccess();
@@ -100,6 +131,31 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, clientId, onSuc
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="clientId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Client</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a client" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="duration"

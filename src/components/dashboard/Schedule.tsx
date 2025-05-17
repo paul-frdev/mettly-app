@@ -11,10 +11,15 @@ interface ScheduleProps {
   appointments: Array<{
     date: Date;
     duration: number;
+    client: {
+      id: string;
+      name: string;
+    };
   }>;
+  onAppointmentCreated?: () => void;
 }
 
-export function Schedule({ appointments }: ScheduleProps) {
+export function Schedule({ appointments, onAppointmentCreated }: ScheduleProps) {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   return (
@@ -49,10 +54,7 @@ export function Schedule({ appointments }: ScheduleProps) {
           appointments={appointments.filter(
             (apt) => format(new Date(apt.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
           )}
-          onAppointmentCreated={() => {
-            // This will be called after an appointment is created
-            // You can add a refresh mechanism here
-          }}
+          onAppointmentCreated={onAppointmentCreated}
         />
       </CardContent>
     </Card>

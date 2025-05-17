@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Schedule } from '@/components/dashboard/Schedule';
 import { showError } from '@/lib/utils/notifications';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { ClientFormDialog } from '@/components/dashboard/ClientFormDialog';
+import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 interface Client {
   id: string;
@@ -39,7 +41,8 @@ export function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isClientFormOpen, setIsClientFormOpen] = useState(false);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
+    setIsLoading(true);
     try {
       const response = await fetch('/api/appointments');
       if (!response.ok) {
@@ -56,11 +59,32 @@ export function DashboardContent() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchAppointments();
-  }, []);
+  }, [fetchAppointments]);
+
+  // Get today's appointments
+  const todayAppointments = appointments.filter(apt =>
+    format(apt.date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+  ).sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Get upcoming appointments (excluding today)
+  const upcomingAppointments = appointments.filter(apt =>
+    apt.date > new Date() && format(apt.date, 'yyyy-MM-dd') !== format(new Date(), 'yyyy-MM-dd')
+  ).sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
+  };
 
   if (isLoading) {
     return (
@@ -78,16 +102,16 @@ export function DashboardContent() {
             <CardTitle>Upcoming</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">0</div>
+            <div className="text-3xl font-bold">{upcomingAppointments.length}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Clients</CardTitle>
+            <CardTitle>Today&apos;s Appointments</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">24</div>
+            <div className="text-3xl font-bold">{todayAppointments.length}</div>
           </CardContent>
         </Card>
 
@@ -104,20 +128,73 @@ export function DashboardContent() {
       <div className="grid md:grid-cols-2 gap-8">
         <Card className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">Client Information</h2>
+            <h2 className="text-xl font-semibold">Today&apos;s Appointments</h2>
             <Button onClick={() => setIsClientFormOpen(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Add Client
             </Button>
           </div>
-          <div className="text-gray-500">
-            No appointments for today
-          </div>
+
+          {todayAppointments.length === 0 ? (
+            <div className="text-gray-500">No appointments for today</div>
+          ) : (
+            <div className="space-y-4">
+              {todayAppointments.map((appointment) => (
+                <div
+                  key={appointment.id}
+                  className="flex items-center justify-between p-4 rounded-lg border"
+                >
+                  <div>
+                    <div className="font-medium">{appointment.client.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {format(appointment.date, 'h:mm a')} ({appointment.duration} minutes)
+                    </div>
+                    {appointment.notes && (
+                      <div className="text-sm text-gray-600 mt-1">{appointment.notes}</div>
+                    )}
+                  </div>
+                  <Badge className={getStatusColor(appointment.status)}>
+                    {appointment.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {upcomingAppointments.length > 0 && (
+            <>
+              <h2 className="text-xl font-semibold mt-8 mb-4">Upcoming Appointments</h2>
+              <div className="space-y-4">
+                {upcomingAppointments.slice(0, 3).map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className="flex items-center justify-between p-4 rounded-lg border"
+                  >
+                    <div>
+                      <div className="font-medium">{appointment.client.name}</div>
+                      <div className="text-sm text-gray-500">
+                        {format(appointment.date, 'MMM d, h:mm a')} ({appointment.duration} minutes)
+                      </div>
+                      {appointment.notes && (
+                        <div className="text-sm text-gray-600 mt-1">{appointment.notes}</div>
+                      )}
+                    </div>
+                    <Badge className={getStatusColor(appointment.status)}>
+                      {appointment.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </Card>
 
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-6">Schedule</h2>
-          <Schedule appointments={appointments} />
+          <Schedule
+            appointments={appointments}
+            onAppointmentCreated={fetchAppointments}
+          />
         </Card>
       </div>
 
