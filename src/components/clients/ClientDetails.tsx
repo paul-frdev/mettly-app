@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Phone, Mail, Calendar, ArrowLeft, Trash } from 'lucide-react';
+import { Phone, Mail, ArrowLeft, Trash, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, addDays, subDays } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,12 +19,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { showSuccess, showError } from '@/lib/utils/notifications';
+import { TimeSlots } from '@/components/appointments/TimeSlots';
 
 interface Appointment {
   id: string;
   date: string;
   notes?: string;
   status: string;
+  duration: number;
 }
 
 interface Client {
@@ -45,6 +47,7 @@ export function ClientDetails({ clientId }: ClientDetailsProps) {
   const router = useRouter();
   const [client, setClient] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => {
     fetchClient();
@@ -157,47 +160,75 @@ export function ClientDetails({ clientId }: ClientDetailsProps) {
         </Card>
 
         <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Appointments</h2>
-            <Link href={`/appointments/create?clientId=${client.id}`}>
-              <Button>
-                <Calendar className="h-4 w-4 mr-2" />
-                New Appointment
-              </Button>
-            </Link>
+          <div className="flex items-center justify-between mb-6">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSelectedDate(subDays(selectedDate, 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="text-lg font-medium">
+              {format(selectedDate, 'MMMM d, yyyy')}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
+
+          <TimeSlots
+            selectedDate={selectedDate}
+            appointments={client.appointments.filter(
+              (apt) => format(new Date(apt.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+            ).map(apt => ({
+              ...apt,
+              date: new Date(apt.date)
+            }))}
+            clientId={client.id}
+            onAppointmentCreated={fetchClient}
+          />
+        </Card>
+
+        <Card className="p-6 md:col-span-2">
+          <h2 className="text-xl font-semibold mb-4">Upcoming Appointments</h2>
           {client.appointments.length === 0 ? (
             <p className="text-gray-500">No appointments yet.</p>
           ) : (
             <div className="space-y-4">
-              {client.appointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="flex items-center justify-between p-4 rounded-lg border"
-                >
-                  <div>
-                    <div className="font-medium">
-                      {format(new Date(appointment.date), 'MMMM d, yyyy')}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {format(new Date(appointment.date), 'h:mm a')}
-                    </div>
-                    {appointment.notes && (
-                      <div className="text-sm text-gray-600 mt-1">{appointment.notes}</div>
-                    )}
-                  </div>
+              {client.appointments
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                .map((appointment) => (
                   <div
-                    className={`px-2 py-1 rounded text-sm ${appointment.status === 'completed'
-                      ? 'bg-green-100 text-green-800'
-                      : appointment.status === 'cancelled'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-blue-100 text-blue-800'
-                      }`}
+                    key={appointment.id}
+                    className="flex items-center justify-between p-4 rounded-lg border"
                   >
-                    {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                    <div>
+                      <div className="font-medium">
+                        {format(new Date(appointment.date), 'MMMM d, yyyy')}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {format(new Date(appointment.date), 'h:mm a')} ({appointment.duration} minutes)
+                      </div>
+                      {appointment.notes && (
+                        <div className="text-sm text-gray-600 mt-1">{appointment.notes}</div>
+                      )}
+                    </div>
+                    <div
+                      className={`px-2 py-1 rounded text-sm ${appointment.status === 'completed'
+                        ? 'bg-green-100 text-green-800'
+                        : appointment.status === 'cancelled'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-blue-100 text-blue-800'
+                        }`}
+                    >
+                      {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
         </Card>
