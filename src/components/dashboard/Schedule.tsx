@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ScheduleProps {
   appointments: Array<{
+    id: string;
     date: Date;
     duration: number;
     client: {

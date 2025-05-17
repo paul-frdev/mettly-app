@@ -1,6 +1,8 @@
 'use client';
 
 import { NotificationSettings } from '@/components/settings/NotificationSettings';
+import { AccountSettings } from '@/components/settings/AccountSettings';
+import { BusinessSettings } from '@/components/settings/BusinessSettings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function SettingsPage() {
@@ -13,18 +15,18 @@ export default function SettingsPage() {
       <Tabs defaultValue="notifications" className="space-y-4">
         <TabsList>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="business">Business Hours</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
         <TabsContent value="notifications" className="space-y-4">
           <NotificationSettings />
         </TabsContent>
+        <TabsContent value="business" className="space-y-4">
+          <BusinessSettings />
+        </TabsContent>
         <TabsContent value="account">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-            <div className="p-6">
-              <p className="text-gray-500 dark:text-gray-400">Account settings coming soon...</p>
-            </div>
-          </div>
+          <AccountSettings />
         </TabsContent>
         <TabsContent value="appearance">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
