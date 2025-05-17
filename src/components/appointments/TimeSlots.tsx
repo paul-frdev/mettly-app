@@ -1,21 +1,28 @@
 'use client';
 
 import { useState } from 'react';
-import { format, parse, addMinutes, isWithinInterval } from 'date-fns';
+import { format, parse, addMinutes, isWithinInterval, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { AppointmentForm } from './AppointmentForm';
 
+interface Client {
+  id: string;
+  name: string;
+}
+
+interface Appointment {
+  date: Date;
+  duration: number;
+  client: Client;
+}
+
 interface TimeSlotsProps {
   selectedDate: Date;
-  appointments?: Array<{
-    date: Date;
-    duration: number;
-  }>;
-  clientId?: string;
+  appointments?: Appointment[];
   onAppointmentCreated?: () => void;
 }
 
-export function TimeSlots({ selectedDate, appointments = [], clientId, onAppointmentCreated }: TimeSlotsProps) {
+export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreated }: TimeSlotsProps) {
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -30,17 +37,26 @@ export function TimeSlots({ selectedDate, appointments = [], clientId, onAppoint
     currentTime = addMinutes(currentTime, 30);
   }
 
-  // Check if a time slot is available
-  const isSlotAvailable = (slotTime: Date) => {
-    return !appointments.some(appointment => {
+  const getSlotInfo = (slotTime: Date) => {
+    const now = new Date();
+    const isPast = isBefore(slotTime, now);
+
+    const bookedAppointment = appointments.find(appointment => {
       const appointmentStart = new Date(appointment.date);
       const appointmentEnd = addMinutes(appointmentStart, appointment.duration);
       return isWithinInterval(slotTime, { start: appointmentStart, end: appointmentEnd });
     });
+
+    return {
+      isPast,
+      isBooked: !!bookedAppointment,
+      appointment: bookedAppointment
+    };
   };
 
   const handleSlotClick = (time: Date) => {
-    if (isSlotAvailable(time)) {
+    const { isPast, isBooked } = getSlotInfo(time);
+    if (!isPast && !isBooked) {
       setSelectedTime(time);
       setIsFormOpen(true);
     }
@@ -55,20 +71,31 @@ export function TimeSlots({ selectedDate, appointments = [], clientId, onAppoint
     <>
       <div className="space-y-1">
         {timeSlots.map((time, index) => {
-          const isAvailable = isSlotAvailable(time);
+          const { isPast, isBooked, appointment } = getSlotInfo(time);
+
           return (
             <button
               key={index}
               onClick={() => handleSlotClick(time)}
-              disabled={!isAvailable}
+              disabled={isPast || isBooked}
               className={cn(
-                'w-full text-left px-4 py-2 rounded transition-colors',
-                isAvailable
-                  ? 'hover:bg-green-100 bg-green-50 cursor-pointer'
-                  : 'bg-gray-100 cursor-not-allowed opacity-50'
+                'w-full text-left px-4 py-2 rounded transition-colors relative',
+                isPast && 'bg-gray-100 cursor-not-allowed opacity-50 line-through',
+                isBooked && 'bg-blue-100 cursor-not-allowed',
+                !isPast && !isBooked && 'hover:bg-green-100 bg-green-50 cursor-pointer'
               )}
             >
-              {format(time, 'HH:mm')}
+              <span className="inline-block w-16">{format(time, 'HH:mm')}</span>
+              {isBooked && appointment && (
+                <span className="text-sm text-blue-600 ml-2">
+                  {appointment.client.name}
+                </span>
+              )}
+              {isPast && (
+                <span className="text-sm text-gray-500 ml-2">
+                  Past
+                </span>
+              )}
             </button>
           );
         })}
@@ -79,7 +106,6 @@ export function TimeSlots({ selectedDate, appointments = [], clientId, onAppoint
           isOpen={isFormOpen}
           onClose={handleFormClose}
           selectedTime={selectedTime}
-          clientId={clientId}
           onSuccess={onAppointmentCreated}
         />
       )}
