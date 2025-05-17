@@ -49,7 +49,7 @@ export default function ClientsPage() {
     <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Clients</h1>
-        <Link href="/clients/create">
+        <Link href="/clients/new">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             Add Client

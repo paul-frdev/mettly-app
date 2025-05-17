@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import { User, Mail, Phone, Settings, Briefcase } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -91,16 +90,14 @@ export default function ProfileClient() {
 
   if (status === 'loading') {
     return (
-      <DashboardLayout>
-        <div className="flex justify-center items-center min-h-screen">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </DashboardLayout>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout>
+    <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Profile</h1>
         <button
@@ -255,6 +252,6 @@ export default function ProfileClient() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 } 

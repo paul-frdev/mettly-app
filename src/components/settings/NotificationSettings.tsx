@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -94,6 +94,30 @@ export function NotificationSettings() {
       handleSettingChange('browserEnabled', false);
     }
   };
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/notifications');
+        if (!response.ok) {
+          throw new Error('Failed to fetch notification settings');
+        }
+        const data = await response.json();
+        if (data) {
+          setSettings(data);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load notification settings",
+        });
+      }
+    };
+
+    fetchSettings();
+  }, [toast]);
 
   return (
     <Card>

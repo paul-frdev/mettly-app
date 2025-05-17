@@ -3,6 +3,33 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const settings = await prisma.notificationSettings.findUnique({
+      where: {
+        userId: session.user.id,
+      },
+    });
+
+    return NextResponse.json(
+      settings || {
+        emailEnabled: true,
+        browserEnabled: true,
+        reminderTime: '30',
+      }
+    );
+  } catch (error) {
+    console.error('Error fetching notification settings:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
+}
+
 export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions);
