@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -48,26 +48,53 @@ export function ClientDetails({ clientId }: ClientDetailsProps) {
   const [client, setClient] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showCompleted, setShowCompleted] = useState(false);
 
-  useEffect(() => {
-    fetchClient();
-  }, [clientId]);
-
-  async function fetchClient() {
+  const fetchClient = useCallback(async () => {
     try {
-      const response = await fetch(`/api/clients/${clientId}`);
+      const response = await fetch(`/api/clients/${clientId}?includeCompleted=${showCompleted}`);
       if (!response.ok) {
         throw new Error('Failed to fetch client');
       }
       const data = await response.json();
       setClient(data);
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'Failed to fetch client');
-      router.push('/clients');
+      console.error('Error fetching client:', error);
+      showError('Failed to fetch client details');
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [clientId, showCompleted]);
+
+  useEffect(() => {
+    fetchClient();
+  }, [fetchClient]);
+
+  const handleStatusChange = async (appointmentId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/appointments`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: appointmentId,
+          status: newStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update appointment status');
+      }
+
+      // Refresh client data after status update
+      fetchClient();
+      showSuccess('Appointment status updated successfully');
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      showError('Failed to update appointment status');
+    }
+  };
 
   async function handleDeleteClient() {
     try {
@@ -86,17 +113,20 @@ export function ClientDetails({ clientId }: ClientDetailsProps) {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || !client) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
-  if (!client) {
-    return null;
-  }
+  const upcomingAppointments = client.appointments.filter(
+    apt => new Date(apt.date) >= new Date() && apt.status !== 'cancelled'
+  );
+  const pastAppointments = client.appointments.filter(
+    apt => new Date(apt.date) < new Date() || apt.status === 'cancelled'
+  );
 
   return (
     <div className="container mx-auto py-8">
@@ -188,18 +218,27 @@ export function ClientDetails({ clientId }: ClientDetailsProps) {
               ...apt,
               date: new Date(apt.date)
             }))}
-            clientId={client.id}
             onAppointmentCreated={fetchClient}
           />
         </Card>
 
         <Card className="p-6 md:col-span-2">
-          <h2 className="text-xl font-semibold mb-4">Upcoming Appointments</h2>
-          {client.appointments.length === 0 ? (
-            <p className="text-gray-500">No appointments yet.</p>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold">Upcoming Appointments</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCompleted(!showCompleted)}
+            >
+              {showCompleted ? 'Hide Completed' : 'Show Completed'}
+            </Button>
+          </div>
+
+          {upcomingAppointments.length === 0 ? (
+            <p className="text-gray-500">No upcoming appointments.</p>
           ) : (
             <div className="space-y-4">
-              {client.appointments
+              {upcomingAppointments
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                 .map((appointment) => (
                   <div
@@ -217,19 +256,56 @@ export function ClientDetails({ clientId }: ClientDetailsProps) {
                         <div className="text-sm text-gray-600 mt-1">{appointment.notes}</div>
                       )}
                     </div>
-                    <div
-                      className={`px-2 py-1 rounded text-sm ${appointment.status === 'completed'
-                        ? 'bg-green-100 text-green-800'
-                        : appointment.status === 'cancelled'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-blue-100 text-blue-800'
-                        }`}
-                    >
-                      {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={appointment.status}
+                        onChange={(e) => handleStatusChange(appointment.id, e.target.value)}
+                        className="px-2 py-1 rounded text-sm border border-gray-300"
+                      >
+                        <option value="scheduled">Scheduled</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
                     </div>
                   </div>
                 ))}
             </div>
+          )}
+
+          {showCompleted && pastAppointments.length > 0 && (
+            <>
+              <h2 className="text-xl font-semibold mt-8 mb-4">Past Appointments</h2>
+              <div className="space-y-4">
+                {pastAppointments
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .map((appointment) => (
+                    <div
+                      key={appointment.id}
+                      className="flex items-center justify-between p-4 rounded-lg border"
+                    >
+                      <div>
+                        <div className="font-medium">
+                          {format(new Date(appointment.date), 'MMMM d, yyyy')}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {format(new Date(appointment.date), 'h:mm a')} ({appointment.duration} minutes)
+                        </div>
+                        {appointment.notes && (
+                          <div className="text-sm text-gray-600 mt-1">{appointment.notes}</div>
+                        )}
+                      </div>
+                      <div
+                        className={`px-2 py-1 rounded text-sm ${appointment.status === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                          }`}
+                      >
+                        {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </>
           )}
         </Card>
       </div>
