@@ -35,6 +35,16 @@ export function BusinessSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [timezones, setTimezones] = useState<string[]>([]);
 
+  const daysOfWeek = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday'
+  ];
+
   useEffect(() => {
     // Get list of all timezones
     setTimezones(Intl.supportedValuesOf('timeZone'));
@@ -114,6 +124,15 @@ export function BusinessSettings() {
     }
   };
 
+  const toggleWorkingDay = (day: string) => {
+    setSettings(prev => ({
+      ...prev,
+      workingDays: prev.workingDays.includes(day)
+        ? prev.workingDays.filter(d => d !== day)
+        : [...prev.workingDays, day]
+    }));
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -122,38 +141,12 @@ export function BusinessSettings() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Time Zone</CardTitle>
+          <CardTitle>Business Hours</CardTitle>
           <CardDescription>
-            Set your business timezone for accurate scheduling
+            Set your regular business hours and working days
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Select
-            value={settings.timezone}
-            onValueChange={(value) => setSettings({ ...settings, timezone: value })}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select timezone" />
-            </SelectTrigger>
-            <SelectContent>
-              {timezones.map((timezone) => (
-                <SelectItem key={timezone} value={timezone}>
-                  {timezone}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Working Hours</CardTitle>
-          <CardDescription>
-            Set your regular business hours
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="startTime">Start Time</Label>
@@ -180,29 +173,65 @@ export function BusinessSettings() {
               />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label>Working Days</Label>
+            <div className="grid grid-cols-7 gap-2">
+              {daysOfWeek.map((day) => (
+                <Button
+                  key={day}
+                  type="button"
+                  variant={settings.workingDays.includes(day) ? "default" : "outline"}
+                  className="w-full"
+                  onClick={() => toggleWorkingDay(day)}
+                >
+                  {day.slice(0, 3)}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Appointment Duration</Label>
+            <Select
+              value={settings.slotDuration.toString()}
+              onValueChange={(value) => setSettings({ ...settings, slotDuration: parseInt(value) })}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select duration" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="15">15 minutes</SelectItem>
+                <SelectItem value="30">30 minutes</SelectItem>
+                <SelectItem value="45">45 minutes</SelectItem>
+                <SelectItem value="60">1 hour</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Appointment Duration</CardTitle>
+          <CardTitle>Time Zone</CardTitle>
           <CardDescription>
-            Set default duration for appointment slots
+            Set your business timezone for accurate scheduling
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Select
-            value={settings.slotDuration.toString()}
-            onValueChange={(value) => setSettings({ ...settings, slotDuration: parseInt(value) })}
+            value={settings.timezone}
+            onValueChange={(value) => setSettings({ ...settings, timezone: value })}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select duration" />
+              <SelectValue placeholder="Select timezone" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="15">15 minutes</SelectItem>
-              <SelectItem value="30">30 minutes</SelectItem>
-              <SelectItem value="45">45 minutes</SelectItem>
-              <SelectItem value="60">1 hour</SelectItem>
+              {timezones.map((timezone) => (
+                <SelectItem key={timezone} value={timezone}>
+                  {timezone}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </CardContent>
