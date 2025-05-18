@@ -15,7 +15,12 @@ export default function ProfileClient() {
     bio: '',
     profession: '',
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalClients: 0,
+    upcomingAppointments: 0,
+    monthlyRevenue: 0
+  });
 
   // Load initial profile data
   useEffect(() => {
@@ -45,6 +50,23 @@ export default function ProfileClient() {
 
     loadProfile();
   }, [status, router]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/stats');
+        if (!response.ok) {
+          throw new Error('Failed to fetch stats');
+        }
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -236,15 +258,15 @@ export default function ProfileClient() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
                     <p className="text-sm text-gray-500 dark:text-gray-400">Total Clients</p>
-                    <p className="text-2xl font-semibold">12</p>
+                    <p className="text-2xl font-semibold">{stats.totalClients}</p>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Appointments</p>
-                    <p className="text-2xl font-semibold">48</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Upcoming Appointments</p>
+                    <p className="text-2xl font-semibold">{stats.upcomingAppointments}</p>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Member Since</p>
-                    <p className="text-2xl font-semibold">2024</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Monthly Revenue</p>
+                    <p className="text-2xl font-semibold">${stats.monthlyRevenue.toFixed(2)}</p>
                   </div>
                 </div>
               </div>

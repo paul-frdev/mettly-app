@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 
 // GET /api/appointments
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -12,12 +12,19 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    const url = new URL(request.url);
+    const includeCompleted = url.searchParams.get('includeCompleted') === 'true';
+
     const appointments = await prisma.appointment.findMany({
       where: {
         userId: session.user.id,
-        date: {
-          gte: new Date(), // Only future appointments
-        },
+        ...(includeCompleted
+          ? {}
+          : {
+              date: {
+                gte: new Date(), // Only future appointments if includeCompleted is false
+              },
+            }),
       },
       include: {
         client: {

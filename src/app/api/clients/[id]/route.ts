@@ -16,6 +16,9 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const includeCompleted = searchParams.get('includeCompleted') === 'true';
+
     const client = await prisma.client.findUnique({
       where: {
         id: params.id,
@@ -23,6 +26,13 @@ export async function GET(request: Request, { params }: RouteParams) {
       },
       include: {
         appointments: {
+          where: includeCompleted
+            ? undefined
+            : {
+                date: {
+                  gte: new Date(),
+                },
+              },
           orderBy: {
             date: 'desc',
           },
