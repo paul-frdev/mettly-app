@@ -145,7 +145,6 @@ model BusinessSettings {
   userId       String     @unique
   timezone     String
   workingHours Json
-  workingDays  String[]
   slotDuration Int
   holidays     DateTime[]
   createdAt    DateTime   @default(now())
