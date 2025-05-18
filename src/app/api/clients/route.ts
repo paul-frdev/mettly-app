@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import type { Client, Prisma } from '@prisma/client';
 import { clientSchema, clientValidationErrors } from '@/lib/validations/client';
 
@@ -110,31 +110,27 @@ export async function POST(request: Request) {
     const { name, email, phone, notes } = validationResult.data;
 
     // Check for duplicate email
-    if (email) {
-      const existingClientWithEmail = await prisma.client.findFirst({
-        where: {
-          userId: session.user.id,
-          email: email,
-        },
-      });
+    const existingClientWithEmail = await prisma.client.findFirst({
+      where: {
+        userId: session.user.id,
+        email: email,
+      },
+    });
 
-      if (existingClientWithEmail) {
-        return NextResponse.json({ error: clientValidationErrors.DUPLICATE_EMAIL }, { status: 400 });
-      }
+    if (existingClientWithEmail) {
+      return NextResponse.json({ error: clientValidationErrors.DUPLICATE_EMAIL }, { status: 400 });
     }
 
     // Check for duplicate phone
-    if (phone) {
-      const existingClientWithPhone = await prisma.client.findFirst({
-        where: {
-          userId: session.user.id,
-          phone: phone,
-        },
-      });
+    const existingClientWithPhone = await prisma.client.findFirst({
+      where: {
+        userId: session.user.id,
+        phone: phone,
+      },
+    });
 
-      if (existingClientWithPhone) {
-        return NextResponse.json({ error: clientValidationErrors.DUPLICATE_PHONE }, { status: 400 });
-      }
+    if (existingClientWithPhone) {
+      return NextResponse.json({ error: clientValidationErrors.DUPLICATE_PHONE }, { status: 400 });
     }
 
     const client = await prisma.client.create({
@@ -142,7 +138,7 @@ export async function POST(request: Request) {
         name,
         email,
         phone,
-        notes,
+        notes: notes || null,
         userId: session.user.id,
         status: 'active',
       },
@@ -162,8 +158,8 @@ export async function POST(request: Request) {
     const formattedClient = {
       id: client.id,
       name: client.name,
-      email: client.email || '',
-      phone: client.phone || '',
+      email: client.email,
+      phone: client.phone,
       notes: client.notes || '',
       status: client.status || 'active',
       appointmentsCount: client._count?.appointments || 0,
