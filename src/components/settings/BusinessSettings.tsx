@@ -93,7 +93,7 @@ export function BusinessSettings() {
       if (!settings.timezone) {
         throw new Error('Timezone is required');
       }
-      
+
       // Check if at least one day is enabled
       const hasEnabledDay = Object.values(settings.workingHours).some(day => day.enabled);
       if (!hasEnabledDay) {
