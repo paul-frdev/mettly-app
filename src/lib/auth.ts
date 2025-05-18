@@ -1,34 +1,68 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
+import bcrypt from 'bcryptjs';
 import prisma from './prisma';
-import { compare } from 'bcryptjs';
+
+// Extend the built-in types
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+      email?: string | null;
+      name?: string | null;
+      phone?: string | null;
+      bio?: string | null;
+      profession?: string | null;
+    };
+  }
+
+  interface User {
+    id: string;
+    email: string;
+    name: string;
+    phone?: string | null;
+    bio?: string | null;
+    profession?: string | null;
+  }
+}
 
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
-      name: 'credentials',
+      name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password required');
+          throw new Error('Please enter an email and password');
         }
 
         const user = await prisma.user.findUnique({
           where: {
             email: credentials.email,
           },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            password: true,
+            phone: true,
+            bio: true,
+            profession: true,
+          },
         });
 
         if (!user) {
-          throw new Error('Email not found');
+          throw new Error('No user found with this email');
         }
 
-        const isValid = await compare(credentials.password, user.password);
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
 
-        if (!isValid) {
+        if (!isPasswordValid) {
           throw new Error('Invalid password');
         }
 
@@ -36,28 +70,53 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
+          phone: user.phone,
+          bio: user.bio,
+          profession: user.profession,
         };
       },
     }),
   ],
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   pages: {
     signIn: '/auth/login',
   },
   callbacks: {
-    session: async ({ session, token }) => {
-      if (session?.user) {
-        session.user.id = token.sub as string;
+    async jwt({ token, user, trigger, session }) {
+      if (user) {
+        token.id = user.id;
+        token.phone = user.phone;
+        token.bio = user.bio;
+        token.profession = user.profession;
+      }
+
+      // Handle session update
+      if (trigger === 'update' && session) {
+        token.phone = session.user.phone;
+        token.bio = session.user.bio;
+        token.profession = session.user.profession;
+        token.name = session.user.name;
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.phone = token.phone as string | null;
+        session.user.bio = token.bio as string | null;
+        session.user.profession = token.profession as string | null;
+        session.user.name = token.name as string | null;
       }
       return session;
     },
-    jwt: async ({ token, user }) => {
-      if (user) {
-        token.sub = user.id;
-      }
-      return token;
-    },
   },
-  session: {
-    strategy: 'jwt',
+  events: {
+    async signOut() {
+      // Clear any server-side session data if needed
+    },
   },
 };
