@@ -1,10 +1,9 @@
 'use client';
 
-import DashboardLayout from '@/components/layout/DashboardLayout';
 
 export default function CalendarPage() {
   return (
-    <DashboardLayout>
+    <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Calendar</h1>
       </div>
@@ -14,6 +13,6 @@ export default function CalendarPage() {
           <p className="text-gray-500 dark:text-gray-400">Calendar view coming soon...</p>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 } 
