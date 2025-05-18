@@ -3,15 +3,19 @@
 import { useState, useEffect } from 'react';
 import { format, isSameDay } from 'date-fns';
 
-interface BusinessHours {
+interface DaySchedule {
+  enabled: boolean;
   start: string;
   end: string;
 }
 
+interface WorkingHours {
+  [key: string]: DaySchedule;
+}
+
 interface BusinessSettings {
   timezone: string;
-  workingHours: BusinessHours;
-  workingDays: string[];
+  workingHours: WorkingHours;
   slotDuration: number;
   holidays: Date[];
 }
@@ -20,10 +24,14 @@ export function useBusinessSettings() {
   const [settings, setSettings] = useState<BusinessSettings>({
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     workingHours: {
-      start: '09:00',
-      end: '18:00',
+      Monday: { enabled: true, start: '09:00', end: '18:00' },
+      Tuesday: { enabled: true, start: '09:00', end: '18:00' },
+      Wednesday: { enabled: true, start: '09:00', end: '18:00' },
+      Thursday: { enabled: true, start: '09:00', end: '18:00' },
+      Friday: { enabled: true, start: '09:00', end: '18:00' },
+      Saturday: { enabled: false, start: '09:00', end: '18:00' },
+      Sunday: { enabled: false, start: '09:00', end: '18:00' },
     },
-    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
     slotDuration: 30,
     holidays: [],
   });
@@ -61,18 +69,23 @@ export function useBusinessSettings() {
 
   const isWorkingDay = (date: Date): boolean => {
     const dayName = format(date, 'EEEE');
-    return settings.workingDays.includes(dayName);
+    return settings.workingHours[dayName]?.enabled || false;
   };
 
   const isHoliday = (date: Date): boolean => {
     return settings.holidays.some((holiday) => isSameDay(holiday, date));
   };
 
-  const getWorkingHours = (date: Date): BusinessHours | null => {
+  const getWorkingHours = (date: Date): { start: string; end: string } | null => {
     if (!isWorkingDay(date) || isHoliday(date)) {
       return null;
     }
-    return settings.workingHours;
+    const dayName = format(date, 'EEEE');
+    const daySchedule = settings.workingHours[dayName];
+    return {
+      start: daySchedule.start,
+      end: daySchedule.end,
+    };
   };
 
   const getSlotDuration = (): number => {

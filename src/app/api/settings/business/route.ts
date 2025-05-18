@@ -3,6 +3,26 @@ import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 
+interface DaySchedule {
+  enabled: boolean;
+  start: string;
+  end: string;
+}
+
+interface WorkingHours {
+  [key: string]: DaySchedule;
+}
+
+const defaultWorkingHours: WorkingHours = {
+  Monday: { enabled: true, start: '09:00', end: '18:00' },
+  Tuesday: { enabled: true, start: '09:00', end: '18:00' },
+  Wednesday: { enabled: true, start: '09:00', end: '18:00' },
+  Thursday: { enabled: true, start: '09:00', end: '18:00' },
+  Friday: { enabled: true, start: '09:00', end: '18:00' },
+  Saturday: { enabled: false, start: '09:00', end: '18:00' },
+  Sunday: { enabled: false, start: '09:00', end: '18:00' },
+};
+
 // GET /api/settings/business
 export async function GET() {
   try {
@@ -26,11 +46,7 @@ export async function GET() {
     if (!settings) {
       const defaultSettings = {
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        workingHours: {
-          start: '09:00',
-          end: '18:00',
-        },
-        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        workingHours: defaultWorkingHours,
         slotDuration: 30,
         holidays: [],
       };
@@ -39,15 +55,51 @@ export async function GET() {
     }
 
     // Parse workingHours JSON if it's a string
-    const parsedSettings = {
+    let parsedWorkingHours: WorkingHours;
+    try {
+      const rawWorkingHours = typeof settings.workingHours === 'string' ? JSON.parse(settings.workingHours) : settings.workingHours;
+
+      console.log('Parsed working hours:', rawWorkingHours);
+
+      // Convert old format to new format if necessary
+      if (!rawWorkingHours.Monday) {
+        console.log('Converting old format to new format');
+        const oldFormat = rawWorkingHours;
+        parsedWorkingHours = {
+          Monday: { enabled: true, start: oldFormat.start, end: oldFormat.end },
+          Tuesday: { enabled: true, start: oldFormat.start, end: oldFormat.end },
+          Wednesday: { enabled: true, start: oldFormat.start, end: oldFormat.end },
+          Thursday: { enabled: true, start: oldFormat.start, end: oldFormat.end },
+          Friday: { enabled: true, start: oldFormat.start, end: oldFormat.end },
+          Saturday: { enabled: false, start: oldFormat.start, end: oldFormat.end },
+          Sunday: { enabled: false, start: oldFormat.start, end: oldFormat.end },
+        };
+      } else {
+        parsedWorkingHours = rawWorkingHours;
+      }
+    } catch (error) {
+      console.error('Error parsing working hours:', error);
+      console.error('Original working hours:', settings.workingHours);
+      parsedWorkingHours = defaultWorkingHours;
+    }
+
+    const responseData = {
       ...settings,
-      workingHours: typeof settings.workingHours === 'string' ? JSON.parse(settings.workingHours) : settings.workingHours,
+      workingHours: parsedWorkingHours,
     };
 
-    return NextResponse.json(parsedSettings);
+    console.log('Sending response data:', responseData);
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Detailed error in business settings GET:', error);
-    return NextResponse.json({ error: 'Failed to fetch business settings', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to fetch business settings',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -65,19 +117,21 @@ export async function PUT(request: Request) {
     const body = await request.json();
     console.log('Received body:', body);
 
-    const { timezone, workingHours, workingDays, slotDuration, holidays } = body;
+    const { timezone, workingHours, slotDuration, holidays } = body;
 
     // Validate required fields
     if (!timezone) {
       return NextResponse.json({ error: 'Timezone is required' }, { status: 400 });
     }
 
-    if (!workingHours || !workingHours.start || !workingHours.end) {
-      return NextResponse.json({ error: 'Working hours (start and end) are required' }, { status: 400 });
+    if (!workingHours) {
+      return NextResponse.json({ error: 'Working hours are required' }, { status: 400 });
     }
 
-    if (!Array.isArray(workingDays) || workingDays.length === 0) {
-      return NextResponse.json({ error: 'Working days array is required' }, { status: 400 });
+    // Check if at least one day is enabled
+    const hasEnabledDay = Object.values(workingHours as WorkingHours).some((day) => day.enabled);
+    if (!hasEnabledDay) {
+      return NextResponse.json({ error: 'At least one working day must be enabled' }, { status: 400 });
     }
 
     if (typeof slotDuration !== 'number' || slotDuration <= 0) {
@@ -97,7 +151,6 @@ export async function PUT(request: Request) {
         update: {
           timezone,
           workingHours: workingHoursJson,
-          workingDays,
           slotDuration,
           holidays: processedHolidays,
         },
@@ -105,7 +158,6 @@ export async function PUT(request: Request) {
           userId: session.user.id,
           timezone,
           workingHours: workingHoursJson,
-          workingDays,
           slotDuration,
           holidays: processedHolidays,
         },
@@ -122,10 +174,24 @@ export async function PUT(request: Request) {
       return NextResponse.json(responseData);
     } catch (prismaError) {
       console.error('Prisma error:', prismaError);
-      return NextResponse.json({ error: 'Database error', details: prismaError instanceof Error ? prismaError.message : 'Unknown database error' }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: 'Database error',
+          details: prismaError instanceof Error ? prismaError.message : 'Unknown database error',
+          stack: prismaError instanceof Error ? prismaError.stack : undefined,
+        },
+        { status: 500 }
+      );
     }
   } catch (error) {
     console.error('Detailed error in business settings PUT:', error);
-    return NextResponse.json({ error: 'Failed to update business settings', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to update business settings',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      { status: 500 }
+    );
   }
 }

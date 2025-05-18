@@ -8,14 +8,19 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showError, showSuccess } from '@/lib/utils/notifications';
 import { Calendar } from '@/components/ui/calendar';
+import { Switch } from '@/components/ui/switch';
+
+interface DaySchedule {
+  enabled: boolean;
+  start: string;
+  end: string;
+}
 
 interface BusinessSettings {
   timezone: string;
   workingHours: {
-    start: string;
-    end: string;
+    [key: string]: DaySchedule;
   };
-  workingDays: string[];
   slotDuration: number;
   holidays: Date[];
 }
@@ -24,10 +29,14 @@ export function BusinessSettings() {
   const [settings, setSettings] = useState<BusinessSettings>({
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     workingHours: {
-      start: '09:00',
-      end: '18:00'
+      Monday: { enabled: true, start: '09:00', end: '18:00' },
+      Tuesday: { enabled: true, start: '09:00', end: '18:00' },
+      Wednesday: { enabled: true, start: '09:00', end: '18:00' },
+      Thursday: { enabled: true, start: '09:00', end: '18:00' },
+      Friday: { enabled: true, start: '09:00', end: '18:00' },
+      Saturday: { enabled: false, start: '09:00', end: '18:00' },
+      Sunday: { enabled: false, start: '09:00', end: '18:00' }
     },
-    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
     slotDuration: 30,
     holidays: []
   });
@@ -84,12 +93,13 @@ export function BusinessSettings() {
       if (!settings.timezone) {
         throw new Error('Timezone is required');
       }
-      if (!settings.workingHours?.start || !settings.workingHours?.end) {
-        throw new Error('Working hours are required');
+
+      // Check if at least one day is enabled
+      const hasEnabledDay = Object.values(settings.workingHours).some(day => day.enabled);
+      if (!hasEnabledDay) {
+        throw new Error('At least one working day must be enabled');
       }
-      if (!settings.workingDays?.length) {
-        throw new Error('At least one working day must be selected');
-      }
+
       if (!settings.slotDuration || settings.slotDuration <= 0) {
         throw new Error('Valid slot duration is required');
       }
@@ -124,12 +134,16 @@ export function BusinessSettings() {
     }
   };
 
-  const toggleWorkingDay = (day: string) => {
+  const updateDaySchedule = (day: string, field: keyof DaySchedule, value: string | boolean) => {
     setSettings(prev => ({
       ...prev,
-      workingDays: prev.workingDays.includes(day)
-        ? prev.workingDays.filter(d => d !== day)
-        : [...prev.workingDays, day]
+      workingHours: {
+        ...prev.workingHours,
+        [day]: {
+          ...prev.workingHours[day],
+          [field]: value
+        }
+      }
     }));
   };
 
@@ -143,55 +157,39 @@ export function BusinessSettings() {
         <CardHeader>
           <CardTitle>Business Hours</CardTitle>
           <CardDescription>
-            Set your regular business hours and working days
+            Set your working hours for each day of the week
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startTime">Start Time</Label>
-              <Input
-                id="startTime"
-                type="time"
-                value={settings.workingHours.start}
-                onChange={(e) => setSettings({
-                  ...settings,
-                  workingHours: { ...settings.workingHours, start: e.target.value }
-                })}
+          {daysOfWeek.map((day) => (
+            <div key={day} className="flex items-center space-x-4">
+              <Switch
+                checked={settings.workingHours[day].enabled}
+                onCheckedChange={(checked) => updateDaySchedule(day, 'enabled', checked)}
               />
+              <div className="flex-1 grid grid-cols-3 gap-4 items-center">
+                <span className="text-sm font-medium">{day}</span>
+                <div className="space-y-2">
+                  <Input
+                    type="time"
+                    value={settings.workingHours[day].start}
+                    onChange={(e) => updateDaySchedule(day, 'start', e.target.value)}
+                    disabled={!settings.workingHours[day].enabled}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    type="time"
+                    value={settings.workingHours[day].end}
+                    onChange={(e) => updateDaySchedule(day, 'end', e.target.value)}
+                    disabled={!settings.workingHours[day].enabled}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="endTime">End Time</Label>
-              <Input
-                id="endTime"
-                type="time"
-                value={settings.workingHours.end}
-                onChange={(e) => setSettings({
-                  ...settings,
-                  workingHours: { ...settings.workingHours, end: e.target.value }
-                })}
-              />
-            </div>
-          </div>
+          ))}
 
-          <div className="space-y-2">
-            <Label>Working Days</Label>
-            <div className="grid grid-cols-7 gap-2">
-              {daysOfWeek.map((day) => (
-                <Button
-                  key={day}
-                  type="button"
-                  variant={settings.workingDays.includes(day) ? "default" : "outline"}
-                  className="w-full"
-                  onClick={() => toggleWorkingDay(day)}
-                >
-                  {day.slice(0, 3)}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
+          <div className="space-y-2 pt-4">
             <Label>Appointment Duration</Label>
             <Select
               value={settings.slotDuration.toString()}
