@@ -9,7 +9,7 @@ import { Plus } from 'lucide-react';
 import { ClientFormDialog } from '@/components/dashboard/ClientFormDialog';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 interface Client {
@@ -39,7 +39,7 @@ interface Appointment {
 }
 
 export function DashboardContent() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,9 +47,9 @@ export function DashboardContent() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/auth/login');
+      signOut({ callbackUrl: '/auth/login' });
     }
-  }, [status, router]);
+  }, [status]);
 
   const fetchAppointments = useCallback(async () => {
     if (status !== 'authenticated') return;
