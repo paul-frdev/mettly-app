@@ -27,7 +27,6 @@ export async function POST(request: Request) {
     });
 
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${resetToken}`;
-    console.log('resetUrl', resetUrl);
 
     await sendMail({
       to: email,

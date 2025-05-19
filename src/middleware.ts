@@ -9,8 +9,6 @@ export default async function middleware(req: NextRequest) {
   const isApiRoute = req.nextUrl.pathname.startsWith('/api');
   const isLandingPage = req.nextUrl.pathname === '/';
 
-  console.log('isResetPasswordPage', req.url, req.nextUrl.pathname, req.nextUrl.pathname === '/reset-password');
-
   // Allow access to reset password page
   if (req.nextUrl.pathname === '/reset-password') {
     return NextResponse.next();

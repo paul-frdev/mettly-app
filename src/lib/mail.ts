@@ -1,12 +1,5 @@
 import nodemailer from 'nodemailer';
 
-console.log('Mail configuration:', {
-  host: process.env.MAILTRAP_HOST,
-  port: process.env.MAILTRAP_PORT,
-  user: process.env.MAILTRAP_USER ? '***' : 'not set',
-  pass: process.env.MAILTRAP_PASS ? '***' : 'not set',
-});
-
 const transporter = nodemailer.createTransport({
   host: process.env.MAILTRAP_HOST,
   port: Number(process.env.MAILTRAP_PORT),
@@ -24,10 +17,8 @@ export const sendMail = async ({ to, subject, html }: { to: string; subject: str
       subject,
       html,
     };
-    console.log('Mail options prepared:', { ...mailOptions, html: '***' });
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('Mail sent successfully:', info);
 
     return { success: true, messageId: info.messageId };
   } catch (error) {
