@@ -8,6 +8,14 @@ export default async function middleware(req: NextRequest) {
   const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
   const isApiRoute = req.nextUrl.pathname.startsWith('/api');
   const isLandingPage = req.nextUrl.pathname === '/';
+  const isResetPasswordPage = req.nextUrl.pathname === '/reset-password';
+
+  console.log('isResetPasswordPage', req.url, req.nextUrl.pathname, req.nextUrl.pathname === '/reset-password');
+
+  // Allow access to reset password page
+  if (isResetPasswordPage) {
+    return NextResponse.next();
+  }
 
   // Redirect authenticated users from landing to dashboard
   if (isLandingPage && isAuth) {
@@ -28,5 +36,5 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/clients/:path*', '/calendar/:path*', '/settings/:path*', '/profile/:path*', '/appointments/:path*', '/auth/:path*'],
+  matcher: ['/', '/dashboard/:path*', '/clients/:path*', '/calendar/:path*', '/settings/:path*', '/profile/:path*', '/appointments/:path*', '/auth/:path*', '/auth/reset-password'],
 };

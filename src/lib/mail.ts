@@ -17,7 +17,6 @@ const transporter = nodemailer.createTransport({
 });
 
 export const sendMail = async ({ to, subject, html }: { to: string; subject: string; html: string }) => {
-  console.log('Attempting to send mail to:', to);
   try {
     const mailOptions = {
       from: process.env.MAIL_FROM || 'noreply@mettly.com',

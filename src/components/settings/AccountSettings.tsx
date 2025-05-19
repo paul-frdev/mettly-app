@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,9 +19,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export function AccountSettings() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const fetchPasswordStatus = async () => {
+      try {
+        const response = await fetch('/api/profile');
+        if (response.ok) {
+          const userData = await response.json();
+          setHasPassword(userData.hasPassword ?? null);
+        }
+      } catch (error) {
+        console.error('Error fetching password status:', error);
+      }
+    };
+
+    fetchPasswordStatus();
+  }, []);
 
   const handleDeleteAccount = async () => {
     if (!password) {
@@ -54,8 +73,44 @@ export function AccountSettings() {
     }
   };
 
+  const handleSendSetPassword = async () => {
+    try {
+      const response = await fetch('/api/auth/send-set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: session?.user?.email }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to send password setup email');
+      }
+      showSuccess('Password setup email sent!');
+    } catch (error) {
+      console.error(error);
+      showError(error);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Password Settings</CardTitle>
+          <CardDescription>
+            Manage your account password settings
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {hasPassword === false && (
+            <Button
+              onClick={handleSendSetPassword}
+              className="w-full"
+            >
+              Set Password
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Delete Account</CardTitle>
