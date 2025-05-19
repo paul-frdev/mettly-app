@@ -10,7 +10,6 @@ import { ClientFormDialog } from '@/components/dashboard/ClientFormDialog';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 
 interface Client {
   id: string;
@@ -39,8 +38,7 @@ interface Appointment {
 }
 
 export function DashboardContent() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useSession();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isClientFormOpen, setIsClientFormOpen] = useState(false);

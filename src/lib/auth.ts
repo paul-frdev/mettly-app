@@ -95,7 +95,7 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -104,14 +104,16 @@ export const authOptions: NextAuthOptions = {
         token.bio = user.bio;
         token.profession = user.profession;
       }
-
-      if (trigger === 'update' && session) {
-        token.phone = session.user.phone;
-        token.bio = session.user.bio;
-        token.profession = session.user.profession;
-        token.name = session.user.name;
+      if (!token.id && token.email) {
+        const dbUser = await prisma.user.findUnique({ where: { email: token.email as string } });
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.phone = dbUser.phone;
+          token.bio = dbUser.bio;
+          token.profession = dbUser.profession;
+          token.name = dbUser.name;
+        }
       }
-
       return token;
     },
     async session({ session, token }) {

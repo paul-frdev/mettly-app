@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma';
 // GET /api/appointments
 export async function GET(req: NextRequest) {
   const session = await getServerSession({ req, ...authOptions });
-
+  console.log('Session:', session);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
