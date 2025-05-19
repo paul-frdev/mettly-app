@@ -1,18 +1,18 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import prisma from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
 // GET /api/appointments
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
+  const session = await getServerSession({ req, ...authOptions });
+  console.log('Session:', session);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    const url = new URL(request.url);
+    const url = new URL(req.url);
     const includeCompleted = url.searchParams.get('includeCompleted') === 'true';
 
     const appointments = await prisma.appointment.findMany({
@@ -45,20 +45,20 @@ export async function GET(request: Request) {
     return NextResponse.json(appointments);
   } catch (error) {
     console.error('Error fetching appointments:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 // POST /api/appointments
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
+  const session = await getServerSession({ req, ...authOptions });
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await request.json();
+    const body = await req.json();
     const { date, clientId, duration, notes } = body;
 
     // Validate required fields
@@ -127,15 +127,15 @@ export async function POST(request: Request) {
 }
 
 // PUT /api/appointments
-export async function PUT(request: Request) {
+export async function PUT(req: NextRequest) {
+  const session = await getServerSession({ req, ...authOptions });
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    const body = await request.json();
+    const body = await req.json();
     const { id, date, clientId, duration, notes, status } = body;
 
     const appointment = await prisma.appointment.update({
@@ -162,24 +162,24 @@ export async function PUT(request: Request) {
     return NextResponse.json(appointment);
   } catch (error) {
     console.error('Error updating appointment:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 // DELETE /api/appointments
-export async function DELETE(request: Request) {
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession({ req, ...authOptions });
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return new NextResponse('Appointment ID is required', { status: 400 });
+      return NextResponse.json({ error: 'Appointment ID is required' }, { status: 400 });
     }
 
     await prisma.appointment.delete({
@@ -192,6 +192,6 @@ export async function DELETE(request: Request) {
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('Error deleting appointment:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
