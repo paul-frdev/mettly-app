@@ -4,30 +4,23 @@ import { sendMail } from '@/lib/mail';
 import crypto from 'crypto';
 
 export async function POST(req: Request) {
-  console.log('Starting password reset process...');
   try {
     const { email } = await req.json();
-    console.log('Received email:', email);
 
     // Check if user exists
-    console.log('Checking if user exists...');
     const user = await prisma.user.findUnique({
       where: { email },
     });
 
     if (!user) {
-      console.log('User not found');
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    console.log('User found:', user.id);
 
     // Generate reset token
-    console.log('Generating reset token...');
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
     // Save reset token to database
-    console.log('Saving reset token to database...');
     await prisma.user.update({
       where: { email },
       data: {
@@ -35,11 +28,9 @@ export async function POST(req: Request) {
         resetTokenExpiry,
       },
     });
-    console.log('Reset token saved');
 
     // Send email with reset link
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${resetToken}`;
-    console.log('Preparing to send email...');
 
     const mailResult = await sendMail({
       to: email,

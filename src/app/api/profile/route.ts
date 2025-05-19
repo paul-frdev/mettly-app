@@ -21,6 +21,7 @@ export async function GET() {
         phone: true,
         bio: true,
         profession: true,
+        password: true,
       },
     });
 
@@ -28,7 +29,8 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    const { password, ...userWithoutPassword } = user;
+    return NextResponse.json({ ...userWithoutPassword, hasPassword: !!password });
   } catch (error) {
     console.error('Profile fetch error:', error);
     return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 });

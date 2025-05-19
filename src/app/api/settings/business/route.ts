@@ -27,20 +27,13 @@ const defaultWorkingHours: WorkingHours = {
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    console.log('Session:', session);
 
     if (!session?.user?.id) {
-      console.log('No session or user ID');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    console.log('Fetching settings for user:', session.user.id);
-
     const settings = await prisma.businessSettings.findUnique({
       where: { userId: session.user.id },
     });
-
-    console.log('Retrieved settings:', settings);
 
     // Return default settings if none exist
     if (!settings) {
@@ -50,7 +43,6 @@ export async function GET() {
         slotDuration: 30,
         holidays: [],
       };
-      console.log('Returning default settings:', defaultSettings);
       return NextResponse.json(defaultSettings);
     }
 
@@ -59,11 +51,8 @@ export async function GET() {
     try {
       const rawWorkingHours = typeof settings.workingHours === 'string' ? JSON.parse(settings.workingHours) : settings.workingHours;
 
-      console.log('Parsed working hours:', rawWorkingHours);
-
       // Convert old format to new format if necessary
       if (!rawWorkingHours.Monday) {
-        console.log('Converting old format to new format');
         const oldFormat = rawWorkingHours;
         parsedWorkingHours = {
           Monday: { enabled: true, start: oldFormat.start, end: oldFormat.end },
@@ -88,7 +77,6 @@ export async function GET() {
       workingHours: parsedWorkingHours,
     };
 
-    console.log('Sending response data:', responseData);
     return NextResponse.json(responseData);
   } catch (error) {
     console.error('Detailed error in business settings GET:', error);
@@ -107,15 +95,12 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    console.log('Session in PUT:', session);
 
     if (!session?.user?.id) {
-      console.log('No session or user ID in PUT');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    console.log('Received body:', body);
 
     const { timezone, workingHours, slotDuration, holidays } = body;
 
@@ -162,8 +147,6 @@ export async function PUT(request: Request) {
           holidays: processedHolidays,
         },
       });
-
-      console.log('Updated/Created settings:', settings);
 
       // Transform the data back for the response
       const responseData = {
