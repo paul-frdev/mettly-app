@@ -27,6 +27,8 @@ model User {
   subscriptions        Subscription[]
   businessSettings     BusinessSettings?
   notificationSettings NotificationSettings?
+  resetToken           String?   @db.Text
+  resetTokenExpiry     DateTime?
 
   @@map("users")
 }
