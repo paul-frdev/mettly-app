@@ -1,5 +1,6 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import prisma from './prisma';
@@ -30,6 +31,10 @@ declare module 'next-auth' {
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
@@ -60,6 +65,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error('No user found with this email');
         }
 
+        if (!user.password) {
+          throw new Error('Please sign in with Google');
+        }
+
         const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
 
         if (!isPasswordValid) {
@@ -83,17 +92,19 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/auth/login',
+    error: '/auth/error',
   },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
         token.phone = user.phone;
         token.bio = user.bio;
         token.profession = user.profession;
       }
 
-      // Handle session update
       if (trigger === 'update' && session) {
         token.phone = session.user.phone;
         token.bio = session.user.bio;
@@ -106,10 +117,11 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
         session.user.phone = token.phone as string | null;
         session.user.bio = token.bio as string | null;
         session.user.profession = token.profession as string | null;
-        session.user.name = token.name as string | null;
       }
       return session;
     },
@@ -119,4 +131,5 @@ export const authOptions: NextAuthOptions = {
       // Clear any server-side session data if needed
     },
   },
+  debug: process.env.NODE_ENV === 'development',
 };

@@ -9,6 +9,8 @@ import { Plus } from 'lucide-react';
 import { ClientFormDialog } from '@/components/dashboard/ClientFormDialog';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 interface Client {
   id: string;
@@ -37,14 +39,29 @@ interface Appointment {
 }
 
 export function DashboardContent() {
+  const { status } = useSession();
+  const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isClientFormOpen, setIsClientFormOpen] = useState(false);
 
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/login');
+    }
+  }, [status, router]);
+
   const fetchAppointments = useCallback(async () => {
+    if (status !== 'authenticated') return;
+
     setIsLoading(true);
     try {
-      const response = await fetch('/api/appointments');
+      const response = await fetch('/api/appointments', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch appointments');
       }
@@ -59,11 +76,13 @@ export function DashboardContent() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [status]);
 
   useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
+    if (status === 'authenticated') {
+      fetchAppointments();
+    }
+  }, [fetchAppointments, status]);
 
   // Get today's appointments
   const todayAppointments = appointments.filter(apt =>
