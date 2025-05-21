@@ -3,7 +3,6 @@ import { sendReminders } from './send-reminders';
 
 // Run every 5 minutes
 cron.schedule('*/5 * * * *', async () => {
-  console.log('Running reminders check at:', new Date().toISOString());
   try {
     await sendReminders();
   } catch (error) {

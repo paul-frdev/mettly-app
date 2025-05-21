@@ -6,12 +6,6 @@ import path from 'path';
 const envPath = path.resolve(__dirname, '../../.env');
 dotenv.config({ path: envPath });
 
-console.log('Bot configuration:', {
-  botToken: process.env.BOT_TOKEN ? 'Set' : 'Not set',
-  appUrl: process.env.NEXT_PUBLIC_APP_URL,
-  botSecretToken: process.env.BOT_SECRET_TOKEN ? 'Set' : 'Not set',
-});
-
 if (!process.env.BOT_TOKEN) {
   throw new Error('BOT_TOKEN is required');
 }
