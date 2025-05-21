@@ -3,36 +3,20 @@ import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function GET(request: Request, { params }: RouteParams) {
+export async function GET(request: Request, context: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const includeCompleted = searchParams.get('includeCompleted') === 'true';
-
     const client = await prisma.client.findUnique({
       where: {
-        id: params.id,
+        id: context.params.id,
         userId: session.user.id,
       },
       include: {
         appointments: {
-          where: includeCompleted
-            ? undefined
-            : {
-                date: {
-                  gte: new Date(),
-                },
-              },
           orderBy: {
             date: 'desc',
           },
@@ -51,7 +35,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function PUT(request: Request, { params }: RouteParams) {
+export async function PUT(request: Request, context: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -68,7 +52,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     // Verify client belongs to user
     const existingClient = await prisma.client.findUnique({
       where: {
-        id: params.id,
+        id: context.params.id,
         userId: session.user.id,
       },
     });
@@ -79,7 +63,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     const updatedClient = await prisma.client.update({
       where: {
-        id: params.id,
+        id: context.params.id,
       },
       data: {
         name,
@@ -95,7 +79,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, context: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -105,7 +89,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Verify client belongs to user
     const client = await prisma.client.findUnique({
       where: {
-        id: params.id,
+        id: context.params.id,
         userId: session.user.id,
       },
     });
@@ -116,7 +100,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     await prisma.client.delete({
       where: {
-        id: params.id,
+        id: context.params.id,
       },
     });
 

@@ -13,10 +13,12 @@ import {
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 interface NotificationSettings {
   emailEnabled: boolean;
   browserEnabled: boolean;
+  telegramEnabled: boolean;
   reminderTime: string;
 }
 
@@ -25,9 +27,42 @@ export function NotificationSettings() {
   const [settings, setSettings] = useState<NotificationSettings>({
     emailEnabled: true,
     browserEnabled: true,
+    telegramEnabled: false,
     reminderTime: '30',
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const [notificationsResponse, telegramResponse] = await Promise.all([
+          fetch('/api/settings/notifications'),
+          fetch('/api/settings/telegram'),
+        ]);
+
+        if (!notificationsResponse.ok || !telegramResponse.ok) {
+          throw new Error('Failed to fetch settings');
+        }
+
+        const notificationsData = await notificationsResponse.json();
+        const telegramData = await telegramResponse.json();
+
+        setSettings({
+          ...notificationsData,
+          telegramEnabled: telegramData.telegramEnabled,
+        });
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load settings",
+        });
+      }
+    };
+
+    fetchSettings();
+  }, [toast]);
 
   const handleSettingChange = async (
     key: keyof NotificationSettings,
@@ -41,21 +76,32 @@ export function NotificationSettings() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/settings/notifications', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newSettings),
-      });
+      let response;
+      if (key === 'telegramEnabled') {
+        response = await fetch('/api/settings/telegram', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ telegramEnabled: value }),
+        });
+      } else {
+        response = await fetch('/api/settings/notifications', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newSettings),
+        });
+      }
 
       if (!response.ok) {
-        throw new Error('Failed to save notification settings');
+        throw new Error('Failed to save settings');
       }
 
       toast({
         title: "Settings updated",
-        description: "Your notification preferences have been saved.",
+        description: "Your preferences have been saved.",
       });
     } catch {
       // Revert changes if save fails
@@ -63,7 +109,7 @@ export function NotificationSettings() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to save notification settings. Please try again.",
+        description: "Failed to save settings. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -94,30 +140,6 @@ export function NotificationSettings() {
       handleSettingChange('browserEnabled', false);
     }
   };
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const response = await fetch('/api/settings/notifications');
-        if (!response.ok) {
-          throw new Error('Failed to fetch notification settings');
-        }
-        const data = await response.json();
-        if (data) {
-          setSettings(data);
-        }
-      } catch (error) {
-        console.error('Failed to load settings:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load notification settings",
-        });
-      }
-    };
-
-    fetchSettings();
-  }, [toast]);
 
   return (
     <Card>
@@ -159,6 +181,45 @@ export function NotificationSettings() {
               disabled={isLoading}
             />
           </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Telegram Notifications</Label>
+              <p className="text-sm text-muted-foreground">
+                Send appointment reminders via Telegram bot
+              </p>
+            </div>
+            <Switch
+              checked={settings.telegramEnabled}
+              onCheckedChange={(checked: boolean) => handleSettingChange('telegramEnabled', checked)}
+              disabled={isLoading}
+            />
+          </div>
+
+          {settings.telegramEnabled && (
+            <div className="mt-4 p-4 bg-muted rounded-lg">
+              <p className="text-sm font-medium mb-2">Share this bot with your clients:</p>
+              <div className="flex items-center gap-2">
+                <code className="text-sm bg-background px-2 py-1 rounded">@MeetLY_reminder_bot</code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText('@MeetLY_reminder_bot');
+                    toast({
+                      title: "Copied!",
+                      description: "Bot username copied to clipboard",
+                    });
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Your clients will need to click /start in the bot to receive reminders
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
