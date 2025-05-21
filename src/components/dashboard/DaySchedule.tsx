@@ -132,8 +132,13 @@ export function DaySchedule({ appointments, onAppointmentUpdate }: DaySchedulePr
       }
     }
 
-    // Check if there's any appointment at this time (excluding the one being edited)
+    // Check if there's any active appointment at this time (excluding the one being edited)
     return !filteredAppointments.some(appointment => {
+      // Skip cancelled appointments
+      if (appointment.status === 'cancelled') {
+        return false;
+      }
+
       if (appointment.id === excludeAppointmentId) {
         return false;
       }

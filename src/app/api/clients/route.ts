@@ -107,7 +107,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validationResult.error.errors[0].message }, { status: 400 });
     }
 
-    const { name, email, phone, notes } = validationResult.data;
+    const { name, email, phone, notes, telegramUsername } = validationResult.data;
 
     // Check for duplicate email
     const existingClientWithEmail = await prisma.client.findFirst({
@@ -133,12 +133,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: clientValidationErrors.DUPLICATE_PHONE }, { status: 400 });
     }
 
+    // Check for duplicate telegram username
+    if (telegramUsername) {
+      const existingClientWithTelegram = await prisma.client.findFirst({
+        where: {
+          userId: session.user.id,
+          telegramUsername: telegramUsername,
+        },
+      });
+
+      if (existingClientWithTelegram) {
+        return NextResponse.json({ error: clientValidationErrors.DUPLICATE_TELEGRAM }, { status: 400 });
+      }
+    }
+
     const client = await prisma.client.create({
       data: {
         name,
         email,
         phone,
         notes: notes || null,
+        telegramUsername: telegramUsername || null,
         userId: session.user.id,
         status: 'active',
       },

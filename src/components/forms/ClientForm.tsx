@@ -12,6 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,6 +31,7 @@ export function ClientForm() {
       email: '',
       phone: '',
       notes: '',
+      telegramUsername: '',
     },
   });
 
@@ -99,6 +101,23 @@ export function ClientForm() {
               <FormControl>
                 <Input placeholder="Enter client phone number" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="telegramUsername"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Telegram Username</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter Telegram username (without @)" {...field} />
+              </FormControl>
+              <FormDescription>
+                This will be used to link the client&apos;s Telegram account. The client will need to use /start in the bot.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

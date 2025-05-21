@@ -26,6 +26,11 @@ interface ApiAppointment {
   client: Client;
   status: string;
   notes?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+  attendance?: {
+    status: 'confirmed' | 'declined' | null;
+  };
 }
 
 interface Appointment {
@@ -35,6 +40,11 @@ interface Appointment {
   client: Client;
   status: string;
   notes?: string;
+  cancelledAt?: Date;
+  cancellationReason?: string;
+  attendance?: {
+    status: 'confirmed' | 'declined' | null;
+  };
 }
 
 export function DashboardContent() {
@@ -169,10 +179,35 @@ export function DashboardContent() {
                     {appointment.notes && (
                       <div className="text-sm text-gray-600 mt-1">{appointment.notes}</div>
                     )}
+                    {appointment.cancelledAt && (
+                      <div className="text-sm text-red-600 mt-1">
+                        Cancelled: {format(new Date(appointment.cancelledAt), 'MMM d, h:mm a')}
+                        {appointment.cancellationReason && ` - ${appointment.cancellationReason}`}
+                      </div>
+                    )}
                   </div>
-                  <Badge className={getStatusColor(appointment.status)}>
-                    {appointment.status}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge className={getStatusColor(appointment.status)}>
+                      {appointment.status}
+                    </Badge>
+                    {appointment.attendance && (
+                      <Badge
+                        className={
+                          appointment.attendance.status === 'confirmed'
+                            ? 'bg-green-100 text-green-800'
+                            : appointment.attendance.status === 'declined'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                        }
+                      >
+                        {appointment.attendance.status === 'confirmed'
+                          ? 'Confirmed'
+                          : appointment.attendance.status === 'declined'
+                            ? 'Declined'
+                            : 'Pending'}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

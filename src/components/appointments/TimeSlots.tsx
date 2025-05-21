@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { format, parse, addMinutes, isWithinInterval, isBefore } from 'date-fns';
+import { format, parse, addMinutes, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { AppointmentForm } from './AppointmentForm';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
@@ -16,6 +16,10 @@ interface Appointment {
   date: Date;
   duration: number;
   client?: Client;
+  status?: string;
+  attendance?: {
+    status: string;
+  };
 }
 
 interface TimeSlotsProps {
@@ -64,9 +68,26 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
     const isNonWorking = !isWorkingDay(selectedDate) || isHoliday(selectedDate);
 
     const bookedAppointment = appointments.find(appointment => {
+      // Skip cancelled appointments
+      if (appointment.status === 'cancelled') {
+        return false;
+      }
+
+      // Skip appointments where client declined
+      if (appointment.attendance?.status === 'declined') {
+        return false;
+      }
+
       const appointmentStart = new Date(appointment.date);
       const appointmentEnd = addMinutes(appointmentStart, appointment.duration);
-      return isWithinInterval(slotTime, { start: appointmentStart, end: appointmentEnd });
+      const slotEnd = addMinutes(slotTime, getSlotDuration());
+
+      // Check if the new slot overlaps with existing appointment
+      return (
+        (slotTime >= appointmentStart && slotTime < appointmentEnd) || // New slot starts during existing appointment
+        (slotEnd > appointmentStart && slotEnd <= appointmentEnd) || // New slot ends during existing appointment
+        (slotTime <= appointmentStart && slotEnd >= appointmentEnd) // New slot completely contains existing appointment
+      );
     });
 
     return {

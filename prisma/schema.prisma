@@ -17,9 +17,11 @@ model User {
   phone                String?
   bio                  String?
   profession           String?
-  telegram_id          String?
+  telegram_id          String?               @unique
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
+  resetToken           String?
+  resetTokenExpiry     DateTime?
   accounts             Account[]
   appointments         Appointment[]
   clients              Client[]
@@ -27,8 +29,9 @@ model User {
   subscriptions        Subscription[]
   businessSettings     BusinessSettings?
   notificationSettings NotificationSettings?
-  resetToken           String?   @db.Text
-  resetTokenExpiry     DateTime?
+  plan                 String                @default("free")
+  telegramRemindersEnabled Boolean             @default(false)
+  reminderTimeHours    Int                   @default(2)
 
   @@map("users")
 }
@@ -68,43 +71,50 @@ model VerificationToken {
 }
 
 model Client {
-  id           String        @id @default(uuid())
-  userId       String
-  name         String
-  phone        String
-  notes        String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  email        String
-  status       String?       @default("active")
-  appointments Appointment[]
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String        @id @default(uuid())
+  userId           String
+  name             String
+  phone            String
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  email            String
+  status           String        @default("active")
+  telegramId       String?       @unique
+  telegramUsername String?
+  appointments     Appointment[]
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Appointment {
-  id        String     @id @default(uuid())
-  userId    String
-  clientId  String?
-  date      DateTime
-  duration  Int?
-  notes     String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  status    String     @default("scheduled")
-  client    Client?    @relation(fields: [clientId], references: [id])
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payments  Payment[]
-  reminders Reminder[]
+  id          String      @id @default(cuid())
+  date        DateTime
+  duration    Int         @default(30)
+  notes       String?
+  status      String      @default("scheduled")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  cancelledAt DateTime?
+  cancellationReason String?
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  attendance  Attendance?
+  payments    Payment[]
+  reminders   Reminder[]
+
+  @@map("appointments")
 }
 
 model Payment {
-  id            String       @id @default(uuid())
-  appointmentId String?
-  amount        Decimal      @db.Decimal(10, 2)
-  date          DateTime     @default(now())
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id            String     @id @default(cuid())
+  amount        Float
+  status        String     @default("pending")
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  appointmentId String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
 
 model Subscription {
@@ -120,13 +130,13 @@ model Subscription {
 }
 
 model Reminder {
-  id            String       @id @default(uuid())
-  appointmentId String
-  type          ReminderType
-  sentAt        DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  appointment   Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  id            String     @id @default(cuid())
+  type          String
+  status        String     @default("pending")
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointmentId String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
 
 model NotificationSettings {
@@ -154,6 +164,15 @@ model BusinessSettings {
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("business_settings")
+}
+
+model Attendance {
+  id            String    @id @default(cuid())
+  status        String    // confirmed, declined, no_response
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointmentId String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 enum Plan {

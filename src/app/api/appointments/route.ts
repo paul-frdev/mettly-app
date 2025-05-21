@@ -26,15 +26,8 @@ export async function GET(req: NextRequest) {
             }),
       },
       include: {
-        client: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            notes: true,
-          },
-        },
+        client: true,
+        attendance: true,
       },
       orderBy: {
         date: 'asc',
@@ -44,7 +37,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(appointments);
   } catch (error) {
     console.error('Error fetching appointments:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 });
   }
 }
 
@@ -82,22 +75,61 @@ export async function POST(req: NextRequest) {
     const appointmentDate = new Date(date);
     const appointmentEnd = new Date(appointmentDate.getTime() + (duration || 30) * 60000);
 
-    const overlappingAppointment = await prisma.appointment.findFirst({
+    // First check if client already has an appointment at this time
+    const existingClientAppointment = await prisma.appointment.findFirst({
       where: {
-        userId: session.user.id,
-        date: {
-          lt: appointmentEnd,
+        clientId: clientId,
+        date: appointmentDate,
+        status: {
+          not: 'cancelled',
         },
-        AND: {
-          date: {
-            gte: appointmentDate,
+        attendance: {
+          status: {
+            not: 'declined',
           },
         },
       },
     });
 
+    if (existingClientAppointment) {
+      return NextResponse.json({ error: 'Client already has an appointment at this time' }, { status: 400 });
+    }
+
+    // Then check for overlapping appointments with other clients
+    const overlappingAppointment = await prisma.appointment.findFirst({
+      where: {
+        userId: session.user.id,
+        status: {
+          not: 'cancelled',
+        },
+        attendance: {
+          status: {
+            not: 'declined',
+          },
+        },
+        OR: [
+          {
+            date: {
+              lt: appointmentEnd,
+              gt: appointmentDate,
+            },
+          },
+          {
+            date: {
+              lte: appointmentDate,
+            },
+            AND: {
+              date: {
+                gt: new Date(appointmentDate.getTime() - (duration || 30) * 60000),
+              },
+            },
+          },
+        ],
+      },
+    });
+
     if (overlappingAppointment) {
-      return NextResponse.json({ error: 'This time slot is already booked' }, { status: 400 });
+      return NextResponse.json({ error: 'This time slot overlaps with another appointment' }, { status: 400 });
     }
 
     // Create the appointment
