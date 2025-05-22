@@ -4,32 +4,59 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 
+type DaySchedule = {
+  enabled: boolean;
+  start: string;
+  end: string;
+};
+
+type WorkingHours = {
+  [key in 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday']: DaySchedule;
+};
+
 export default function Settings() {
   const { data: session } = useSession();
   const [settings, setSettings] = useState({
-    telegramRemindersEnabled: true,
+    telegramRemindersEnabled: false,
     reminderTimeHours: 2,
     refCode: '',
     timezone: 'UTC',
     workingHours: {
-      monday: { start: '09:00', end: '17:00' },
-      tuesday: { start: '09:00', end: '17:00' },
-      wednesday: { start: '09:00', end: '17:00' },
-      thursday: { start: '09:00', end: '17:00' },
-      friday: { start: '09:00', end: '17:00' },
-      saturday: { start: '10:00', end: '15:00' },
-      sunday: { start: '10:00', end: '15:00' },
-    },
+      Monday: { enabled: true, start: '09:00', end: '17:00' },
+      Tuesday: { enabled: true, start: '09:00', end: '17:00' },
+      Wednesday: { enabled: true, start: '09:00', end: '17:00' },
+      Thursday: { enabled: true, start: '09:00', end: '17:00' },
+      Friday: { enabled: true, start: '09:00', end: '17:00' },
+      Saturday: { enabled: false, start: '10:00', end: '15:00' },
+      Sunday: { enabled: false, start: '10:00', end: '15:00' }
+    } as WorkingHours,
     slotDuration: 30,
-    holidays: [] as string[],
+    holidays: [] as string[]
   });
   const [loading, setLoading] = useState(true);
+
+  const daysOfWeek = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday'
+  ] as const;
+
+  type DayOfWeek = typeof daysOfWeek[number];
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
+        console.log('Fetching user settings...');
         const res = await fetch('/api/settings/user');
+        if (!res.ok) {
+          throw new Error('Failed to fetch settings');
+        }
         const data = await res.json();
+        console.log('Received settings:', data);
         setSettings(data);
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -65,11 +92,11 @@ export default function Settings() {
     }
   };
 
-  const handleUpdateWorkingHours = async (day: string, start: string, end: string) => {
+  const handleUpdateWorkingHours = async (day: string, start: string, end: string, enabled: boolean) => {
     try {
       const newWorkingHours = {
         ...settings.workingHours,
-        [day]: { start, end },
+        [day]: { start, end, enabled },
       };
 
       const res = await fetch('/api/settings/user', {
@@ -234,7 +261,7 @@ export default function Settings() {
                 <input
                   type="text"
                   readOnly
-                  value={settings.refCode}
+                  value={settings.refCode || 'Loading...'}
                   className="block w-full rounded-md border-gray-300 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                 />
               </div>
@@ -247,6 +274,11 @@ export default function Settings() {
               Copy Invite Link
             </button>
           </div>
+          {!settings.refCode && (
+            <p className="mt-2 text-sm text-red-500">
+              No referral code found. Please contact support if this persists.
+            </p>
+          )}
         </div>
 
         {/* Working Hours */}
@@ -255,32 +287,54 @@ export default function Settings() {
             Working Hours
           </h2>
           <div className="space-y-4">
-            {Object.entries(settings.workingHours).map(([day, hours]) => (
+            {daysOfWeek.map((day: DayOfWeek) => (
               <div key={day} className="flex items-center space-x-4">
                 <div className="w-32">
                   <label className="block text-sm font-medium text-gray-700">
-                    {day.charAt(0).toUpperCase() + day.slice(1)}
+                    {day}
                   </label>
                 </div>
-                <div className="flex-1 grid grid-cols-2 gap-4">
+                <div className="flex-1 grid grid-cols-3 gap-4">
+                  <div className="flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newEnabled = !settings.workingHours[day].enabled;
+                        handleUpdateWorkingHours(day, settings.workingHours[day].start, settings.workingHours[day].end, newEnabled);
+                      }}
+                      className={`${settings.workingHours[day].enabled
+                        ? 'bg-indigo-600'
+                        : 'bg-gray-200'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
+                    >
+                      <span
+                        className={`${settings.workingHours[day].enabled
+                          ? 'translate-x-5'
+                          : 'translate-x-0'
+                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                      />
+                    </button>
+                  </div>
                   <div>
                     <input
                       type="time"
-                      value={hours.start}
+                      value={settings.workingHours[day].start}
                       onChange={(e) =>
-                        handleUpdateWorkingHours(day, e.target.value, hours.end)
+                        handleUpdateWorkingHours(day, e.target.value, settings.workingHours[day].end, settings.workingHours[day].enabled)
                       }
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      disabled={!settings.workingHours[day].enabled}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100 disabled:text-gray-400"
                     />
                   </div>
                   <div>
                     <input
                       type="time"
-                      value={hours.end}
+                      value={settings.workingHours[day].end}
                       onChange={(e) =>
-                        handleUpdateWorkingHours(day, hours.start, e.target.value)
+                        handleUpdateWorkingHours(day, settings.workingHours[day].start, e.target.value, settings.workingHours[day].enabled)
                       }
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      disabled={!settings.workingHours[day].enabled}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100 disabled:text-gray-400"
                     />
                   </div>
                 </div>
@@ -343,7 +397,7 @@ export default function Settings() {
             </div>
             <div className="mt-4">
               <ul className="divide-y divide-gray-200">
-                {settings.holidays.map((date) => (
+                {(settings.holidays || []).map((date) => (
                   <li
                     key={date}
                     className="py-3 flex items-center justify-between"

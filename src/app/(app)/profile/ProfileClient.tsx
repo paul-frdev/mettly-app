@@ -273,7 +273,7 @@ export default function ProfileClient() {
               {!isClient && (
                 <div>
                   <h3 className="text-lg font-medium mb-4">Account Statistics</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
                       <p className="text-sm text-gray-500 dark:text-gray-400">Total Clients</p>
                       <p className="text-2xl font-semibold">{stats.totalClients}</p>
@@ -281,10 +281,6 @@ export default function ProfileClient() {
                     <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
                       <p className="text-sm text-gray-500 dark:text-gray-400">Upcoming Appointments</p>
                       <p className="text-2xl font-semibold">{stats.upcomingAppointments}</p>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Monthly Revenue</p>
-                      <p className="text-2xl font-semibold">${stats.monthlyRevenue.toFixed(2)}</p>
                     </div>
                   </div>
                 </div>

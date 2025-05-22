@@ -1,0 +1,10 @@
+ALTER TABLE users
+DROP COLUMN IF EXISTS "slotDuration";
+
+
+ALTER TABLE users
+DROP COLUMN IF EXISTS "timezone";
+
+
+ALTER TABLE users
+DROP COLUMN IF EXISTS "workingHours";

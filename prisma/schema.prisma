@@ -8,37 +8,36 @@ datasource db {
 }
 
 model User {
-  id                       String                @id @default(cuid())
+  id                       String    @id @default(cuid())
   name                     String?
-  email                    String?               @unique
-  emailVerified            DateTime?
+  email                    String?   @unique
+  emailVerified           DateTime?
   image                    String?
   password                 String?
   phone                    String?
   bio                      String?
   profession               String?
-  telegram_id              String?               @unique
-  createdAt                DateTime              @default(now())
-  updatedAt                DateTime              @updatedAt
-  resetToken               String?
-  resetTokenExpiry         DateTime?
-  plan                     String                @default("free")
-  telegramRemindersEnabled Boolean               @default(true)
-  reminderTimeHours        Int                   @default(2)
-  holidays                 String[]              @default([])
-  refCode                  String?               @unique
-  role                     String                @default("trainer")
-  slotDuration             Int                   @default(30)
-  timezone                 String                @default("UTC")
-  workingHours             Json?                 @default("{\"friday\": {\"end\": \"17:00\", \"start\": \"09:00\"}, \"monday\": {\"end\": \"17:00\", \"start\": \"09:00\"}, \"sunday\": {\"end\": \"15:00\", \"start\": \"10:00\"}, \"tuesday\": {\"end\": \"17:00\", \"start\": \"09:00\"}, \"saturday\": {\"end\": \"15:00\", \"start\": \"10:00\"}, \"thursday\": {\"end\": \"17:00\", \"start\": \"09:00\"}, \"wednesday\": {\"end\": \"17:00\", \"start\": \"09:00\"}}")
-  isClient                 Boolean               @default(false)
+  telegram_id             String?   @unique
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  resetToken              String?
+  resetTokenExpiry        DateTime?
+  plan                     String    @default("free")
+  telegramRemindersEnabled Boolean   @default(true)
+  reminderTimeHours        Int       @default(2)
+  holidays                 String[]
+  refCode                 String?   @unique
+  role                     String    @default("trainer")
+  isClient                Boolean   @default(false)
+
+  // Relations
   accounts                 Account[]
-  clients                  Client[]
   sessions                 Session[]
-  subscriptions            Subscription[]
-  appointments             Appointment[]
-  businessSettings         BusinessSettings?
-  notificationSettings     NotificationSettings?
+  clients                  Client[]
+  subscriptions           Subscription[]
+  appointments            Appointment[]
+  businessSettings        BusinessSettings?
+  notificationSettings    NotificationSettings?
 
   @@map("users")
 }

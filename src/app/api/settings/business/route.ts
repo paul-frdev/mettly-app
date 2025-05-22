@@ -101,6 +101,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
+    console.log('Received settings update request:', body);
 
     const { timezone, workingHours, slotDuration, holidays } = body;
 
@@ -130,6 +131,13 @@ export async function PUT(request: Request) {
       // Ensure workingHours is properly stringified for Prisma
       const workingHoursJson = typeof workingHours === 'string' ? workingHours : JSON.stringify(workingHours);
 
+      console.log('Updating settings in database:', {
+        userId: session.user.id,
+        timezone,
+        slotDuration,
+        holidays: processedHolidays,
+      });
+
       // Update or create business settings
       const settings = await prisma.businessSettings.upsert({
         where: { userId: session.user.id },
@@ -147,6 +155,8 @@ export async function PUT(request: Request) {
           holidays: processedHolidays,
         },
       });
+
+      console.log('Settings updated successfully:', settings);
 
       // Transform the data back for the response
       const responseData = {

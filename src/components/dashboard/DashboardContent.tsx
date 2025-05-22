@@ -125,7 +125,7 @@ export function DashboardContent() {
   return (
     <div className="container mx-auto py-8">
       {!isClient && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 mb-8">
           <Card>
             <CardHeader>
               <CardTitle>Upcoming</CardTitle>
@@ -141,15 +141,6 @@ export function DashboardContent() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{todayAppointments.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">$2,850</div>
             </CardContent>
           </Card>
         </div>

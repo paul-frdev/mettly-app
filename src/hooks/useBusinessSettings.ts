@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { format, isSameDay } from 'date-fns';
 
+// Custom event for settings updates
+const SETTINGS_UPDATED_EVENT = 'businessSettingsUpdated';
+
 interface DaySchedule {
   enabled: boolean;
   start: string;
@@ -39,12 +42,27 @@ export function useBusinessSettings() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    console.log('Setting up settings update listener');
     fetchSettings();
+
+    // Subscribe to settings updates
+    const handleSettingsUpdate = () => {
+      console.log('Settings update event received');
+      fetchSettings();
+    };
+
+    window.addEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
+
+    return () => {
+      console.log('Cleaning up settings update listener');
+      window.removeEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
+    };
   }, []);
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch('/api/settings/business');
+      console.log('Fetching business settings...');
+      const response = await fetch('/api/settings/user');
       const data = await response.json();
 
       if (!response.ok) {
@@ -57,6 +75,7 @@ export function useBusinessSettings() {
         holidays: (data.holidays || []).map((date: string) => new Date(date)),
       };
 
+      console.log('Received settings:', processedData);
       setSettings(processedData);
       setError(null);
     } catch (err) {
@@ -120,4 +139,9 @@ export function useBusinessSettings() {
     getTimezonedDate,
     refreshSettings: fetchSettings,
   };
+}
+
+// Export function to trigger settings update
+export function triggerSettingsUpdate() {
+  window.dispatchEvent(new Event(SETTINGS_UPDATED_EVENT));
 }

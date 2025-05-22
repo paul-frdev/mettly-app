@@ -5,19 +5,19 @@ import crypto from 'crypto';
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password, trainerCode, profession, role, phone = '' } = await req.json();
+    const { name, email, password, userCode, profession, role, phone = '' } = await req.json();
 
     // Validate required fields based on role
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    if (role === 'trainer' && !profession) {
-      return NextResponse.json({ error: 'Profession is required for trainers' }, { status: 400 });
+    if (role === 'user' && !profession) {
+      return NextResponse.json({ error: 'Profession is required for users' }, { status: 400 });
     }
 
-    if (role === 'client' && !trainerCode) {
-      return NextResponse.json({ error: 'Trainer code is required for clients' }, { status: 400 });
+    if (role === 'client' && !userCode) {
+      return NextResponse.json({ error: 'User code is required for clients' }, { status: 400 });
     }
 
     // Check if email already exists
@@ -29,17 +29,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
     }
 
-    // For clients, check if trainer exists
+    // For clients, check if user exists
     if (role === 'client') {
-      const trainer = await prisma.user.findUnique({
-        where: { refCode: trainerCode },
+      const user = await prisma.user.findUnique({
+        where: { refCode: userCode },
       });
 
-      if (!trainer) {
-        return NextResponse.json({ error: 'Invalid trainer code' }, { status: 400 });
+      if (!user) {
+        return NextResponse.json({ error: 'Invalid user code' }, { status: 400 });
       }
 
-      // Create client profile linked to trainer
+      // Create client profile linked to user
       const hashedPassword = await hash(password, 12);
       console.log('Creating client with hashed password:', hashedPassword);
       const client = await prisma.client.create({
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
           email,
           phone,
           password: hashedPassword,
-          userId: trainer.id,
+          userId: user.id,
         },
       });
       console.log('Created client:', client);
@@ -59,17 +59,17 @@ export async function POST(req: Request) {
           id: client.id,
           name: client.name,
           email: client.email,
-          trainerId: trainer.id,
+          userId: user.id,
         },
       });
     }
 
-    // For trainers
-    if (role === 'trainer') {
+    if (role === 'user') {
       // Generate unique refCode based on profession
       const refCode = `${profession.toLowerCase()}-${crypto.randomBytes(4).toString('hex')}`;
+      console.log('Generated refCode:', refCode);
 
-      // Create new trainer
+      // Create new user
       const hashedPassword = await hash(password, 12);
       const user = await prisma.user.create({
         data: {
@@ -78,10 +78,12 @@ export async function POST(req: Request) {
           password: hashedPassword,
           profession,
           refCode,
-          role: 'trainer',
+          role: 'user',
           plan: 'free',
         },
       });
+
+      console.log('Created user with refCode:', user.refCode);
 
       return NextResponse.json({
         message: 'Registration successful',

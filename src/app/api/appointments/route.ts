@@ -18,7 +18,7 @@ export async function GET() {
     // Сначала проверяем, является ли пользователь клиентом
     const client = await prisma.client.findUnique({
       where: { email: session.user.email },
-      select: { id: true },
+      select: { id: true, userId: true },
     });
 
     if (client) {
@@ -47,15 +47,23 @@ export async function GET() {
 
       console.log('Updated client appointments:', updatedAppointments);
 
-      // Показываем его встречи
+      // Получаем все встречи клиента и расписание тренера
       const appointments = await prisma.appointment.findMany({
         where: {
-          clientId: client.id,
+          OR: [
+            { clientId: client.id }, // Встречи клиента
+            { userId: client.userId }, // Расписание тренера
+          ],
         },
         include: {
           attendance: {
             select: {
               status: true,
+            },
+          },
+          client: {
+            select: {
+              name: true,
             },
           },
         },
@@ -64,71 +72,23 @@ export async function GET() {
         },
       });
 
-      console.log(
-        'Client appointments:',
-        appointments.map((apt) => ({
-          id: apt.id,
-          date: apt.date,
-          status: apt.status,
-          attendance: apt.attendance,
-        }))
-      );
-
       return NextResponse.json(appointments);
     }
 
-    // Если не клиент, проверяем тренера
-    const trainer = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true },
-    });
-
-    if (!trainer) {
-      return new NextResponse('User not found', { status: 404 });
-    }
-
-    // Для тренера обновляем статусы его встреч
-    const updatedTrainerAppointments = await prisma.appointment.updateMany({
-      where: {
-        userId: trainer.id,
-        AND: [
-          {
-            date: {
-              lt: now,
-            },
-          },
-          {
-            status: 'scheduled',
-          },
-          {
-            OR: [{ attendance: null }, { attendance: { status: { not: 'declined' } } }],
-          },
-        ],
-      },
-      data: {
-        status: 'completed',
-      },
-    });
-
-    console.log('Updated trainer appointments:', updatedTrainerAppointments);
-
-    // Показываем все его встречи
+    // Если это тренер, получаем все его встречи
     const appointments = await prisma.appointment.findMany({
       where: {
-        userId: trainer.id,
+        userId: session.user.id,
       },
       include: {
-        client: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-          },
-        },
         attendance: {
           select: {
             status: true,
+          },
+        },
+        client: {
+          select: {
+            name: true,
           },
         },
       },
@@ -137,20 +97,10 @@ export async function GET() {
       },
     });
 
-    console.log(
-      'Trainer appointments:',
-      appointments.map((apt) => ({
-        id: apt.id,
-        date: apt.date,
-        status: apt.status,
-        attendance: apt.attendance,
-      }))
-    );
-
     return NextResponse.json(appointments);
   } catch (error) {
-    console.error('Appointments fetch error:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    console.error('Error fetching appointments:', error);
+    return NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 });
   }
 }
 

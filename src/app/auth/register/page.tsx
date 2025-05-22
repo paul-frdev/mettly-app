@@ -21,6 +21,22 @@ const registerSchema = z.object({
   profession: z.string().optional(),
   role: z.enum(['user', 'client']),
   phone: z.string().optional(),
+}).refine((data) => {
+  if (data.role === 'user') {
+    return !!data.profession;
+  }
+  return true;
+}, {
+  message: "Profession is required for users",
+  path: ["profession"]
+}).refine((data) => {
+  if (data.role === 'client') {
+    return !!data.userCode;
+  }
+  return true;
+}, {
+  message: "User code is required for clients",
+  path: ["userCode"]
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -28,10 +44,12 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [, setActiveRole] = useState<'user' | 'client'>('user');
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -73,7 +91,9 @@ export default function RegisterPage() {
         </div>
 
         <Tabs defaultValue="user" className="w-full" onValueChange={(value) => {
-          register('role').onChange({ target: { value: value === 'user' ? 'user' : 'client' } });
+          const role = value === 'user' ? 'user' : 'client';
+          setActiveRole(role);
+          setValue('role', role);
         }}>
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="user" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
@@ -202,6 +222,7 @@ export default function RegisterPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  <input type="hidden" {...register('role')} value="client" />
                   <div className="space-y-2">
                     <Label htmlFor="name">Name</Label>
                     <Input
