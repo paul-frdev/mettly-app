@@ -5,29 +5,67 @@ import prisma from '@/lib/prisma';
 
 // GET /api/appointments
 export async function GET(req: NextRequest) {
-  const session = await getServerSession({ req, ...authOptions });
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
-    const url = new URL(req.url);
-    const includeCompleted = url.searchParams.get('includeCompleted') === 'true';
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
 
+    // Сначала проверяем, является ли пользователь клиентом
+    const client = await prisma.client.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
+
+    if (client) {
+      // Если это клиент, показываем его встречи
+      const appointments = await prisma.appointment.findMany({
+        where: {
+          clientId: client.id,
+        },
+        include: {
+          attendance: {
+            select: {
+              status: true,
+            },
+          },
+        },
+        orderBy: {
+          date: 'asc',
+        },
+      });
+      return NextResponse.json(appointments);
+    }
+
+    // Если не клиент, проверяем тренера
+    const trainer = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
+
+    if (!trainer) {
+      return new NextResponse('User not found', { status: 404 });
+    }
+
+    // Для тренера показываем все его встречи
     const appointments = await prisma.appointment.findMany({
       where: {
-        userId: session.user.id,
-        ...(includeCompleted
-          ? {}
-          : {
-              date: {
-                gte: new Date(), // Only future appointments if includeCompleted is false
-              },
-            }),
+        userId: trainer.id,
       },
       include: {
-        client: true,
-        attendance: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        attendance: {
+          select: {
+            status: true,
+          },
+        },
       },
       orderBy: {
         date: 'asc',
@@ -36,8 +74,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(appointments);
   } catch (error) {
-    console.error('Error fetching appointments:', error);
-    return NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 });
+    console.error('Appointments fetch error:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
@@ -54,21 +92,37 @@ export async function POST(req: NextRequest) {
     const { date, clientId, duration, notes } = body;
 
     // Validate required fields
-    if (!clientId) {
-      return NextResponse.json({ error: 'Client is required' }, { status: 400 });
-    }
-
     if (!date) {
       return NextResponse.json({ error: 'Date and time are required' }, { status: 400 });
     }
 
-    // Check if client exists
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
+    // Check if client exists and get trainer ID
+    const client = await prisma.client.findFirst({
+      where: {
+        OR: [{ id: clientId }, { userId: session.user.id }],
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+          },
+        },
+      },
     });
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    }
+
+    // Get trainer ID - either from client's user or from session (if user is trainer)
+    const trainer = await prisma.user.findFirst({
+      where: {
+        OR: [{ id: client.user?.id }, { id: session.user.id }],
+      },
+    });
+
+    if (!trainer) {
+      return NextResponse.json({ error: 'Trainer not found' }, { status: 404 });
     }
 
     // Check for overlapping appointments
@@ -78,7 +132,7 @@ export async function POST(req: NextRequest) {
     // First check if client already has an appointment at this time
     const existingClientAppointment = await prisma.appointment.findFirst({
       where: {
-        clientId: clientId,
+        clientId: client.id,
         date: appointmentDate,
         status: {
           not: 'cancelled',
@@ -98,7 +152,7 @@ export async function POST(req: NextRequest) {
     // Then check for overlapping appointments with other clients
     const overlappingAppointment = await prisma.appointment.findFirst({
       where: {
-        userId: session.user.id,
+        userId: trainer.id,
         status: {
           not: 'cancelled',
         },
@@ -138,8 +192,8 @@ export async function POST(req: NextRequest) {
         date: appointmentDate,
         duration: duration || 30,
         notes: notes,
-        userId: session.user.id,
-        clientId: clientId,
+        userId: trainer.id,
+        clientId: client.id,
       },
       include: {
         client: {

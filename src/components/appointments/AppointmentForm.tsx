@@ -33,34 +33,37 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
 import { showSuccess, showError } from '@/lib/utils/notifications';
+import { useSession } from 'next-auth/react';
 
 interface Client {
   id: string;
   name: string;
 }
 
-const appointmentSchema = z.object({
-  clientId: z.string({ required_error: "Please select a client" }),
+const appointmentSchema = (isClient: boolean) => z.object({
+  clientId: isClient ? z.string().optional() : z.string({ required_error: "Please select a client" }),
   duration: z.number().min(30, 'Duration must be at least 30 minutes'),
   notes: z.string().optional(),
 });
 
-type AppointmentFormData = z.infer<typeof appointmentSchema>;
+type AppointmentFormData = z.infer<ReturnType<typeof appointmentSchema>>;
 
 interface AppointmentFormProps {
   isOpen: boolean;
   onClose: () => void;
   selectedTime: Date;
   onSuccess?: () => void;
+  isClient?: boolean;
 }
 
-export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess }: AppointmentFormProps) {
+export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isClient }: AppointmentFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const router = useRouter();
+  const { data: session } = useSession();
 
   const form = useForm<AppointmentFormData>({
-    resolver: zodResolver(appointmentSchema),
+    resolver: zodResolver(appointmentSchema(!!isClient)),
     defaultValues: {
       duration: 30,
       notes: '',
@@ -69,6 +72,11 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess }: Ap
 
   useEffect(() => {
     async function fetchClients() {
+      if (isClient) {
+        // Для клиента не нужно загружать список клиентов
+        return;
+      }
+
       try {
         const response = await fetch('/api/clients');
         if (!response.ok) {
@@ -85,7 +93,7 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess }: Ap
     if (isOpen) {
       fetchClients();
     }
-  }, [isOpen]);
+  }, [isOpen, isClient]);
 
   async function onSubmit(data: AppointmentFormData) {
     setIsLoading(true);
@@ -98,6 +106,7 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess }: Ap
         body: JSON.stringify({
           ...data,
           date: selectedTime.toISOString(),
+          clientId: isClient ? session?.user?.id : data.clientId,
         }),
       });
 
@@ -131,30 +140,32 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess }: Ap
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="clientId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Client</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a client" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!isClient && (
+              <FormField
+                control={form.control}
+                name="clientId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Client</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a client" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
@@ -211,9 +222,6 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess }: Ap
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? 'Creating...' : 'Create Appointment'}
               </Button>

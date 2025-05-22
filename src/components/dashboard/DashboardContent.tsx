@@ -158,7 +158,9 @@ export function DashboardContent() {
       <div className="grid md:grid-cols-2 gap-8">
         <Card className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">Today&apos;s Appointments</h2>
+            <h2 className="text-xl font-semibold">
+              {isClient ? 'My Appointments' : 'Today\'s Appointments'}
+            </h2>
             {!isClient && (
               <Button onClick={() => setIsClientFormOpen(true)} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
@@ -177,7 +179,9 @@ export function DashboardContent() {
                   className="flex items-center justify-between p-4 rounded-lg border"
                 >
                   <div>
-                    <div className="font-medium">{appointment.client.name}</div>
+                    <div className="font-medium">
+                      {isClient ? session?.user?.name : appointment.client.name}
+                    </div>
                     <div className="text-sm text-gray-500">
                       {format(appointment.date, 'h:mm a')} ({appointment.duration} minutes)
                     </div>
@@ -220,7 +224,9 @@ export function DashboardContent() {
 
           {upcomingAppointments.length > 0 && (
             <>
-              <h2 className="text-xl font-semibold mt-8 mb-4">Upcoming Appointments</h2>
+              <h2 className="text-xl font-semibold mt-8 mb-4">
+                {isClient ? 'Upcoming Sessions' : 'Upcoming Appointments'}
+              </h2>
               <div className="space-y-4">
                 {upcomingAppointments.slice(0, 3).map((appointment) => (
                   <div
@@ -228,7 +234,9 @@ export function DashboardContent() {
                     className="flex items-center justify-between p-4 rounded-lg border"
                   >
                     <div>
-                      <div className="font-medium">{appointment.client.name}</div>
+                      <div className="font-medium">
+                        {isClient ? session?.user?.name : appointment.client.name}
+                      </div>
                       <div className="text-sm text-gray-500">
                         {format(appointment.date, 'MMM d, h:mm a')} ({appointment.duration} minutes)
                       </div>
@@ -251,6 +259,7 @@ export function DashboardContent() {
           <Schedule
             appointments={appointments}
             onAppointmentCreated={fetchAppointments}
+            isClient={isClient}
           />
         </Card>
       </div>

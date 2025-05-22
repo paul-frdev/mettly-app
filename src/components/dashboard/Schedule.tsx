@@ -7,21 +7,35 @@ import { format, addDays, subDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-interface ScheduleProps {
-  appointments: Array<{
-    id: string;
-    date: Date;
-    duration: number;
-    client: {
-      id: string;
-      name: string;
-    };
-  }>;
-  onAppointmentCreated?: () => void;
+interface Client {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
 }
 
-export function Schedule({ appointments, onAppointmentCreated }: ScheduleProps) {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+interface Appointment {
+  id: string;
+  date: Date;
+  duration: number;
+  client: Client;
+  status: string;
+  notes?: string;
+  cancelledAt?: Date;
+  cancellationReason?: string;
+  attendance?: {
+    status: 'confirmed' | 'declined' | null;
+  };
+}
+
+interface ScheduleProps {
+  appointments: Appointment[];
+  onAppointmentCreated: () => void;
+  isClient?: boolean;
+}
+
+export function Schedule({ appointments, onAppointmentCreated, isClient }: ScheduleProps) {
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   return (
     <Card className="mt-8">
@@ -56,6 +70,7 @@ export function Schedule({ appointments, onAppointmentCreated }: ScheduleProps) 
             (apt) => format(new Date(apt.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
           )}
           onAppointmentCreated={onAppointmentCreated}
+          isClient={isClient}
         />
       </CardContent>
     </Card>

@@ -15,10 +15,13 @@ interface Appointment {
   id: string;
   date: Date;
   duration: number;
-  client?: Client;
-  status?: string;
+  client: Client;
+  status: string;
+  notes?: string;
+  cancelledAt?: Date;
+  cancellationReason?: string;
   attendance?: {
-    status: string;
+    status: 'confirmed' | 'declined' | null;
   };
 }
 
@@ -26,9 +29,10 @@ interface TimeSlotsProps {
   selectedDate: Date;
   appointments?: Appointment[];
   onAppointmentCreated?: () => void;
+  isClient?: boolean;
 }
 
-export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreated }: TimeSlotsProps) {
+export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreated, isClient }: TimeSlotsProps) {
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const {
@@ -168,6 +172,7 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
             handleFormClose();
             onAppointmentCreated?.();
           }}
+          isClient={isClient}
         />
       )}
     </div>
