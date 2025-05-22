@@ -17,7 +17,6 @@ const userNavigation = [
 
 const clientNavigation = [
   { name: 'Dashboard', href: '/dashboard' },
-  { name: 'Appointments', href: '/appointments' },
   { name: 'Settings', href: '/settings/client' }
 ];
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { User, Mail, Phone, Settings, Briefcase } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export default function ProfileClient() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function ProfileClient() {
     upcomingAppointments: 0,
     monthlyRevenue: 0
   });
+  const isClient = session?.user?.isClient;
 
   // Load initial profile data
   useEffect(() => {
@@ -42,17 +44,25 @@ export default function ProfileClient() {
             bio: userData.bio || '',
             profession: userData.profession || '',
           });
+        } else {
+          throw new Error('Failed to load profile');
         }
       } catch (error) {
         console.error('Error loading profile:', error);
+        toast.error('Failed to load profile data');
+      } finally {
+        setIsLoading(false);
       }
     }
 
     loadProfile();
   }, [status, router]);
 
+  // Only fetch stats for non-clients
   useEffect(() => {
     const fetchStats = async () => {
+      if (isClient) return; // Skip stats fetch for clients
+
       try {
         const response = await fetch('/api/stats');
         if (!response.ok) {
@@ -62,11 +72,12 @@ export default function ProfileClient() {
         setStats(data);
       } catch (error) {
         console.error('Error fetching stats:', error);
+        // Don't show error toast for stats as it's not critical
       }
     };
 
     fetchStats();
-  }, []);
+  }, [isClient]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,10 +107,12 @@ export default function ProfileClient() {
         }
       });
 
+      toast.success('Profile updated successfully');
       router.refresh();
       setIsEditing(false);
     } catch (error) {
       console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +154,9 @@ export default function ProfileClient() {
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {session?.user?.name || 'User Name'}
               </h2>
-              <p className="text-gray-500 dark:text-gray-400">Professional Account</p>
+              <p className="text-gray-500 dark:text-gray-400">
+                {isClient ? 'Client Account' : 'Professional Account'}
+              </p>
             </div>
           </div>
 
@@ -235,12 +250,14 @@ export default function ProfileClient() {
                       {formData.phone || 'Not set'}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Briefcase className="w-5 h-5 text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-300">
-                      {formData.profession || 'Not set'}
-                    </span>
-                  </div>
+                  {!isClient && (
+                    <div className="flex items-center space-x-3">
+                      <Briefcase className="w-5 h-5 text-gray-400" />
+                      <span className="text-gray-600 dark:text-gray-300">
+                        {formData.profession || 'Not set'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -252,24 +269,26 @@ export default function ProfileClient() {
                 </div>
               )}
 
-              {/* Account Statistics */}
-              <div>
-                <h3 className="text-lg font-medium mb-4">Account Statistics</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Clients</p>
-                    <p className="text-2xl font-semibold">{stats.totalClients}</p>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Upcoming Appointments</p>
-                    <p className="text-2xl font-semibold">{stats.upcomingAppointments}</p>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Monthly Revenue</p>
-                    <p className="text-2xl font-semibold">${stats.monthlyRevenue.toFixed(2)}</p>
+              {/* Account Statistics - only for non-clients */}
+              {!isClient && (
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Account Statistics</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Total Clients</p>
+                      <p className="text-2xl font-semibold">{stats.totalClients}</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Upcoming Appointments</p>
+                      <p className="text-2xl font-semibold">{stats.upcomingAppointments}</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Monthly Revenue</p>
+                      <p className="text-2xl font-semibold">${stats.monthlyRevenue.toFixed(2)}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>

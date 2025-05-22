@@ -12,6 +12,16 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // Check if user is a client
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { isClient: true },
+    });
+
+    if (user?.isClient) {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
+
     // Get upcoming appointments count
     const upcomingAppointments = await prisma.appointment.count({
       where: {
@@ -40,7 +50,7 @@ export async function GET() {
         appointment: {
           userId: session.user.id,
         },
-        date: {
+        createdAt: {
           gte: monthStart,
           lte: monthEnd,
         },

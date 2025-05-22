@@ -48,10 +48,11 @@ interface Appointment {
 }
 
 export function DashboardContent() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isClientFormOpen, setIsClientFormOpen] = useState(false);
+  const isClient = session?.user?.isClient;
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -123,43 +124,47 @@ export function DashboardContent() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Upcoming</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{upcomingAppointments.length}</div>
-          </CardContent>
-        </Card>
+      {!isClient && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Upcoming</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{upcomingAppointments.length}</div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Today&apos;s Appointments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{todayAppointments.length}</div>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Today&apos;s Appointments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{todayAppointments.length}</div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">$2,850</div>
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">$2,850</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-8">
         <Card className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">Today&apos;s Appointments</h2>
-            <Button onClick={() => setIsClientFormOpen(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Client
-            </Button>
+            {!isClient && (
+              <Button onClick={() => setIsClientFormOpen(true)} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Client
+              </Button>
+            )}
           </div>
 
           {todayAppointments.length === 0 ? (
@@ -250,10 +255,12 @@ export function DashboardContent() {
         </Card>
       </div>
 
-      <ClientFormDialog
-        isOpen={isClientFormOpen}
-        onClose={() => setIsClientFormOpen(false)}
-      />
+      {!isClient && (
+        <ClientFormDialog
+          isOpen={isClientFormOpen}
+          onClose={() => setIsClientFormOpen(false)}
+        />
+      )}
     </div>
   );
 } 
