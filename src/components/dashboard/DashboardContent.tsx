@@ -50,6 +50,7 @@ interface Appointment {
 export function DashboardContent() {
   const { data: session, status } = useSession();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [calendarAppointments, setCalendarAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isClientFormOpen, setIsClientFormOpen] = useState(false);
   const isClient = session?.user?.isClient;
@@ -61,7 +62,9 @@ export function DashboardContent() {
   }, [status]);
 
   const fetchAppointments = useCallback(async () => {
-    if (status !== 'authenticated') return;
+    if (status !== 'authenticated') {
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -71,16 +74,30 @@ export function DashboardContent() {
           'Content-Type': 'application/json',
         },
       });
+
       if (!response.ok) {
-        throw new Error('Failed to fetch appointments');
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        throw new Error(errorData.error || 'Failed to fetch appointments');
       }
+
       const data = await response.json();
-      const transformedAppointments: Appointment[] = data.map((apt: ApiAppointment) => ({
+      // Transform appointments for the list view
+      const transformedAppointments: Appointment[] = data.list.map((apt: ApiAppointment) => ({
         ...apt,
         date: new Date(apt.date)
       }));
+
+      // Transform appointments for the calendar view
+      const transformedCalendarAppointments: Appointment[] = data.calendar.map((apt: ApiAppointment) => ({
+        ...apt,
+        date: new Date(apt.date)
+      }));
+
       setAppointments(transformedAppointments);
+      setCalendarAppointments(transformedCalendarAppointments);
     } catch (error) {
+      console.error('Error in fetchAppointments:', error);
       showError(error);
     } finally {
       setIsLoading(false);
@@ -248,7 +265,7 @@ export function DashboardContent() {
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-6">Schedule</h2>
           <Schedule
-            appointments={appointments}
+            appointments={calendarAppointments}
             onAppointmentCreated={fetchAppointments}
             isClient={isClient}
           />

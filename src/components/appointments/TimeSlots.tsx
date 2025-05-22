@@ -94,17 +94,21 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
       );
     });
 
+    // Проверяем, является ли это занятым слотом (маскированная встреча другого клиента)
+    const isBusy = bookedAppointment?.client?.id === 'busy';
+
     return {
       isPast,
       isBooked: !!bookedAppointment,
       isNonWorking,
-      appointment: bookedAppointment
+      appointment: bookedAppointment,
+      isBusy
     };
   };
 
   const handleSlotClick = (time: Date) => {
-    const { isPast, isBooked, isNonWorking } = getSlotInfo(time);
-    if (!isPast && !isBooked && !isNonWorking) {
+    const { isPast, isBooked, isNonWorking, isBusy } = getSlotInfo(time);
+    if (!isPast && !isBooked && !isNonWorking && !isBusy) {
       setSelectedTime(time);
       setIsFormOpen(true);
     }
@@ -138,28 +142,29 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
   return (
     <div className="grid grid-cols-4 gap-2">
       {timeSlots.map((time) => {
-        const { isPast, isBooked, isNonWorking, appointment } = getSlotInfo(time);
+        const { isPast, isBooked, isNonWorking, appointment, isBusy } = getSlotInfo(time);
 
         return (
           <button
             key={time.toISOString()}
             onClick={() => handleSlotClick(time)}
-            disabled={isPast || isBooked || isNonWorking}
+            disabled={isPast || isBooked || isNonWorking || isBusy}
             className={cn(
               "p-2 rounded text-sm text-center transition-colors",
               isPast && "bg-gray-100 text-gray-400 cursor-not-allowed",
-              isBooked && !isPast && "bg-blue-100 text-blue-800 cursor-not-allowed",
+              isBusy && "bg-gray-200 text-gray-600 cursor-not-allowed",
+              isBooked && !isPast && !isBusy && "bg-blue-100 text-blue-800 cursor-not-allowed",
               isBooked && isPast && "bg-purple-50 text-purple-600 cursor-not-allowed",
               isNonWorking && "bg-gray-100 text-gray-400 cursor-not-allowed",
-              !isPast && !isBooked && !isNonWorking && "bg-green-50 hover:bg-green-100 text-green-800"
+              !isPast && !isBooked && !isNonWorking && !isBusy && "bg-green-50 hover:bg-green-100 text-green-800"
             )}
           >
             {format(time, 'HH:mm')}
             {isBooked && appointment?.client && (
               <div className="text-xs mt-1 truncate">
-                {appointment.client.name}
+                {isBusy ? 'Busy' : appointment.client.name}
                 <div className="flex items-center justify-center gap-1 mt-1">
-                  {appointment.status && (
+                  {appointment.status && !isBusy && (
                     <span className={cn(
                       "px-1 rounded text-[10px]",
                       appointment.status === 'completed' && "bg-green-100 text-green-800",

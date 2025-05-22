@@ -56,36 +56,15 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
-            console.log('Missing credentials');
             return null;
           }
-
-          console.log('Attempting login with email:', credentials.email);
-
           // First check if it's a client
           const client = await prisma.client.findUnique({
             where: { email: credentials.email },
           });
 
-          console.log(
-            'Found client:',
-            client
-              ? {
-                  id: client.id,
-                  email: client.email,
-                  name: client.name,
-                  hasPassword: !!client.password,
-                  passwordLength: client.password?.length,
-                }
-              : null
-          );
-
           if (client) {
-            console.log('Comparing passwords...');
-            console.log('Input password:', credentials.password);
-            console.log('Stored password hash:', client.password);
             const isPasswordValid = await compare(credentials.password, client.password);
-            console.log('Password valid:', isPasswordValid);
             if (isPasswordValid) {
               return {
                 id: client.id,
@@ -101,22 +80,8 @@ export const authOptions: NextAuthOptions = {
             where: { email: credentials.email },
           });
 
-          console.log(
-            'Found user:',
-            user
-              ? {
-                  id: user.id,
-                  email: user.email,
-                  name: user.name,
-                  hasPassword: !!user.password,
-                  passwordLength: user.password?.length,
-                }
-              : null
-          );
-
           if (user && user.password) {
             const isPasswordValid = await compare(credentials.password, user.password);
-            console.log('Password valid:', isPasswordValid);
             if (isPasswordValid) {
               return {
                 id: user.id,
@@ -126,8 +91,6 @@ export const authOptions: NextAuthOptions = {
               };
             }
           }
-
-          console.log('No valid user found');
           return null;
         } catch (error) {
           console.error('Auth error:', error);

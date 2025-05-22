@@ -42,26 +42,26 @@ export function useBusinessSettings() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    console.log('Setting up settings update listener');
+    // Setting up settings update listener
     fetchSettings();
 
     // Subscribe to settings updates
     const handleSettingsUpdate = () => {
-      console.log('Settings update event received');
+      // Settings update event received
       fetchSettings();
     };
 
     window.addEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
 
     return () => {
-      console.log('Cleaning up settings update listener');
+      // Cleaning up settings update listener
       window.removeEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
     };
   }, []);
 
   const fetchSettings = async () => {
     try {
-      console.log('Fetching business settings...');
+      // Fetching business settings...
       const response = await fetch('/api/settings/user');
       const data = await response.json();
 
@@ -74,8 +74,6 @@ export function useBusinessSettings() {
         ...data,
         holidays: (data.holidays || []).map((date: string) => new Date(date)),
       };
-
-      console.log('Received settings:', processedData);
       setSettings(processedData);
       setError(null);
     } catch (err) {

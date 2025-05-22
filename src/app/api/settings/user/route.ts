@@ -78,7 +78,6 @@ export async function GET() {
         holidays: trainer.businessSettings?.holidays || [],
       };
 
-      console.log('Sending response for client:', response);
       return NextResponse.json(response);
     }
 
@@ -103,13 +102,6 @@ export async function GET() {
     if (!user) {
       return new NextResponse('User not found', { status: 404 });
     }
-
-    console.log('User settings from DB:', {
-      businessSettings: user.businessSettings,
-      workingHours: user.businessSettings?.workingHours,
-      refCode: user.refCode,
-    });
-
     // Parse workingHours if it's a string
     let workingHours = user.businessSettings?.workingHours;
     if (typeof workingHours === 'string') {
@@ -134,7 +126,6 @@ export async function GET() {
       holidays: user.businessSettings?.holidays || [],
     };
 
-    console.log('Sending response:', response);
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching user settings:', error);

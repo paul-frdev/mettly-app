@@ -7,8 +7,6 @@ dotenv.config({ path: envPath });
 
 export async function sendReminders() {
   try {
-    console.log('Starting reminders check at:', new Date().toISOString());
-
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/reminders/send`, {
       method: 'POST',
       headers: {
@@ -22,9 +20,6 @@ export async function sendReminders() {
       console.error('Failed to send reminders:', error);
       process.exit(1);
     }
-
-    const result = await response.json();
-    console.log('Reminders sent successfully:', result);
   } catch (error) {
     console.error('Error sending reminders:', error);
     process.exit(1);

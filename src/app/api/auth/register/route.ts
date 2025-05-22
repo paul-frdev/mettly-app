@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
       // Create client profile linked to user
       const hashedPassword = await hash(password, 12);
-      console.log('Creating client with hashed password:', hashedPassword);
+
       const client = await prisma.client.create({
         data: {
           name,
@@ -51,7 +51,6 @@ export async function POST(req: Request) {
           userId: user.id,
         },
       });
-      console.log('Created client:', client);
 
       return NextResponse.json({
         message: 'Registration successful',
@@ -67,8 +66,6 @@ export async function POST(req: Request) {
     if (role === 'user') {
       // Generate unique refCode based on profession
       const refCode = `${profession.toLowerCase()}-${crypto.randomBytes(4).toString('hex')}`;
-      console.log('Generated refCode:', refCode);
-
       // Create new user
       const hashedPassword = await hash(password, 12);
       const user = await prisma.user.create({
@@ -82,8 +79,6 @@ export async function POST(req: Request) {
           plan: 'free',
         },
       });
-
-      console.log('Created user with refCode:', user.refCode);
 
       return NextResponse.json({
         message: 'Registration successful',

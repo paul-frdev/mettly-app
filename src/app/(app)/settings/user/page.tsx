@@ -50,13 +50,11 @@ export default function Settings() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        console.log('Fetching user settings...');
         const res = await fetch('/api/settings/user');
         if (!res.ok) {
           throw new Error('Failed to fetch settings');
         }
         const data = await res.json();
-        console.log('Received settings:', data);
         setSettings(data);
       } catch (error) {
         console.error('Error fetching settings:', error);
