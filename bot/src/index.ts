@@ -82,8 +82,6 @@ bot.on('callback_query', async (callbackQuery) => {
     const [action, appointmentId, response] = data.split(':');
 
     if (action === 'confirm') {
-      console.log('Processing confirmation:', { appointmentId, response });
-
       const apiResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/attendance`, {
         method: 'POST',
         headers: {
@@ -98,7 +96,6 @@ bot.on('callback_query', async (callbackQuery) => {
       });
 
       const result = (await apiResponse.json()) as { error?: string; message?: string };
-      console.log('API response:', result);
 
       if (apiResponse.ok) {
         await bot.sendMessage(chatId, response === 'yes' ? '✅ Thank you for confirming your appointment!' : '❌ Appointment declined. Please contact your trainer to reschedule.');
@@ -116,8 +113,6 @@ bot.on('callback_query', async (callbackQuery) => {
 // Function to send appointment reminder
 export async function sendAppointmentReminder(telegramId: string, time: string, appointmentId: string) {
   try {
-    console.log('Sending reminder to:', { telegramId, time, appointmentId });
-
     const keyboard = {
       inline_keyboard: [
         [
@@ -128,10 +123,8 @@ export async function sendAppointmentReminder(telegramId: string, time: string, 
     };
 
     const message = `🥊 You have a session today at ${time}. Will you attend?`;
-    console.log('Sending message:', message);
 
     const result = await bot.sendMessage(telegramId, message, { reply_markup: keyboard });
-    console.log('Message sent successfully:', result);
 
     return result;
   } catch (error) {

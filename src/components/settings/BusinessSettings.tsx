@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { showError, showSuccess } from '@/lib/utils/notifications';
 import { Calendar } from '@/components/ui/calendar';
 import { Switch } from '@/components/ui/switch';
+import { triggerSettingsUpdate } from '@/hooks/useBusinessSettings';
 
 interface DaySchedule {
   enabled: boolean;
@@ -124,8 +125,8 @@ export function BusinessSettings() {
 
       showSuccess('Business settings saved successfully');
 
-      // Refresh settings after save
-      await fetchSettings();
+      // Trigger settings update for all components
+      triggerSettingsUpdate();
     } catch (error) {
       console.error('Error saving business settings:', error);
       showError(error);

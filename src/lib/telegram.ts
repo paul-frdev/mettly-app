@@ -1,7 +1,5 @@
 export async function sendAppointmentReminder(telegramId: string, time: string, appointmentId: string) {
   try {
-    console.log('Sending reminder to:', { telegramId, time, appointmentId });
-
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/telegram/send-message`, {
       method: 'POST',
       headers: {

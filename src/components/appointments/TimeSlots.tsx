@@ -15,10 +15,13 @@ interface Appointment {
   id: string;
   date: Date;
   duration: number;
-  client?: Client;
-  status?: string;
+  client: Client;
+  status: string;
+  notes?: string;
+  cancelledAt?: Date;
+  cancellationReason?: string;
   attendance?: {
-    status: string;
+    status: 'confirmed' | 'declined' | null;
   };
 }
 
@@ -26,9 +29,10 @@ interface TimeSlotsProps {
   selectedDate: Date;
   appointments?: Appointment[];
   onAppointmentCreated?: () => void;
+  isClient?: boolean;
 }
 
-export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreated }: TimeSlotsProps) {
+export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreated, isClient }: TimeSlotsProps) {
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const {
@@ -90,17 +94,21 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
       );
     });
 
+    // Проверяем, является ли это занятым слотом (маскированная встреча другого клиента)
+    const isBusy = bookedAppointment?.client?.id === 'busy';
+
     return {
       isPast,
       isBooked: !!bookedAppointment,
       isNonWorking,
-      appointment: bookedAppointment
+      appointment: bookedAppointment,
+      isBusy
     };
   };
 
   const handleSlotClick = (time: Date) => {
-    const { isPast, isBooked, isNonWorking } = getSlotInfo(time);
-    if (!isPast && !isBooked && !isNonWorking) {
+    const { isPast, isBooked, isNonWorking, isBusy } = getSlotInfo(time);
+    if (!isPast && !isBooked && !isNonWorking && !isBusy) {
       setSelectedTime(time);
       setIsFormOpen(true);
     }
@@ -134,25 +142,42 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
   return (
     <div className="grid grid-cols-4 gap-2">
       {timeSlots.map((time) => {
-        const { isPast, isBooked, isNonWorking, appointment } = getSlotInfo(time);
+        const { isPast, isBooked, isNonWorking, appointment, isBusy } = getSlotInfo(time);
 
         return (
           <button
             key={time.toISOString()}
             onClick={() => handleSlotClick(time)}
-            disabled={isPast || isBooked || isNonWorking}
+            disabled={isPast || isBooked || isNonWorking || isBusy}
             className={cn(
               "p-2 rounded text-sm text-center transition-colors",
               isPast && "bg-gray-100 text-gray-400 cursor-not-allowed",
-              isBooked && "bg-blue-100 text-blue-800 cursor-not-allowed",
+              isBusy && "bg-gray-200 text-gray-600 cursor-not-allowed",
+              isBooked && !isPast && !isBusy && "bg-blue-100 text-blue-800 cursor-not-allowed",
+              isBooked && isPast && "bg-purple-50 text-purple-600 cursor-not-allowed",
               isNonWorking && "bg-gray-100 text-gray-400 cursor-not-allowed",
-              !isPast && !isBooked && !isNonWorking && "bg-green-50 hover:bg-green-100 text-green-800"
+              !isPast && !isBooked && !isNonWorking && !isBusy && "bg-green-50 hover:bg-green-100 text-green-800"
             )}
           >
             {format(time, 'HH:mm')}
             {isBooked && appointment?.client && (
               <div className="text-xs mt-1 truncate">
-                {appointment.client.name}
+                {isBusy ? 'Busy' : appointment.client.name}
+                <div className="flex items-center justify-center gap-1 mt-1">
+                  {appointment.status && !isBusy && (
+                    <span className={cn(
+                      "px-1 rounded text-[10px]",
+                      appointment.status === 'completed' && "bg-green-100 text-green-800",
+                      appointment.status === 'scheduled' && "bg-yellow-100 text-yellow-800",
+                      appointment.status === 'cancelled' && "bg-red-100 text-red-800"
+                    )}>
+                      {appointment.status}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-gray-500">
+                    {format(new Date(appointment.date), 'HH:mm')}
+                  </span>
+                </div>
               </div>
             )}
           </button>
@@ -168,6 +193,7 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
             handleFormClose();
             onAppointmentCreated?.();
           }}
+          isClient={isClient}
         />
       )}
     </div>

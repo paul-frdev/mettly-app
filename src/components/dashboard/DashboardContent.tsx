@@ -48,10 +48,12 @@ interface Appointment {
 }
 
 export function DashboardContent() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [calendarAppointments, setCalendarAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isClientFormOpen, setIsClientFormOpen] = useState(false);
+  const isClient = session?.user?.isClient;
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -60,7 +62,9 @@ export function DashboardContent() {
   }, [status]);
 
   const fetchAppointments = useCallback(async () => {
-    if (status !== 'authenticated') return;
+    if (status !== 'authenticated') {
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -70,16 +74,30 @@ export function DashboardContent() {
           'Content-Type': 'application/json',
         },
       });
+
       if (!response.ok) {
-        throw new Error('Failed to fetch appointments');
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        throw new Error(errorData.error || 'Failed to fetch appointments');
       }
+
       const data = await response.json();
-      const transformedAppointments: Appointment[] = data.map((apt: ApiAppointment) => ({
+      // Transform appointments for the list view
+      const transformedAppointments: Appointment[] = data.list.map((apt: ApiAppointment) => ({
         ...apt,
         date: new Date(apt.date)
       }));
+
+      // Transform appointments for the calendar view
+      const transformedCalendarAppointments: Appointment[] = data.calendar.map((apt: ApiAppointment) => ({
+        ...apt,
+        date: new Date(apt.date)
+      }));
+
       setAppointments(transformedAppointments);
+      setCalendarAppointments(transformedCalendarAppointments);
     } catch (error) {
+      console.error('Error in fetchAppointments:', error);
       showError(error);
     } finally {
       setIsLoading(false);
@@ -123,43 +141,40 @@ export function DashboardContent() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Upcoming</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{upcomingAppointments.length}</div>
-          </CardContent>
-        </Card>
+      {!isClient && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Upcoming</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{upcomingAppointments.length}</div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Today&apos;s Appointments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{todayAppointments.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">$2,850</div>
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Today&apos;s Appointments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{todayAppointments.length}</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-8">
         <Card className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">Today&apos;s Appointments</h2>
-            <Button onClick={() => setIsClientFormOpen(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Client
-            </Button>
+            <h2 className="text-xl font-semibold">
+              {isClient ? 'My Appointments' : 'Today\'s Appointments'}
+            </h2>
+            {!isClient && (
+              <Button onClick={() => setIsClientFormOpen(true)} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Client
+              </Button>
+            )}
           </div>
 
           {todayAppointments.length === 0 ? (
@@ -172,7 +187,9 @@ export function DashboardContent() {
                   className="flex items-center justify-between p-4 rounded-lg border"
                 >
                   <div>
-                    <div className="font-medium">{appointment.client.name}</div>
+                    <div className="font-medium">
+                      {isClient ? session?.user?.name : appointment.client.name}
+                    </div>
                     <div className="text-sm text-gray-500">
                       {format(appointment.date, 'h:mm a')} ({appointment.duration} minutes)
                     </div>
@@ -215,7 +232,9 @@ export function DashboardContent() {
 
           {upcomingAppointments.length > 0 && (
             <>
-              <h2 className="text-xl font-semibold mt-8 mb-4">Upcoming Appointments</h2>
+              <h2 className="text-xl font-semibold mt-8 mb-4">
+                {isClient ? 'Upcoming Sessions' : 'Upcoming Appointments'}
+              </h2>
               <div className="space-y-4">
                 {upcomingAppointments.slice(0, 3).map((appointment) => (
                   <div
@@ -223,7 +242,9 @@ export function DashboardContent() {
                     className="flex items-center justify-between p-4 rounded-lg border"
                   >
                     <div>
-                      <div className="font-medium">{appointment.client.name}</div>
+                      <div className="font-medium">
+                        {isClient ? session?.user?.name : appointment.client.name}
+                      </div>
                       <div className="text-sm text-gray-500">
                         {format(appointment.date, 'MMM d, h:mm a')} ({appointment.duration} minutes)
                       </div>
@@ -244,16 +265,19 @@ export function DashboardContent() {
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-6">Schedule</h2>
           <Schedule
-            appointments={appointments}
+            appointments={calendarAppointments}
             onAppointmentCreated={fetchAppointments}
+            isClient={isClient}
           />
         </Card>
       </div>
 
-      <ClientFormDialog
-        isOpen={isClientFormOpen}
-        onClose={() => setIsClientFormOpen(false)}
-      />
+      {!isClient && (
+        <ClientFormDialog
+          isOpen={isClientFormOpen}
+          onClose={() => setIsClientFormOpen(false)}
+        />
+      )}
     </div>
   );
 } 

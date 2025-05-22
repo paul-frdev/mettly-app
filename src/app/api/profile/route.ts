@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -21,19 +21,35 @@ export async function GET() {
         phone: true,
         bio: true,
         profession: true,
-        password: true,
+        isClient: true,
       },
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      // Если пользователь не найден, проверяем клиента
+      const client = await prisma.client.findUnique({
+        where: {
+          email: session.user.email,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      });
+
+      if (!client) {
+        return new NextResponse('User not found', { status: 404 });
+      }
+
+      return NextResponse.json({ ...client, isClient: true });
     }
 
-    const { password, ...userWithoutPassword } = user;
-    return NextResponse.json({ ...userWithoutPassword, hasPassword: !!password });
+    return NextResponse.json(user);
   } catch (error) {
     console.error('Profile fetch error:', error);
-    return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 });
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
@@ -41,35 +57,64 @@ export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const data = await request.json();
     const { name, phone, bio, profession } = data;
 
-    const updatedUser = await prisma.user.update({
-      where: {
-        email: session.user.email,
-      },
-      data: {
-        name: name || undefined,
-        phone: phone || undefined,
-        bio: bio || undefined,
-        profession: profession || undefined,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        bio: true,
-        profession: true,
-      },
+    // Сначала проверяем, является ли пользователь клиентом
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { isClient: true },
     });
 
-    return NextResponse.json(updatedUser);
+    if (user?.isClient) {
+      // Обновляем данные клиента
+      const updatedClient = await prisma.client.update({
+        where: {
+          email: session.user.email,
+        },
+        data: {
+          name: name || undefined,
+          phone: phone || undefined,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      });
+
+      return NextResponse.json({ ...updatedClient, isClient: true });
+    } else {
+      // Обновляем данные пользователя
+      const updatedUser = await prisma.user.update({
+        where: {
+          email: session.user.email,
+        },
+        data: {
+          name: name || undefined,
+          phone: phone || undefined,
+          bio: bio || undefined,
+          profession: profession || undefined,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          bio: true,
+          profession: true,
+          isClient: true,
+        },
+      });
+
+      return NextResponse.json(updatedUser);
+    }
   } catch (error) {
     console.error('Profile update error:', error);
-    return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
