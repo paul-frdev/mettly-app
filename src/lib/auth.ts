@@ -2,13 +2,14 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import bcrypt from 'bcryptjs';
 import prisma from './prisma';
+import { compare } from 'bcryptjs';
 
 // Extend the built-in types
 declare module 'next-auth' {
   interface Session {
     user: {
+      isClient: boolean;
       id: string;
       email?: string | null;
       name?: string | null;
@@ -20,8 +21,19 @@ declare module 'next-auth' {
 
   interface User {
     id: string;
-    email: string;
-    name: string;
+    email: string | null;
+    name: string | null;
+    phone?: string | null;
+    bio?: string | null;
+    profession?: string | null;
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id: string;
+    email: string | null;
+    name: string | null;
     phone?: string | null;
     bio?: string | null;
     profession?: string | null;
@@ -36,53 +48,91 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     CredentialsProvider({
-      name: 'Credentials',
+      name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Please enter an email and password');
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            console.log('Missing credentials');
+            return null;
+          }
+
+          console.log('Attempting login with email:', credentials.email);
+
+          // First check if it's a client
+          const client = await prisma.client.findUnique({
+            where: { email: credentials.email },
+          });
+
+          console.log(
+            'Found client:',
+            client
+              ? {
+                  id: client.id,
+                  email: client.email,
+                  name: client.name,
+                  hasPassword: !!client.password,
+                  passwordLength: client.password?.length,
+                }
+              : null
+          );
+
+          if (client) {
+            console.log('Comparing passwords...');
+            console.log('Input password:', credentials.password);
+            console.log('Stored password hash:', client.password);
+            const isPasswordValid = await compare(credentials.password, client.password);
+            console.log('Password valid:', isPasswordValid);
+            if (isPasswordValid) {
+              return {
+                id: client.id,
+                email: client.email,
+                name: client.name,
+                isClient: true,
+              };
+            }
+          }
+
+          // If not a client, check if it's a user
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          });
+
+          console.log(
+            'Found user:',
+            user
+              ? {
+                  id: user.id,
+                  email: user.email,
+                  name: user.name,
+                  hasPassword: !!user.password,
+                  passwordLength: user.password?.length,
+                }
+              : null
+          );
+
+          if (user && user.password) {
+            const isPasswordValid = await compare(credentials.password, user.password);
+            console.log('Password valid:', isPasswordValid);
+            if (isPasswordValid) {
+              return {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                isClient: false,
+              };
+            }
+          }
+
+          console.log('No valid user found');
+          return null;
+        } catch (error) {
+          console.error('Auth error:', error);
+          return null;
         }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            password: true,
-            phone: true,
-            bio: true,
-            profession: true,
-          },
-        });
-
-        if (!user) {
-          throw new Error('No user found with this email');
-        }
-
-        if (!user.password) {
-          throw new Error('Please sign in with Google');
-        }
-
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
-          throw new Error('Invalid password');
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          phone: user.phone,
-          bio: user.bio,
-          profession: user.profession,
-        };
       },
     }),
   ],
@@ -100,9 +150,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
-        token.phone = user.phone;
-        token.bio = user.bio;
-        token.profession = user.profession;
+        token.isClient = user.isClient;
       }
       if (!token.id && token.email) {
         const dbUser = await prisma.user.findUnique({ where: { email: token.email as string } });
@@ -124,6 +172,7 @@ export const authOptions: NextAuthOptions = {
         session.user.phone = token.phone as string | null;
         session.user.bio = token.bio as string | null;
         session.user.profession = token.profession as string | null;
+        session.user.isClient = token.isClient as boolean;
       }
       return session;
     },
@@ -133,5 +182,5 @@ export const authOptions: NextAuthOptions = {
       // Clear any server-side session data if needed
     },
   },
-  debug: process.env.NODE_ENV === 'development',
+  debug: true, // Enable debug mode
 };

@@ -5,14 +5,20 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LogOut, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import Logo from '@/components/Logo';
 
-const navigation = [
+const userNavigation = [
   { name: 'Dashboard', href: '/dashboard' },
   { name: 'Clients', href: '/clients' },
-  { name: 'Appointment', href: '/appointments' },
-  { name: 'Settings', href: '/settings' }
+  { name: 'Appointments', href: '/appointments' },
+  { name: 'Settings', href: '/settings/user' }
+];
+
+const clientNavigation = [
+  { name: 'Dashboard', href: '/dashboard' },
+  { name: 'Appointments', href: '/appointments' },
+  { name: 'Settings', href: '/settings/client' }
 ];
 
 export function Navigation() {
@@ -20,6 +26,21 @@ export function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { data: session } = useSession();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    const checkClientStatus = async () => {
+      if (session?.user?.email) {
+        const res = await fetch(`/api/clients/check?email=${session.user.email}`);
+        const data = await res.json();
+        setIsClient(data.isClient);
+      }
+    };
+    checkClientStatus();
+  }, [session]);
+
+  const navigation = isClient ? clientNavigation : userNavigation;
 
   useEffect(() => {
     setMounted(true);

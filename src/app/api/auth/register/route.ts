@@ -1,73 +1,102 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
+import { hash } from 'bcryptjs';
 import crypto from 'crypto';
-import { sendMail } from '@/lib/mail';
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, password, trainerCode, profession, role, phone = '' } = await req.json();
 
-    // Validate input
+    // Validate required fields based on role
     if (!name || !email || !password) {
-      return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Check if user already exists
+    if (role === 'trainer' && !profession) {
+      return NextResponse.json({ error: 'Profession is required for trainers' }, { status: 400 });
+    }
+
+    if (role === 'client' && !trainerCode) {
+      return NextResponse.json({ error: 'Trainer code is required for clients' }, { status: 400 });
+    }
+
+    // Check if email already exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
-      return NextResponse.json({ message: 'User with this email already exists' }, { status: 400 });
+      return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    // For clients, check if trainer exists
+    if (role === 'client') {
+      const trainer = await prisma.user.findUnique({
+        where: { refCode: trainerCode },
+      });
 
-    // Generate reset token for email confirmation
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
+      if (!trainer) {
+        return NextResponse.json({ error: 'Invalid trainer code' }, { status: 400 });
+      }
 
-    // Create user with reset token
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        resetToken,
-        resetTokenExpiry,
-      },
-    });
+      // Create client profile linked to trainer
+      const hashedPassword = await hash(password, 12);
+      console.log('Creating client with hashed password:', hashedPassword);
+      const client = await prisma.client.create({
+        data: {
+          name,
+          email,
+          phone,
+          password: hashedPassword,
+          userId: trainer.id,
+        },
+      });
+      console.log('Created client:', client);
 
-    // Send confirmation email with reset link
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${resetToken}`;
-    await sendMail({
-      to: email,
-      subject: 'Confirm your email and set your password',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Welcome to Mettly!</h2>
-          <p>Thank you for registering. Please confirm your email and set your password by clicking the button below:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" 
-               style="background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-              Confirm Email & Set Password
-            </a>
-          </div>
-          <p>This link will expire in 1 hour.</p>
-          <p>If you did not register, please ignore this email.</p>
-        </div>
-      `,
-    });
+      return NextResponse.json({
+        message: 'Registration successful',
+        client: {
+          id: client.id,
+          name: client.name,
+          email: client.email,
+          trainerId: trainer.id,
+        },
+      });
+    }
 
-    // Remove password from response
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = user;
+    // For trainers
+    if (role === 'trainer') {
+      // Generate unique refCode based on profession
+      const refCode = `${profession.toLowerCase()}-${crypto.randomBytes(4).toString('hex')}`;
 
-    return NextResponse.json(userWithoutPassword, { status: 201 });
+      // Create new trainer
+      const hashedPassword = await hash(password, 12);
+      const user = await prisma.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+          profession,
+          refCode,
+          role: 'trainer',
+          plan: 'free',
+        },
+      });
+
+      return NextResponse.json({
+        message: 'Registration successful',
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          refCode: user.refCode,
+        },
+      });
+    }
+
+    return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
   } catch (error) {
     console.error('Registration error:', error);
-    return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
+    return NextResponse.json({ error: 'Registration failed' }, { status: 500 });
   }
 }
