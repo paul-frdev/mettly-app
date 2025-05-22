@@ -4,12 +4,16 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
 // GET /api/appointments
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
+
+    // Update statuses of past appointments first
+    const now = new Date();
+    console.log('Current time:', now.toISOString());
 
     // Сначала проверяем, является ли пользователь клиентом
     const client = await prisma.client.findUnique({
@@ -18,7 +22,32 @@ export async function GET(req: NextRequest) {
     });
 
     if (client) {
-      // Если это клиент, показываем его встречи
+      // Если это клиент, обновляем статусы его встреч
+      const updatedAppointments = await prisma.appointment.updateMany({
+        where: {
+          clientId: client.id,
+          AND: [
+            {
+              date: {
+                lt: now,
+              },
+            },
+            {
+              status: 'scheduled',
+            },
+            {
+              OR: [{ attendance: null }, { attendance: { status: { not: 'declined' } } }],
+            },
+          ],
+        },
+        data: {
+          status: 'completed',
+        },
+      });
+
+      console.log('Updated client appointments:', updatedAppointments);
+
+      // Показываем его встречи
       const appointments = await prisma.appointment.findMany({
         where: {
           clientId: client.id,
@@ -34,6 +63,17 @@ export async function GET(req: NextRequest) {
           date: 'asc',
         },
       });
+
+      console.log(
+        'Client appointments:',
+        appointments.map((apt) => ({
+          id: apt.id,
+          date: apt.date,
+          status: apt.status,
+          attendance: apt.attendance,
+        }))
+      );
+
       return NextResponse.json(appointments);
     }
 
@@ -47,7 +87,32 @@ export async function GET(req: NextRequest) {
       return new NextResponse('User not found', { status: 404 });
     }
 
-    // Для тренера показываем все его встречи
+    // Для тренера обновляем статусы его встреч
+    const updatedTrainerAppointments = await prisma.appointment.updateMany({
+      where: {
+        userId: trainer.id,
+        AND: [
+          {
+            date: {
+              lt: now,
+            },
+          },
+          {
+            status: 'scheduled',
+          },
+          {
+            OR: [{ attendance: null }, { attendance: { status: { not: 'declined' } } }],
+          },
+        ],
+      },
+      data: {
+        status: 'completed',
+      },
+    });
+
+    console.log('Updated trainer appointments:', updatedTrainerAppointments);
+
+    // Показываем все его встречи
     const appointments = await prisma.appointment.findMany({
       where: {
         userId: trainer.id,
@@ -71,6 +136,16 @@ export async function GET(req: NextRequest) {
         date: 'asc',
       },
     });
+
+    console.log(
+      'Trainer appointments:',
+      appointments.map((apt) => ({
+        id: apt.id,
+        date: apt.date,
+        status: apt.status,
+        attendance: apt.attendance,
+      }))
+    );
 
     return NextResponse.json(appointments);
   } catch (error) {

@@ -148,7 +148,8 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
             className={cn(
               "p-2 rounded text-sm text-center transition-colors",
               isPast && "bg-gray-100 text-gray-400 cursor-not-allowed",
-              isBooked && "bg-blue-100 text-blue-800 cursor-not-allowed",
+              isBooked && !isPast && "bg-blue-100 text-blue-800 cursor-not-allowed",
+              isBooked && isPast && "bg-purple-50 text-purple-600 cursor-not-allowed",
               isNonWorking && "bg-gray-100 text-gray-400 cursor-not-allowed",
               !isPast && !isBooked && !isNonWorking && "bg-green-50 hover:bg-green-100 text-green-800"
             )}
@@ -157,6 +158,21 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
             {isBooked && appointment?.client && (
               <div className="text-xs mt-1 truncate">
                 {appointment.client.name}
+                <div className="flex items-center justify-center gap-1 mt-1">
+                  {appointment.status && (
+                    <span className={cn(
+                      "px-1 rounded text-[10px]",
+                      appointment.status === 'completed' && "bg-green-100 text-green-800",
+                      appointment.status === 'scheduled' && "bg-yellow-100 text-yellow-800",
+                      appointment.status === 'cancelled' && "bg-red-100 text-red-800"
+                    )}>
+                      {appointment.status}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-gray-500">
+                    {format(new Date(appointment.date), 'HH:mm')}
+                  </span>
+                </div>
               </div>
             )}
           </button>
