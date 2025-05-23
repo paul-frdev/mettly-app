@@ -1,63 +1,69 @@
-import { UserPlus, CalendarPlus, Bell } from 'lucide-react';
+import { Calendar, MessageSquare, CreditCard, BarChart } from 'lucide-react';
+import AnimatedSection from '@/components/ui/AnimatedSection';
+import AnimatedText from '@/components/ui/AnimatedText';
 
 export default function HowItWorks() {
   const steps = [
     {
-      icon: UserPlus,
-      title: 'Sign Up',
-      description: 'Create your account in seconds with just your email'
+      icon: Calendar,
+      title: 'Create Your Schedule',
+      description: 'Set your availability and let clients book appointments that work for you.'
     },
     {
-      icon: CalendarPlus,
-      title: 'Add Clients & Meetings',
-      description: 'Start managing your client appointments and schedule'
+      icon: MessageSquare,
+      title: 'Manage Communications',
+      description: 'Keep all client communications in one place with our built-in messaging system.'
     },
     {
-      icon: Bell,
-      title: 'Get Notifications',
-      description: 'Receive reminders and track payments automatically'
+      icon: CreditCard,
+      title: 'Handle Payments',
+      description: 'Accept payments securely and manage your finances with our integrated system.'
+    },
+    {
+      icon: BarChart,
+      title: 'Track Progress',
+      description: 'Monitor client progress and business growth with detailed analytics.'
     }
   ];
 
   return (
-    <section className="py-20 bg-white dark:bg-gray-900">
-      <div className="container mx-auto px-4">
+    <section className="py-24 bg-white">
+      <div className="container mx-auto px-4 max-w-[1400px]">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            How It Works
-          </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
-            Get started in three simple steps
-          </p>
+          <AnimatedSection>
+            <AnimatedText
+              text="How Meetly Works"
+              className="text-4xl md:text-5xl font-sans font-bold text-[#0b3559] mb-6"
+            />
+          </AnimatedSection>
+
+          <AnimatedSection delay={0.2}>
+            <AnimatedText
+              text="A simple, powerful platform to manage your client relationships"
+              className="text-xl text-[#0f0880] font-sans font-normal max-w-2xl mx-auto"
+            />
+          </AnimatedSection>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {steps.map((step, index) => (
-            <div
+            <AnimatedSection
               key={index}
-              className="relative text-center"
+              delay={0.1 * index}
+              direction="up"
             >
-              {/* Step number */}
-              <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-bold">
-                {index + 1}
-              </div>
-
-              {/* Content */}
-              <div className="pt-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                <div className="w-16 h-16 mx-auto bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-6">
-                  <step.icon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <div className="w-16 h-16 bg-[#0b3559]/5 rounded-xl flex items-center justify-center mb-6">
+                  <step.icon className="w-8 h-8 text-[#0b3559]" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
-                <p className="text-gray-600 dark:text-gray-300">
+                <h3 className="text-xl font-sans font-semibold mb-4 text-[#0b3559]">
+                  {step.title}
+                </h3>
+                <p className="text-[#0f0880] font-sans font-normal">
                   {step.description}
                 </p>
               </div>
-
-              {/* Connector line for all except last item */}
-              {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-1/2 left-full w-full h-0.5 bg-blue-200 dark:bg-blue-800 transform -translate-y-1/2 -translate-x-1/2" />
-              )}
-            </div>
+            </AnimatedSection>
           ))}
         </div>
       </div>
