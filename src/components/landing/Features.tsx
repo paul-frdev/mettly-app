@@ -4,35 +4,35 @@ export default function Features() {
   const features = [
     {
       icon: Calendar,
-      title: 'Convenient Meeting Calendar',
-      description: 'Easily schedule and manage all your client appointments in one place'
+      title: 'Smart Scheduling',
+      description: 'Easily manage your client appointments with an intuitive calendar interface'
     },
     {
       icon: CreditCard,
-      title: 'Payment & Balance Tracking',
-      description: 'Keep track of payments and outstanding balances from your clients'
+      title: 'Payment Tracking',
+      description: 'Keep track of all payments and balances in one secure place'
     },
     {
       icon: Bell,
-      title: 'Smart Notifications',
-      description: 'Get timely reminders via Telegram and email automatically'
+      title: 'Automated Reminders',
+      description: 'Send automated notifications via Telegram and email to reduce no-shows'
     },
     {
       icon: BarChart,
       title: 'Client Analytics',
-      description: 'Monitor revenue and client engagement over time'
+      description: 'Get insights into your business performance and client engagement'
     }
   ];
 
   return (
-    <section id="features" className="py-20 bg-white dark:bg-gray-900">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+    <section id="features" className="py-24 bg-white">
+      <div className="container mx-auto px-4 max-w-[1400px]">
+        <div className="text-center mb-20">
+          <h2 className="font-display text-4xl md:text-5xl font-bold mb-6 text-[#0b3559] tracking-tight">
             Everything You Need to Manage Clients
           </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
-            Powerful features designed for service professionals
+          <p className="text-xl text-[#0f0880] max-w-2xl mx-auto font-light">
+            Powerful features designed to help you focus on what matters most — your clients
           </p>
         </div>
 
@@ -40,13 +40,13 @@ export default function Features() {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
+              className="p-8 bg-[#eef0f2] rounded-2xl hover:shadow-xl transition-all duration-300 group"
             >
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-6">
-                <feature.icon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="w-14 h-14 bg-[#341578]/10 rounded-xl flex items-center justify-center mb-6 group-hover:bg-[#341578]/20 transition-colors duration-300">
+                <feature.icon className="w-7 h-7 text-[#341578]" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-              <p className="text-gray-600 dark:text-gray-300">
+              <h3 className="font-display text-2xl font-semibold mb-4 text-[#0b3559]">{feature.title}</h3>
+              <p className="text-[#0f0880] leading-relaxed font-light">
                 {feature.description}
               </p>
             </div>
