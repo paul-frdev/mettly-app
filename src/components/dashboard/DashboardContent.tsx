@@ -82,17 +82,33 @@ export function DashboardContent() {
       }
 
       const data = await response.json();
-      // Transform appointments for the list view
-      const transformedAppointments: Appointment[] = data.list.map((apt: ApiAppointment) => ({
-        ...apt,
-        date: new Date(apt.date)
-      }));
+      console.log('Received appointments:', data);
 
-      // Transform appointments for the calendar view
-      const transformedCalendarAppointments: Appointment[] = data.calendar.map((apt: ApiAppointment) => ({
-        ...apt,
-        date: new Date(apt.date)
-      }));
+      // Handle both client and trainer response formats
+      let transformedAppointments: Appointment[];
+      let transformedCalendarAppointments: Appointment[];
+
+      if (Array.isArray(data)) {
+        // Trainer response format - direct array
+        transformedAppointments = data.map((apt: ApiAppointment) => ({
+          ...apt,
+          date: new Date(apt.date),
+          cancelledAt: apt.cancelledAt ? new Date(apt.cancelledAt) : undefined
+        }));
+        transformedCalendarAppointments = transformedAppointments;
+      } else {
+        // Client response format - object with list and calendar
+        transformedAppointments = data.list.map((apt: ApiAppointment) => ({
+          ...apt,
+          date: new Date(apt.date),
+          cancelledAt: apt.cancelledAt ? new Date(apt.cancelledAt) : undefined
+        }));
+        transformedCalendarAppointments = data.calendar.map((apt: ApiAppointment) => ({
+          ...apt,
+          date: new Date(apt.date),
+          cancelledAt: apt.cancelledAt ? new Date(apt.cancelledAt) : undefined
+        }));
+      }
 
       setAppointments(transformedAppointments);
       setCalendarAppointments(transformedCalendarAppointments);

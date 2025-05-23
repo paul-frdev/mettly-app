@@ -61,6 +61,7 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isCl
   const [clients, setClients] = useState<Client[]>([]);
   const router = useRouter();
   const { data: session } = useSession();
+  const [clientId, setClientId] = useState<string | null>(null);
 
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema(!!isClient)),
@@ -95,24 +96,60 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isCl
     }
   }, [isOpen, isClient]);
 
+  useEffect(() => {
+    async function fetchClientId() {
+      if (isClient && session?.user?.email) {
+        try {
+          const response = await fetch(`/api/clients/by-email?email=${session.user.email}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch client ID');
+          }
+          const data = await response.json();
+          setClientId(data.id);
+        } catch (error) {
+          console.error(error);
+          showError('Failed to load client information');
+        }
+      }
+    }
+
+    if (isOpen && isClient) {
+      fetchClientId();
+    }
+  }, [isOpen, isClient, session?.user?.email]);
+
   async function onSubmit(data: AppointmentFormData) {
     setIsLoading(true);
     try {
+      console.log('Form data:', data);
+      console.log('Selected time:', selectedTime);
+      console.log('Client ID:', isClient ? clientId : data.clientId);
+      console.log('Is client:', isClient);
+      console.log('Session:', session);
+
+      const requestBody = {
+        ...data,
+        date: selectedTime.toISOString(),
+        clientId: isClient ? clientId : data.clientId,
+      };
+      console.log('Request body:', requestBody);
+
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...data,
-          date: selectedTime.toISOString(),
-          clientId: isClient ? session?.user?.id : data.clientId,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create appointment');
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        throw new Error(errorData.error || 'Failed to create appointment');
       }
+
+      const responseData = await response.json();
+      console.log('Success response:', responseData);
 
       showSuccess('Appointment created successfully');
       form.reset();
@@ -122,6 +159,7 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isCl
       }
       router.refresh();
     } catch (error) {
+      console.error('Error creating appointment:', error);
       showError(error instanceof Error ? error.message : 'Failed to create appointment');
     } finally {
       setIsLoading(false);
