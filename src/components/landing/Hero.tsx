@@ -1,57 +1,73 @@
 import Link from 'next/link';
-
+import Image from 'next/image';
+import AnimatedSection from '@/components/ui/AnimatedSection';
+import AnimatedText from '@/components/ui/AnimatedText';
 
 export default function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center bg-[#eef0f2]">
-      {/* Background overlay */}
-      <div className="absolute inset-0 bg-[#0b3559]/5" />
+    <section className="pt-32 pb-24 bg-[#f2f2f2]">
+      <div className="container mx-auto px-4 max-w-[1400px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <AnimatedSection>
+              <AnimatedText
+                text="Streamline Your Client Management"
+                className="text-5xl md:text-6xl font-sans font-bold text-[#0b3559] mb-6 leading-tight"
+              />
+            </AnimatedSection>
 
-      {/* Background pattern */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(15,8,128,0.1),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_60%,rgba(52,21,120,0.1),transparent_50%)]" />
-      </div>
+            <AnimatedSection delay={0.2}>
+              <AnimatedText
+                text="Meetly helps service professionals manage clients, schedule appointments, and grow their business - all in one place."
+                className="text-xl text-[#0f0880] font-sans font-normal mb-8"
+              />
+            </AnimatedSection>
 
-      <div className="container mx-auto px-4 py-32 text-center relative max-w-[1400px]">
-        <h1 className="font-display text-5xl md:text-7xl font-bold mb-8 text-[#0b3559] tracking-tight">
-          Streamline Your Client Management
-        </h1>
+            <AnimatedSection delay={0.3}>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  href="/auth/register"
+                  className="bg-[#e42627] hover:bg-[#d41f20] text-white px-8 py-4 rounded-lg text-lg font-sans font-semibold transition-colors duration-200 shadow-lg hover:shadow-xl text-center"
+                >
+                  Get Started Free
+                </Link>
+                <Link
+                  href="#features"
+                  className="bg-white hover:bg-gray-50 text-[#0b3559] px-8 py-4 rounded-lg text-lg font-sans font-semibold transition-colors duration-200 shadow-lg hover:shadow-xl text-center"
+                >
+                  Learn More
+                </Link>
+              </div>
+            </AnimatedSection>
 
-        <p className="text-xl md:text-2xl text-[#0f0880] mb-12 max-w-3xl mx-auto font-light">
-          Schedule meetings, track payments, and automate reminders — all in one powerful platform
-        </p>
-
-        <div className="flex justify-center">
-          <Link
-            href="/auth/register"
-            className="bg-[#e42627] hover:bg-[#d41f20] text-white px-10 py-5 rounded-lg text-xl font-display font-semibold transition-colors duration-200 shadow-lg hover:shadow-xl"
-          >
-            Start for Free
-          </Link>
-        </div>
-
-        <div className="mt-20">
-          <div className="flex items-center justify-center space-x-12">
-            <div className="flex items-center space-x-3">
-              <svg className="w-6 h-6 text-[#e42627]" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span className="text-[#0b3559] text-lg font-light">14-Day Free Trial</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <svg className="w-6 h-6 text-[#e42627]" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span className="text-[#0b3559] text-lg font-light">No Credit Card Required</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <svg className="w-6 h-6 text-[#e42627]" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span className="text-[#0b3559] text-lg font-light">Cancel Anytime</span>
-            </div>
+            <AnimatedSection delay={0.4}>
+              <div className="mt-8 flex items-center gap-4">
+                <div className="flex -space-x-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="w-10 h-10 rounded-full border-2 border-white bg-gray-200"
+                    />
+                  ))}
+                </div>
+                <p className="text-[#0f0880] font-sans font-normal">
+                  Join 1000+ professionals using Meetly
+                </p>
+              </div>
+            </AnimatedSection>
           </div>
+
+          <AnimatedSection delay={0.5} direction="right">
+            <div className="relative h-[600px] w-full">
+              <Image
+                src="/images/hero-dashboard.png"
+                alt="Meetly Dashboard"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+          </AnimatedSection>
         </div>
       </div>
     </section>

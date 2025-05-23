@@ -33,14 +33,14 @@ export default function HowItWorks() {
           <AnimatedSection>
             <AnimatedText
               text="How Meetly Works"
-              className="font-display text-4xl md:text-5xl font-bold mb-6 text-[#0b3559] tracking-tight"
+              className="text-4xl md:text-5xl font-sans font-bold text-[#0b3559] mb-6"
             />
           </AnimatedSection>
 
           <AnimatedSection delay={0.2}>
             <AnimatedText
               text="A simple, powerful platform to manage your client relationships"
-              className="text-xl text-[#0b3559]/80 max-w-2xl mx-auto font-light"
+              className="text-xl text-[#0f0880] font-sans font-normal max-w-2xl mx-auto"
             />
           </AnimatedSection>
         </div>
@@ -56,10 +56,10 @@ export default function HowItWorks() {
                 <div className="w-16 h-16 bg-[#0b3559]/5 rounded-xl flex items-center justify-center mb-6">
                   <step.icon className="w-8 h-8 text-[#0b3559]" />
                 </div>
-                <h3 className="font-display text-xl font-semibold mb-4 text-[#0b3559]">
+                <h3 className="text-xl font-sans font-semibold mb-4 text-[#0b3559]">
                   {step.title}
                 </h3>
-                <p className="text-[#0b3559]/80 font-light">
+                <p className="text-[#0f0880] font-sans font-normal">
                   {step.description}
                 </p>
               </div>

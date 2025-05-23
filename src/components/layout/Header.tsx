@@ -4,7 +4,7 @@ import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
-import { Moon, Sun, LogOut } from 'lucide-react';
+import { Moon, Sun, LogOut, Menu, X } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -15,6 +15,7 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -59,7 +60,7 @@ export default function Header() {
             <Link
               href="/"
               onClick={(e) => handleNavigation(e, '/')}
-              className="text-[#0b3559] dark:text-white"
+              className="text-2xl font-sans font-bold text-[#0b3559] dark:text-white"
             >
               <Logo />
             </Link>
@@ -67,55 +68,55 @@ export default function Header() {
             {/* Main Navigation */}
             {!session ? (
               <nav className="hidden md:flex items-center space-x-8 ml-8">
-                <a
+                <Link
                   href="#features"
                   onClick={(e) => handleNavigation(e, '#features')}
-                  className="font-display text-[#0b3559] hover:text-[#0f0880] transition-colors cursor-pointer"
+                  className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
                   Features
-                </a>
-                <a
+                </Link>
+                <Link
                   href="#pricing"
                   onClick={(e) => handleNavigation(e, '#pricing')}
-                  className="font-display text-[#0b3559] hover:text-[#0f0880] transition-colors cursor-pointer"
+                  className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
                   Pricing
-                </a>
-                <a
-                  href="#about"
-                  onClick={(e) => handleNavigation(e, '#about')}
-                  className="font-display text-[#0b3559] hover:text-[#0f0880] transition-colors cursor-pointer"
+                </Link>
+                <Link
+                  href="#testimonials"
+                  onClick={(e) => handleNavigation(e, '#testimonials')}
+                  className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
-                  About
-                </a>
+                  Testimonials
+                </Link>
               </nav>
             ) : (
               <nav className="hidden md:flex items-center space-x-8 ml-8">
                 <Link
                   href="/dashboard"
                   onClick={(e) => handleNavigation(e, '/dashboard')}
-                  className="font-display text-[#0b3559] hover:text-[#0f0880] transition-colors"
+                  className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
                   Dashboard
                 </Link>
                 <Link
                   href="/clients"
                   onClick={(e) => handleNavigation(e, '/clients')}
-                  className="font-display text-[#0b3559] hover:text-[#0f0880] transition-colors"
+                  className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
                   Clients
                 </Link>
                 <Link
                   href="/appointments"
                   onClick={(e) => handleNavigation(e, '/appointments')}
-                  className="font-display text-[#0b3559] hover:text-[#0f0880] transition-colors"
+                  className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
                   Appointment
                 </Link>
                 <Link
                   href="/settings"
                   onClick={(e) => handleNavigation(e, '/settings')}
-                  className="font-display text-[#0b3559] hover:text-[#0f0880] transition-colors"
+                  className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
                   Settings
                 </Link>
@@ -130,14 +131,14 @@ export default function Header() {
                 <Link
                   href="/auth/login"
                   onClick={(e) => handleNavigation(e, '/auth/login')}
-                  className="font-display text-[#0b3559] hover:text-[#0f0880] transition-colors"
+                  className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
                   Login
                 </Link>
                 <Link
                   href="/auth/register"
                   onClick={(e) => handleNavigation(e, '/auth/register')}
-                  className="font-display bg-[#e42627] text-white px-6 py-2.5 rounded-lg hover:bg-[#d41f20] transition-colors shadow-lg hover:shadow-xl"
+                  className="bg-[#e42627] hover:bg-[#d41f20] text-white px-6 py-2 rounded-lg font-sans font-semibold transition-colors"
                 >
                   Get Started
                 </Link>
@@ -147,16 +148,16 @@ export default function Header() {
                 <Link
                   href="/profile"
                   onClick={(e) => handleNavigation(e, '/profile')}
-                  className="font-display text-[#0b3559] hover:text-[#0f0880] transition-colors"
+                  className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
                   Profile
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center space-x-2 text-[#0b3559] hover:text-[#e42627] transition-colors"
+                  className="flex items-center space-x-2 text-[#0f0880] hover:text-[#e42627] transition-colors"
                 >
                   <LogOut className="w-5 h-5" />
-                  <span className="font-display">Logout</span>
+                  <span className="font-sans font-normal">Logout</span>
                 </button>
               </>
             )}
@@ -166,13 +167,62 @@ export default function Header() {
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? (
-                <Sun className="w-5 h-5 text-[#0b3559]" />
+                <Sun className="w-5 h-5 text-[#0f0880]" />
               ) : (
-                <Moon className="w-5 h-5 text-[#0b3559]" />
+                <Moon className="w-5 h-5 text-[#0f0880]" />
               )}
             </button>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden text-[#0b3559]"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <nav className="md:hidden py-4 space-y-4">
+            <Link
+              href="#features"
+              className="block text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Features
+            </Link>
+            <Link
+              href="#pricing"
+              className="block text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Pricing
+            </Link>
+            <Link
+              href="#testimonials"
+              className="block text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Testimonials
+            </Link>
+            <Link
+              href="/auth/login"
+              className="block text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Login
+            </Link>
+            <Link
+              href="/auth/register"
+              className="block bg-[#e42627] hover:bg-[#d41f20] text-white px-6 py-2 rounded-lg font-sans font-semibold transition-colors text-center"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Get Started
+            </Link>
+          </nav>
+        )}
       </div>
     </header>
   );

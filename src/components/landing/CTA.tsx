@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import AnimatedSection from '@/components/ui/AnimatedSection';
-import AnimatedText from '@/components/ui/AnimatedText';
 
 export default function CTA() {
   return (
@@ -8,32 +7,28 @@ export default function CTA() {
       <div className="container mx-auto px-4 max-w-[1400px]">
         <div className="text-center">
           <AnimatedSection>
-            <AnimatedText
-              text="Ready to Transform Your Client Management?"
-              className="font-display text-4xl md:text-5xl font-bold mb-6 text-white tracking-tight"
-            />
+            <h2 className="text-4xl md:text-5xl font-sans font-bold text-white mb-6">
+              Ready to Streamline Your Business?
+            </h2>
           </AnimatedSection>
-
           <AnimatedSection delay={0.2}>
-            <AnimatedText
-              text="Join thousands of service professionals who trust Meetly to grow their business"
-              className="text-xl text-white/80 max-w-2xl mx-auto font-light mb-12"
-            />
+            <p className="text-xl text-white/80 font-sans font-normal max-w-3xl mx-auto mb-12">
+              Join thousands of service professionals who are growing their business with Meetly
+            </p>
           </AnimatedSection>
-
-          <AnimatedSection delay={0.4}>
+          <AnimatedSection delay={0.3}>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/auth/register"
-                className="bg-[#e42627] hover:bg-[#d41f20] text-white px-10 py-5 rounded-lg text-xl font-display font-semibold transition-colors duration-200 shadow-lg hover:shadow-xl"
+                className="bg-[#e42627] hover:bg-[#d41f20] text-white px-8 py-4 rounded-lg text-lg font-sans font-semibold transition-colors duration-200 shadow-lg hover:shadow-xl"
               >
                 Start Free Trial
               </Link>
               <Link
-                href="#pricing"
-                className="bg-white/10 hover:bg-white/20 text-white px-10 py-5 rounded-lg text-xl font-display font-semibold transition-colors duration-200"
+                href="#contact"
+                className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-lg text-lg font-sans font-semibold transition-colors duration-200"
               >
-                View Pricing
+                Contact Sales
               </Link>
             </div>
           </AnimatedSection>

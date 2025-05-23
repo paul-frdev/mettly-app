@@ -21,23 +21,65 @@ export default function About() {
     }
   ];
 
-  return (
-    <section id="about" className="py-24 bg-[#eef0f2]">
-      <div className="container mx-auto px-4 max-w-[1400px]">
-        <AnimatedSection>
-          <div className="text-center mb-20">
-            <AnimatedText
-              text="About Meetly"
-              className="font-display text-4xl md:text-5xl font-bold mb-6 text-[#0b3559] tracking-tight"
-            />
-            <AnimatedText
-              text="We&apos;re on a mission to simplify client management for service professionals"
-              className="text-xl text-[#0f0880] max-w-3xl mx-auto font-light"
-            />
-          </div>
-        </AnimatedSection>
+  const stats = [
+    { label: 'Active Users', value: '10K+' },
+    { label: 'Appointments Scheduled', value: '100K+' },
+    { label: 'Client Satisfaction', value: '98%' }
+  ];
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-20">
+  return (
+    <section id="about" className="py-24 bg-white">
+      <div className="container mx-auto px-4 max-w-[1400px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <AnimatedSection>
+              <h2 className="text-4xl md:text-5xl font-sans font-bold text-[#0b3559] mb-6">
+                About Meetly
+              </h2>
+            </AnimatedSection>
+            <AnimatedSection delay={0.2}>
+              <p className="text-xl text-[#0f0880] font-sans font-normal mb-8">
+                Meetly was born from a simple idea: to make client management easier for service professionals. We understand the challenges of running a service-based business, from scheduling appointments to managing payments and keeping clients happy.
+              </p>
+            </AnimatedSection>
+            <AnimatedSection delay={0.3}>
+              <p className="text-xl text-[#0f0880] font-sans font-normal mb-12">
+                Our platform combines powerful features with an intuitive interface, helping you streamline your workflow and focus on what matters most - providing excellent service to your clients.
+              </p>
+            </AnimatedSection>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {stats.map((stat, index) => (
+                <AnimatedSection key={index} delay={0.4 + index * 0.1}>
+                  <div className="text-center">
+                    <div className="text-4xl font-sans font-bold text-[#e42627] mb-2">
+                      {stat.value}
+                    </div>
+                    <div className="text-[#0f0880] font-sans font-normal">
+                      {stat.label}
+                    </div>
+                  </div>
+                </AnimatedSection>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative">
+            <AnimatedSection delay={0.5}>
+              <div className="aspect-square rounded-2xl overflow-hidden">
+                <img
+                  src="/images/about.jpg"
+                  alt="Team collaboration"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </AnimatedSection>
+            <div className="absolute -bottom-8 -left-8 w-64 h-64 bg-[#e42627]/10 rounded-full blur-3xl" />
+            <div className="absolute -top-8 -right-8 w-64 h-64 bg-[#0b3559]/10 rounded-full blur-3xl" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-20 pt-8">
           {values.map((value, index) => (
             <AnimatedSection
               key={index}

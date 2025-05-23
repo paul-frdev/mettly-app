@@ -48,13 +48,13 @@ export default function Footer() {
           {/* Brand */}
           <AnimatedSection direction="up">
             <div className="lg:col-span-2">
-              <Link href="/" className="text-2xl font-display font-bold">
+              <Link href="/" className="text-2xl font-sans font-bold mb-6 inline-block">
                 Meetly
               </Link>
-              <p className="mt-4 text-white/80 font-light">
-                Streamline your client management and grow your business with our powerful platform.
+              <p className="text-white/80 font-sans font-normal mb-8 max-w-md">
+                Streamline your client management with our all-in-one platform. Schedule meetings, track payments, and automate reminders.
               </p>
-              <div className="flex space-x-4 mt-6">
+              <div className="flex space-x-4">
                 {socialLinks.map((social, index) => (
                   <AnimatedSection
                     key={index}
@@ -63,9 +63,9 @@ export default function Footer() {
                   >
                     <Link
                       href={social.href}
-                      className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors duration-200"
+                      className="text-white/80 hover:text-white transition-colors duration-200"
                     >
-                      <social.icon className="w-5 h-5" />
+                      <social.icon className="w-6 h-6" />
                     </Link>
                   </AnimatedSection>
                 ))}
@@ -81,15 +81,15 @@ export default function Footer() {
               direction="up"
             >
               <div>
-                <h3 className="font-display text-lg font-semibold mb-4">
+                <h3 className="text-lg font-sans font-semibold mb-6">
                   {column.title}
                 </h3>
-                <ul className="space-y-3">
+                <ul className="space-y-4">
                   {column.links.map((link, linkIndex) => (
                     <li key={linkIndex}>
                       <Link
                         href={link.href}
-                        className="text-white/80 hover:text-white transition-colors duration-200"
+                        className="text-white/80 hover:text-white font-sans font-normal transition-colors duration-200"
                       >
                         {link.name}
                       </Link>
@@ -128,7 +128,22 @@ export default function Footer() {
 
         <AnimatedSection delay={0.6}>
           <div className="border-t border-white/10 mt-12 pt-8 text-center text-white/60">
-            <p>© {new Date().getFullYear()} Meetly. All rights reserved.</p>
+            <div className="flex flex-col md:flex-row justify-between items-center">
+              <p className="text-white/60 font-sans font-normal text-sm">
+                © {new Date().getFullYear()} Meetly. All rights reserved.
+              </p>
+              <div className="flex space-x-6 mt-4 md:mt-0">
+                <Link href="#" className="text-white/60 hover:text-white font-sans font-normal text-sm transition-colors duration-200">
+                  Privacy Policy
+                </Link>
+                <Link href="#" className="text-white/60 hover:text-white font-sans font-normal text-sm transition-colors duration-200">
+                  Terms of Service
+                </Link>
+                <Link href="#" className="text-white/60 hover:text-white font-sans font-normal text-sm transition-colors duration-200">
+                  Cookie Policy
+                </Link>
+              </div>
+            </div>
           </div>
         </AnimatedSection>
       </div>
