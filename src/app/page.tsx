@@ -5,6 +5,8 @@ import About from '@/components/landing/About';
 import CTA from '@/components/landing/CTA';
 import Footer from '@/components/landing/Footer';
 import Header from '@/components/layout/Header';
+import HowItWorks from '@/components/landing/HowItWorks';
+import TargetAudience from '@/components/landing/TargetAudience';
 
 export default function Home() {
   return (
@@ -12,10 +14,12 @@ export default function Home() {
       <Header />
       <main>
         <Hero />
+        <HowItWorks />
+        <TargetAudience />
         <Features />
-        <Pricing />
         <About />
         <CTA />
+        <Pricing />
       </main>
       <Footer />
     </>
