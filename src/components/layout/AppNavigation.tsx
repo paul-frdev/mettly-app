@@ -7,26 +7,30 @@ import { LogOut, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { signOut, useSession } from 'next-auth/react';
 import Logo from '@/components/Logo';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
+import { useTranslations } from 'next-intl';
 
-const userNavigation = [
-  { name: 'Dashboard', href: '/dashboard' },
-  { name: 'Clients', href: '/clients' },
-  { name: 'Appointments', href: '/appointments' },
-  { name: 'Settings', href: '/settings/user' }
-];
-
-const clientNavigation = [
-  { name: 'Dashboard', href: '/dashboard' },
-  { name: 'Settings', href: '/settings/client' }
-];
-
-export function Navigation() {
+export function AppNavigation() {
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { data: session } = useSession();
   const [isClient, setIsClient] = useState(false);
+  const t = useTranslations('navigation');
+  const tAuth = useTranslations('auth');
+
+  const userNavigation = [
+    { name: 'dashboard', href: '/dashboard' },
+    { name: 'clients', href: '/clients' },
+    { name: 'appointments', href: '/appointments' },
+    { name: 'settings', href: '/settings/user' }
+  ];
+
+  const clientNavigation = [
+    { name: 'dashboard', href: '/dashboard' },
+    { name: 'settings', href: '/settings/client' }
+  ];
 
   useEffect(() => {
     const checkClientStatus = async () => {
@@ -53,7 +57,7 @@ export function Navigation() {
   }, []);
 
   const handleLogout = async () => {
-    await signOut({ redirect: true, callbackUrl: '/' });
+    await signOut({ redirect: true, callbackUrl: '/en' });
   };
 
   if (!mounted) {
@@ -87,25 +91,26 @@ export function Navigation() {
                       : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
                       } inline-flex items-center px-1 py-2 text-sm font-medium transition-colors duration-200`}
                   >
-                    {item.name}
+                    {t(item.name)}
                   </Link>
                 );
               })}
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            <LanguageSwitcher />
             <Link
               href="/profile"
               className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 text-sm font-medium transition-colors duration-200"
             >
-              Profile
+              {t('profile')}
             </Link>
             <button
               onClick={handleLogout}
               className="flex items-center space-x-1 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 text-sm font-medium transition-colors duration-200"
             >
               <LogOut className="h-4 w-4" />
-              <span>Logout</span>
+              <span>{tAuth('logout')}</span>
             </button>
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

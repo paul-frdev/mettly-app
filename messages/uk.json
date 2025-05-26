@@ -1,0 +1,31 @@
+{
+  "navigation": {
+    "dashboard": "Панель керування",
+    "appointments": "Записи",
+    "clients": "Клієнти",
+    "calendar": "Календар",
+    "payments": "Платежі",
+    "profile": "Профіль",
+    "settings": "Налаштування",
+    "features": "Можливості",
+    "pricing": "Ціноутворення",
+    "testimonials": "Відгуки"
+  },
+  "common": {
+    "save": "Зберегти",
+    "cancel": "Скасувати",
+    "delete": "Видалити",
+    "edit": "Редагувати",
+    "add": "Додати",
+    "search": "Пошук",
+    "loading": "Завантаження..."
+  },
+  "auth": {
+    "getStarted": "Почати",
+    "login": "Увійти",
+    "logout": "Вийти",
+    "signUp": "Зареєструватися",
+    "email": "Електронна пошта",
+    "password": "Пароль"
+  }
+}
