@@ -8,6 +8,7 @@ import { useTheme } from 'next-themes';
 import { signOut, useSession } from 'next-auth/react';
 import Logo from '@/components/Logo';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
+import { useTranslations } from 'next-intl';
 
 const userNavigation = [
   { name: 'Dashboard', href: '/dashboard' },
@@ -28,6 +29,8 @@ export function AppNavigation() {
   const [mounted, setMounted] = useState(false);
   const { data: session } = useSession();
   const [isClient, setIsClient] = useState(false);
+  const t = useTranslations('navigation');
+  // const tC = useTranslations('common')
 
   useEffect(() => {
     const checkClientStatus = async () => {
@@ -100,14 +103,14 @@ export function AppNavigation() {
               href="/profile"
               className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 text-sm font-medium transition-colors duration-200"
             >
-              Profile
+              {t('profile')}
             </Link>
             <button
               onClick={handleLogout}
               className="flex items-center space-x-1 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 text-sm font-medium transition-colors duration-200"
             >
               <LogOut className="h-4 w-4" />
-              <span>Logout</span>
+              <span>{t('logout')}</span>
             </button>
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

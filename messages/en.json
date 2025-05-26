@@ -18,11 +18,11 @@
     "edit": "Edit",
     "add": "Add",
     "search": "Search",
-    "loading": "Loading...",
-    "getStarted": "Get Started"
+    "loading": "Loading..."
   },
   "auth": {
-    "signIn": "Login",
+    "getStarted": "Get Started",
+    "login": "Login",
     "signOut": "Logout",
     "signUp": "Sign Up",
     "email": "Email",

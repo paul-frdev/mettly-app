@@ -8,6 +8,7 @@ import { Moon, Sun, LogOut, Menu, X } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { useRouter, usePathname } from 'next/navigation';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
+import { useTranslations } from 'next-intl';
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
@@ -17,6 +18,8 @@ export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const t = useTranslations('navigation');
+  const tAuth = useTranslations('auth')
 
   useEffect(() => {
     setMounted(true);
@@ -74,21 +77,21 @@ export default function Header() {
                   onClick={(e) => handleNavigation(e, '#features')}
                   className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
-                  Features
+                  {t('features')}
                 </Link>
                 <Link
                   href="#pricing"
                   onClick={(e) => handleNavigation(e, '#pricing')}
                   className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
-                  Pricing
+                  {t('pricing')}
                 </Link>
                 <Link
                   href="#testimonials"
                   onClick={(e) => handleNavigation(e, '#testimonials')}
                   className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
-                  Testimonials
+                  {t('testimonials')}
                 </Link>
               </nav>
             ) : (
@@ -98,28 +101,28 @@ export default function Header() {
                   onClick={(e) => handleNavigation(e, '/dashboard')}
                   className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
-                  Dashboard
+                  {t('dashboard')}
                 </Link>
                 <Link
                   href="/clients"
                   onClick={(e) => handleNavigation(e, '/clients')}
                   className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
-                  Clients
+                  {t('clients')}
                 </Link>
                 <Link
                   href="/appointments"
                   onClick={(e) => handleNavigation(e, '/appointments')}
                   className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
-                  Appointment
+                  {t('appointments')}
                 </Link>
                 <Link
                   href="/settings"
                   onClick={(e) => handleNavigation(e, '/settings')}
                   className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
-                  Settings
+                  {t('settings')}
                 </Link>
               </nav>
             )}
@@ -135,14 +138,14 @@ export default function Header() {
                   onClick={(e) => handleNavigation(e, '/auth/login')}
                   className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
-                  Login
+                  {tAuth('login')}
                 </Link>
                 <Link
                   href="/auth/register"
                   onClick={(e) => handleNavigation(e, '/auth/register')}
                   className="bg-[#e42627] hover:bg-[#d41f20] text-white px-6 py-2 rounded-lg font-sans font-semibold transition-colors"
                 >
-                  Get Started
+                  {tAuth('getStarted')}
                 </Link>
               </>
             ) : (
@@ -152,14 +155,14 @@ export default function Header() {
                   onClick={(e) => handleNavigation(e, '/profile')}
                   className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
                 >
-                  Profile
+                  {t('profile')}
                 </Link>
                 <button
                   onClick={handleLogout}
                   className="flex items-center space-x-2 text-[#0f0880] hover:text-[#e42627] transition-colors"
                 >
                   <LogOut className="w-5 h-5" />
-                  <span className="font-sans font-normal">Logout</span>
+                  <span className="font-sans font-normal">{t('logout')}</span>
                 </button>
               </>
             )}
@@ -193,35 +196,35 @@ export default function Header() {
               className="block text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Features
+              {t('features')}
             </Link>
             <Link
               href="#pricing"
               className="block text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Pricing
+              {t('pricing')}
             </Link>
             <Link
               href="#testimonials"
               className="block text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Testimonials
+              {t('testimonials')}
             </Link>
             <Link
               href="/auth/login"
               className="block text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Login
+              {t('login')}
             </Link>
             <Link
               href="/auth/register"
               className="block bg-[#e42627] hover:bg-[#d41f20] text-white px-6 py-2 rounded-lg font-sans font-semibold transition-colors text-center"
               onClick={() => setIsMenuOpen(false)}
             >
-              Get Started
+              {t('getStarted')}
             </Link>
           </nav>
         )}
