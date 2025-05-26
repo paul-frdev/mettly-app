@@ -17,7 +17,7 @@ export default withAuth(
     callbacks: {
       authorized: ({ req, token }) => {
         // Разрешаем доступ к публичным маршрутам
-        if (req.nextUrl.pathname.startsWith('/en/auth') || req.nextUrl.pathname === '/en') {
+        if (req.nextUrl.pathname.startsWith('/en/auth') || req.nextUrl.pathname === '/en' || req.nextUrl.pathname === '/uk' || req.nextUrl.pathname.startsWith('/uk/auth')) {
           return true;
         }
         // Для защищенных маршрутов требуем токен
@@ -35,6 +35,10 @@ export const config = {
     '/en/clients/:path*',
     '/en/appointments/:path*',
     '/en/settings/:path*',
+    '/uk/dashboard/:path*',
+    '/uk/clients/:path*',
+    '/uk/appointments/:path*',
+    '/uk/settings/:path*',
     // Маршруты для интернационализации (кроме системных)
     '/((?!api|trpc|_next|_vercel|.*\\..*).*)',
   ],

@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { Moon, Sun, LogOut, Menu, X } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { useRouter, usePathname } from 'next/navigation';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
@@ -126,6 +127,7 @@ export default function Header() {
 
           {/* Right Side Navigation */}
           <div className="flex items-center space-x-6">
+            <LanguageSwitcher />
             {!session ? (
               <>
                 <Link
