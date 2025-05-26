@@ -13,7 +13,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from 'sonner';
 import { signIn } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Logo from '@/components/Logo';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -135,14 +134,6 @@ export default function LoginPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="flex flex-col items-center space-y-4"
           >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="w-16 h-16"
-            >
-              <Logo />
-            </motion.div>
             <div className="text-center">
               <h1 className="text-3xl font-bold tracking-tight text-white">Welcome back</h1>
               <p className="text-sm text-gray-300 mt-2">Sign in to your account</p>
