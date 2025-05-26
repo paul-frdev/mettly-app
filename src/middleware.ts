@@ -12,7 +12,17 @@ export default withAuth(
   },
   {
     pages: {
-      signIn: '/auth/login',
+      signIn: '/en/auth/login',
+    },
+    callbacks: {
+      authorized: ({ req, token }) => {
+        // Разрешаем доступ к публичным маршрутам
+        if (req.nextUrl.pathname.startsWith('/en/auth') || req.nextUrl.pathname === '/en') {
+          return true;
+        }
+        // Для защищенных маршрутов требуем токен
+        return !!token;
+      },
     },
   }
 );
@@ -21,10 +31,10 @@ export default withAuth(
 export const config = {
   matcher: [
     // Защищенные маршруты
-    '/dashboard/:path*',
-    '/clients/:path*',
-    '/appointments/:path*',
-    '/settings/:path*',
+    '/en/dashboard/:path*',
+    '/en/clients/:path*',
+    '/en/appointments/:path*',
+    '/en/settings/:path*',
     // Маршруты для интернационализации (кроме системных)
     '/((?!api|trpc|_next|_vercel|.*\\..*).*)',
   ],

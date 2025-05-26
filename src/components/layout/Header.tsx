@@ -31,7 +31,7 @@ export default function Header() {
       await signOut({
         redirect: false
       });
-      router.replace('/');
+      router.replace('/en');
     } catch (error) {
       console.error('Logout error:', error);
     }

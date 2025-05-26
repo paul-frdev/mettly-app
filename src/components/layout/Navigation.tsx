@@ -53,7 +53,7 @@ export function Navigation() {
   }, []);
 
   const handleLogout = async () => {
-    await signOut({ redirect: true, callbackUrl: '/' });
+    await signOut({ redirect: true, callbackUrl: '/en' });
   };
 
   if (!mounted) {

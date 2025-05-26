@@ -57,7 +57,7 @@ export function DashboardContent() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      signOut({ callbackUrl: '/auth/login' });
+      signOut({ callbackUrl: '/en' });
     }
   }, [status]);
 
