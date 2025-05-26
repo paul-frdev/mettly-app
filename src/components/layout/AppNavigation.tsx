@@ -7,6 +7,7 @@ import { LogOut, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { signOut, useSession } from 'next-auth/react';
 import Logo from '@/components/Logo';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 
 const userNavigation = [
   { name: 'Dashboard', href: '/dashboard' },
@@ -20,7 +21,7 @@ const clientNavigation = [
   { name: 'Settings', href: '/settings/client' }
 ];
 
-export function Navigation() {
+export function AppNavigation() {
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -94,6 +95,7 @@ export function Navigation() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            <LanguageSwitcher />
             <Link
               href="/profile"
               className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 text-sm font-medium transition-colors duration-200"

@@ -127,7 +127,7 @@ export default function Header() {
 
           {/* Right Side Navigation */}
           <div className="flex items-center space-x-6">
-            <LanguageSwitcher />
+            {!session && <LanguageSwitcher />}
             {!session ? (
               <>
                 <Link

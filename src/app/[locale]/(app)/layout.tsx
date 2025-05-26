@@ -1,5 +1,4 @@
-
-import { Navigation } from '@/components/layout/Navigation';
+import { AppNavigation } from '@/components/layout/AppNavigation';
 import { Toaster } from '@/components/ui/toaster';
 
 export default function AppLayout({
@@ -10,7 +9,7 @@ export default function AppLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation />
+      <AppNavigation />
       <main className="container mx-auto px-4 py-8 mt-16">
         {children}
       </main>
