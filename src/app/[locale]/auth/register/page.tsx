@@ -13,11 +13,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Eye, EyeOff } from 'lucide-react';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string(),
   userCode: z.string().optional(),
   profession: z.string().optional(),
   role: z.enum(['user', 'client']),
@@ -38,6 +40,9 @@ const registerSchema = z.object({
 }, {
   message: "User code is required for clients",
   path: ["userCode"]
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -47,6 +52,8 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeRole, setActiveRole] = useState<'user' | 'client'>('user');
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -85,9 +92,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen w-full relative overflow-hidden bg-gradient-to-br from-[#0f0880] via-[#1a1a2e] to-[#16213e]">
+    <div className="min-h-screen w-full relative overflow-y-auto bg-gradient-to-br from-[#0f0880] via-[#1a1a2e] to-[#16213e]">
       {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(20)].map((_, i) => (
           <motion.div
             key={i}
@@ -115,7 +122,7 @@ export default function RegisterPage() {
 
       {/* Glowing orbs */}
       <motion.div
-        className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-[#e42627] opacity-20 blur-3xl"
+        className="fixed -top-40 -right-40 w-80 h-80 rounded-full bg-[#e42627] opacity-20 blur-3xl pointer-events-none"
         animate={{
           scale: [1, 1.2, 1],
           opacity: [0.2, 0.3, 0.2],
@@ -127,7 +134,7 @@ export default function RegisterPage() {
         }}
       />
       <motion.div
-        className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-[#0f0880] opacity-20 blur-3xl"
+        className="fixed -bottom-40 -left-40 w-80 h-80 rounded-full bg-[#0f0880] opacity-20 blur-3xl pointer-events-none"
         animate={{
           scale: [1, 1.2, 1],
           opacity: [0.2, 0.3, 0.2],
@@ -140,12 +147,12 @@ export default function RegisterPage() {
         }}
       />
 
-      <div className="container relative flex h-screen w-screen flex-col items-center justify-center">
+      <div className="container relative min-h-screen py-8 flex flex-col items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[450px]"
+          className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[450px] my-8"
         >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -166,8 +173,8 @@ export default function RegisterPage() {
           >
             <Card className="border-none bg-white/10 backdrop-blur-lg shadow-xl">
               <CardHeader>
-                <CardTitle className="text-white">Registration</CardTitle>
-                <CardDescription className="text-gray-300">Fill in your details to create an account</CardDescription>
+                <CardTitle className="text-white text-center pb-2 font-bold">Registration</CardTitle>
+                <CardDescription className="text-gray-300 text-center">Fill in your details to create an account</CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="user" className="w-full" onValueChange={(value) => {
@@ -300,15 +307,27 @@ export default function RegisterPage() {
                           boxShadow: focusedField === 'password' ? '0 0 20px rgba(255,255,255,0.1)' : 'none',
                         }}
                         transition={{ duration: 0.2 }}
+                        className="relative"
                       >
                         <Input
                           id="password"
-                          type="password"
+                          type={showPassword ? "text" : "password"}
                           {...register('password')}
-                          className="h-11 px-4 bg-white/10 border-white/20 text-white placeholder:text-gray-400 transition-all duration-300"
+                          className="h-11 px-4 bg-white/10 border-white/20 text-white placeholder:text-gray-400 transition-all duration-300 pr-10"
                           onFocus={() => setFocusedField('password')}
                           onBlur={() => setFocusedField(null)}
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
                       </motion.div>
                       <AnimatePresence>
                         {errors.password && (
@@ -319,6 +338,50 @@ export default function RegisterPage() {
                             className="text-sm text-red-400"
                           >
                             {errors.password.message}
+                          </motion.p>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword" className="text-white">Confirm Password</Label>
+                      <motion.div
+                        animate={{
+                          scale: focusedField === 'confirmPassword' ? 1.02 : 1,
+                          boxShadow: focusedField === 'confirmPassword' ? '0 0 20px rgba(255,255,255,0.1)' : 'none',
+                        }}
+                        transition={{ duration: 0.2 }}
+                        className="relative"
+                      >
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          {...register('confirmPassword')}
+                          className="h-11 px-4 bg-white/10 border-white/20 text-white placeholder:text-gray-400 transition-all duration-300 pr-10"
+                          onFocus={() => setFocusedField('confirmPassword')}
+                          onBlur={() => setFocusedField(null)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200"
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </motion.div>
+                      <AnimatePresence>
+                        {errors.confirmPassword && (
+                          <motion.p
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="text-sm text-red-400"
+                          >
+                            {errors.confirmPassword.message}
                           </motion.p>
                         )}
                       </AnimatePresence>
@@ -361,7 +424,7 @@ export default function RegisterPage() {
 
                     {activeRole === 'client' && (
                       <div className="space-y-2">
-                        <Label htmlFor="userCode" className="text-white">Trainer Code</Label>
+                        <Label htmlFor="userCode" className="text-white">User Code</Label>
                         <motion.div
                           animate={{
                             scale: focusedField === 'userCode' ? 1.02 : 1,

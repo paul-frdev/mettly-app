@@ -147,8 +147,8 @@ export default function LoginPage() {
           >
             <Card className="border-none bg-white/10 backdrop-blur-lg shadow-xl">
               <CardHeader>
-                <CardTitle className="text-white">Login</CardTitle>
-                <CardDescription className="text-gray-300">Enter your credentials to access your account</CardDescription>
+                <CardTitle className="text-white text-center pb-2 font-bold">Login</CardTitle>
+                <CardDescription className="text-gray-300 text-center">Enter your credentials to access your account</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button
