@@ -23,7 +23,7 @@
   "auth": {
     "getStarted": "Get Started",
     "login": "Login",
-    "signOut": "Logout",
+    "logout": "Logout",
     "signUp": "Sign Up",
     "email": "Email",
     "password": "Password"
