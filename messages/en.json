@@ -1,0 +1,31 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "appointments": "Appointments",
+    "clients": "Clients",
+    "calendar": "Calendar",
+    "payments": "Payments",
+    "profile": "Profile",
+    "settings": "Settings",
+    "features": "Features",
+    "pricing": "Pricing",
+    "testimonials": "Testimonials"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "loading": "Loading...",
+    "getStarted": "Get Started"
+  },
+  "auth": {
+    "signIn": "Login",
+    "signOut": "Logout",
+    "signUp": "Sign Up",
+    "email": "Email",
+    "password": "Password"
+  }
+}
