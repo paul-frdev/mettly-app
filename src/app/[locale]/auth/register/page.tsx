@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
+import { useDevicePerformance } from '@/hooks/useDevicePerformance';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -54,6 +55,7 @@ export default function RegisterPage() {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const isLowPerformance = useDevicePerformance();
 
   const {
     register,
@@ -92,60 +94,69 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen w-full relative overflow-y-auto bg-gradient-to-br from-[#0f0880] via-[#1a1a2e] to-[#16213e]">
+    <div className="min-h-screen w-full relative overflow-hidden bg-gradient-to-br from-[#0f0880] via-[#1a1a2e] to-[#16213e]">
       {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-white/10"
-            style={{
-              width: Math.random() * 100 + 50,
-              height: Math.random() * 100 + 50,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              x: [0, Math.random() * 100 - 50],
-              y: [0, Math.random() * 100 - 50],
-              scale: [1, 1.2, 1],
-              opacity: [0.1, 0.2, 0.1],
-            }}
-            transition={{
-              duration: Math.random() * 10 + 10,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          />
-        ))}
-      </div>
+      {!isLowPerformance && (
+        <div className="absolute inset-0 overflow-hidden">
+          {[...Array(isLowPerformance ? 10 : 15)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full bg-white/10 will-change-transform"
+              style={{
+                width: Math.random() * 100 + 50,
+                height: Math.random() * 100 + 50,
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                transform: 'translateZ(0)',
+              }}
+              animate={{
+                x: [0, Math.random() * 100 - 50],
+                y: [0, Math.random() * 100 - 50],
+                scale: [1, 1.2, 1],
+                opacity: [0.1, 0.2, 0.1],
+              }}
+              transition={{
+                duration: Math.random() * 10 + 10,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Glowing orbs */}
-      <motion.div
-        className="fixed -top-40 -right-40 w-80 h-80 rounded-full bg-[#e42627] opacity-20 blur-3xl pointer-events-none"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.2, 0.3, 0.2],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-      <motion.div
-        className="fixed -bottom-40 -left-40 w-80 h-80 rounded-full bg-[#0f0880] opacity-20 blur-3xl pointer-events-none"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.2, 0.3, 0.2],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 1,
-        }}
-      />
+      {!isLowPerformance && (
+        <>
+          <motion.div
+            className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-[#e42627] opacity-20 blur-3xl will-change-transform"
+            style={{ transform: 'translateZ(0)' }}
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.2, 0.3, 0.2],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+          <motion.div
+            className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-[#0f0880] opacity-20 blur-3xl will-change-transform"
+            style={{ transform: 'translateZ(0)' }}
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.2, 0.3, 0.2],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 1,
+            }}
+          />
+        </>
+      )}
 
       <div className="container relative min-h-screen py-8 flex flex-col items-center justify-center">
         <motion.div
