@@ -150,7 +150,7 @@ export function DashboardContent() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#e42627]"></div>
       </div>
     );
   }
@@ -159,34 +159,38 @@ export function DashboardContent() {
     <div className="container mx-auto py-8">
       {!isClient && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 mb-8">
-          <Card>
+          <Card className="bg-white/10 backdrop-blur-lg border-none shadow-xl">
             <CardHeader>
-              <CardTitle>Upcoming</CardTitle>
+              <CardTitle className="text-white">Upcoming</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{upcomingAppointments.length}</div>
+              <div className="text-3xl font-bold text-white">{upcomingAppointments.length}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/10 backdrop-blur-lg border-none shadow-xl">
             <CardHeader>
-              <CardTitle>Today&apos;s Appointments</CardTitle>
+              <CardTitle className="text-white">Today&apos;s Appointments</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{todayAppointments.length}</div>
+              <div className="text-3xl font-bold text-white">{todayAppointments.length}</div>
             </CardContent>
           </Card>
         </div>
       )}
 
       <div className="grid md:grid-cols-2 gap-8">
-        <Card className="p-6">
+        <Card className="p-6 bg-white/10 backdrop-blur-lg border-none shadow-xl">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-xl font-semibold text-white">
               {isClient ? 'My Appointments' : 'Today\'s Appointments'}
             </h2>
             {!isClient && (
-              <Button onClick={() => setIsClientFormOpen(true)} size="sm">
+              <Button
+                onClick={() => setIsClientFormOpen(true)}
+                size="sm"
+                className="bg-[#e42627] hover:bg-[#d41f20] text-white"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Client
               </Button>
@@ -194,26 +198,26 @@ export function DashboardContent() {
           </div>
 
           {todayAppointments.length === 0 ? (
-            <div className="text-gray-500">No appointments for today</div>
+            <div className="text-gray-300">No appointments for today</div>
           ) : (
             <div className="space-y-4">
               {todayAppointments.map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="flex items-center justify-between p-4 rounded-lg border"
+                  className="flex items-center justify-between p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10"
                 >
                   <div>
-                    <div className="font-medium">
+                    <div className="font-medium text-white">
                       {isClient ? session?.user?.name : appointment.client.name}
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-300">
                       {format(appointment.date, 'h:mm a')} ({appointment.duration} minutes)
                     </div>
                     {appointment.notes && (
-                      <div className="text-sm text-gray-600 mt-1">{appointment.notes}</div>
+                      <div className="text-sm text-gray-400 mt-1">{appointment.notes}</div>
                     )}
                     {appointment.cancelledAt && (
-                      <div className="text-sm text-red-600 mt-1">
+                      <div className="text-sm text-red-400 mt-1">
                         Cancelled: {format(new Date(appointment.cancelledAt), 'MMM d, h:mm a')}
                         {appointment.cancellationReason && ` - ${appointment.cancellationReason}`}
                       </div>
@@ -248,27 +252,32 @@ export function DashboardContent() {
 
           {upcomingAppointments.length > 0 && (
             <>
-              <h2 className="text-xl font-semibold mt-8 mb-4">
+              <h2 className="text-xl font-semibold mt-8 mb-4 text-white">
                 {isClient ? 'Upcoming Sessions' : 'Upcoming Appointments'}
               </h2>
               <div className="space-y-4">
                 {upcomingAppointments.slice(0, 3).map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="flex items-center justify-between p-4 rounded-lg border"
+                    className="flex items-center justify-between p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10"
                   >
                     <div>
-                      <div className="font-medium">
+                      <div className="font-medium text-white">
                         {isClient ? session?.user?.name : appointment.client.name}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-300">
                         {format(appointment.date, 'MMM d, h:mm a')} ({appointment.duration} minutes)
                       </div>
                       {appointment.notes && (
-                        <div className="text-sm text-gray-600 mt-1">{appointment.notes}</div>
+                        <div className="text-sm text-gray-400 mt-1">{appointment.notes}</div>
                       )}
                     </div>
-                    <Badge className={getStatusColor(appointment.status)}>
+                    <Badge className={`${appointment.status === 'completed'
+                        ? 'bg-green-500/20 text-green-300'
+                        : appointment.status === 'cancelled'
+                          ? 'bg-red-500/20 text-red-300'
+                          : 'bg-blue-500/20 text-blue-300'
+                      }`}>
                       {appointment.status}
                     </Badge>
                   </div>
@@ -278,8 +287,8 @@ export function DashboardContent() {
           )}
         </Card>
 
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-6">Schedule</h2>
+        <Card className="p-6 bg-white/10 backdrop-blur-lg border-none shadow-xl">
+          <h2 className="text-xl font-semibold mb-6 text-white">Schedule</h2>
           <Schedule
             appointments={calendarAppointments}
             onAppointmentCreated={fetchAppointments}
