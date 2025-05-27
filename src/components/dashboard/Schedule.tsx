@@ -95,7 +95,6 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
 
   const generateTimeSlots = () => {
     if (!settings) {
-      toast.error('No settings available');
       return [];
     }
 

@@ -7,9 +7,9 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f0880] via-[#1a1a2e] to-[#16213e]">
+    <div className="min-h-screen bg-[#1a1a2e]">
       <AppNavigation />
-      <main className="container mx-auto px-4 py-8 mt-16">
+      <main className="pt-20">
         {children}
       </main>
       <Toaster />

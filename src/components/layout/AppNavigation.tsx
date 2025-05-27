@@ -138,18 +138,14 @@ export function AppNavigation() {
         </>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="flex justify-between h-20">
           <div className="flex items-center">
-            <motion.div
-              className="flex-shrink-0"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
+            <div className="flex-shrink-0">
               <Link href="/dashboard">
-                <Logo className="text-white" />
+                <Logo className="h-8 w-auto text-white" />
               </Link>
-            </motion.div>
+            </div>
             <div className="hidden md:ml-10 md:flex md:space-x-6">
               {navigation.map((item) => {
                 const isActive = pathname.includes(item.href);
