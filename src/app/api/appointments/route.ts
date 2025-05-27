@@ -140,7 +140,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    console.log('Received appointment creation request:', body);
     const { date, clientId, duration, notes } = body;
 
     // Validate required fields
@@ -166,8 +165,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log('Found client:', client);
-
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
@@ -178,8 +175,6 @@ export async function POST(req: NextRequest) {
         id: session.user.id,
       },
     });
-
-    console.log('Found trainer:', trainer);
 
     if (!trainer) {
       return NextResponse.json({ error: 'Trainer not found' }, { status: 404 });
@@ -204,8 +199,6 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-
-    console.log('Existing client appointment:', existingClientAppointment);
 
     if (existingClientAppointment) {
       return NextResponse.json({ error: 'Client already has an appointment at this time' }, { status: 400 });
@@ -244,8 +237,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log('Overlapping appointment:', overlappingAppointment);
-
     if (overlappingAppointment) {
       return NextResponse.json({ error: 'This time slot overlaps with another appointment' }, { status: 400 });
     }
@@ -267,8 +258,6 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-
-    console.log('Created appointment:', appointment);
 
     return NextResponse.json(appointment);
   } catch (error) {

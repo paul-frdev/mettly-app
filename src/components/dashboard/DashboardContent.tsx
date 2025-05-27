@@ -82,7 +82,6 @@ export function DashboardContent() {
       }
 
       const data = await response.json();
-      console.log('Received appointments:', data);
 
       // Handle both client and trainer response formats
       let transformedAppointments: Appointment[];
