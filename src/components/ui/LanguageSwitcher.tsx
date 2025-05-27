@@ -21,8 +21,8 @@ export function LanguageSwitcher() {
         size="sm"
         onClick={() => switchLanguage('en')}
         className={`${currentLocale === 'en'
-          ? 'bg-[#0f0880] text-white hover:bg-[#0d0666]'
-          : 'text-[#0f0880] hover:text-[#e42627]'
+          ? 'bg-[#e42627] text-white hover:bg-[#d41f20]'
+          : 'text-gray-200 hover:text-white'
           } transition-colors`}
       >
         EN
@@ -32,8 +32,8 @@ export function LanguageSwitcher() {
         size="sm"
         onClick={() => switchLanguage('uk')}
         className={`${currentLocale === 'uk'
-          ? 'bg-[#0f0880] text-white hover:bg-[#0d0666]'
-          : 'text-[#0f0880] hover:text-[#e42627]'
+          ? 'bg-[#e42627] text-white hover:bg-[#d41f20]'
+          : 'text-gray-200 hover:text-white'
           } transition-colors`}
       >
         UA
