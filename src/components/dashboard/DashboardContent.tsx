@@ -273,10 +273,10 @@ export function DashboardContent() {
                       )}
                     </div>
                     <Badge className={`${appointment.status === 'completed'
-                        ? 'bg-green-500/20 text-green-300'
-                        : appointment.status === 'cancelled'
-                          ? 'bg-red-500/20 text-red-300'
-                          : 'bg-blue-500/20 text-blue-300'
+                      ? 'bg-green-500/20 text-green-300'
+                      : appointment.status === 'cancelled'
+                        ? 'bg-red-500/20 text-red-300'
+                        : 'bg-blue-500/20 text-blue-300'
                       }`}>
                       {appointment.status}
                     </Badge>
