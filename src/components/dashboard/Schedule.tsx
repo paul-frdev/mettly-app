@@ -206,9 +206,10 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
       const appointmentDate = new Date(appointment.date);
       const appointmentEnd = new Date(appointmentDate.getTime() + appointment.duration * 60000);
 
+      // Проверяем, перекрывается ли выбранный слот с существующей встречей
       return (
-        (timeSlotDate >= appointmentDate && timeSlotDate < appointmentEnd) ||
-        (timeSlotDate <= appointmentDate && new Date(timeSlotDate.getTime() + duration * 60000) > appointmentDate)
+        (timeSlotDate >= appointmentDate && timeSlotDate < appointmentEnd) || // Начало слота попадает в существующую встречу
+        (timeSlotDate <= appointmentDate && new Date(timeSlotDate.getTime() + duration * 60000) > appointmentDate) // Существующая встреча начинается во время слота
       );
     });
   };
