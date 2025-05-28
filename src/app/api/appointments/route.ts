@@ -85,6 +85,7 @@ export async function GET() {
       // Для календаря: объединяем свои встречи и занятые слоты
       const calendarSlots = [...ownAppointments, ...busySlots].map((appointment) => ({
         ...appointment,
+        clientId: appointment.clientId === client.id ? 'self' : appointment.clientId,
         client:
           appointment.clientId === client.id
             ? appointment.client

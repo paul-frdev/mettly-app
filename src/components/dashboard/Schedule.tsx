@@ -41,6 +41,7 @@ interface Appointment {
   date: Date;
   duration: number;
   client?: Client;
+  clientId?: string;
   status: string;
 }
 
@@ -316,7 +317,9 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                   new Date()
                 );
 
-                const isOwnAppointment = isClient && appointment?.client?.id === 'self';
+                const isOwnAppointment = isClient && appointment?.clientId === 'self';
+
+
 
                 return (
                   <div
@@ -331,7 +334,9 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                     )}
                     onClick={() => {
                       if (isBooked && !isPast && appointment) {
-                        handleDeleteAppointment(appointment);
+                        if (!isClient || (isClient && isOwnAppointment)) {
+                          handleDeleteAppointment(appointment);
+                        }
                       } else if (!isBooked && !isPast) {
                         setSelectedTimeSlot(timeSlot);
                         setIsCreateDialogOpen(true);
@@ -346,7 +351,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                             {appointment.client?.name || 'No client name'}
                             {appointment.duration > 60 && ` (${appointment.duration}min)`}
                           </span>
-                          {(!isClient || isOwnAppointment) && (
+                          {(!isClient || (isClient && isOwnAppointment)) && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white hover:bg-white/10">
