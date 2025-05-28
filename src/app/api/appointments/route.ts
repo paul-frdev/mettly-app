@@ -81,6 +81,7 @@ export async function GET() {
       // Фильтруем встречи для списка (только свои) и календаря (все)
       const ownAppointments = appointments.filter((appointment) => appointment.clientId === client.id);
       const busySlots = appointments.filter((appointment) => appointment.clientId !== client.id);
+
       // Для календаря: объединяем свои встречи и занятые слоты
       const calendarSlots = [...ownAppointments, ...busySlots].map((appointment) => ({
         ...appointment,
@@ -96,8 +97,8 @@ export async function GET() {
 
       // Возвращаем разные данные для разных целей
       return NextResponse.json({
-        list: ownAppointments, // Для списка слева - только свои встречи
-        calendar: calendarSlots, // Для календаря - все слоты
+        list: ownAppointments,
+        calendar: calendarSlots,
       });
     }
 

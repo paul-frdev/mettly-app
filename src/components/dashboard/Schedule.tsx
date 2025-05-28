@@ -193,24 +193,28 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
   };
 
   const isTimeSlotBooked = (timeSlot: string) => {
+    const timeSlotDate = parse(timeSlot, 'h:mm a', selectedDate);
+
     return filteredAppointments.some(appointment => {
-      const appointmentTime = format(appointment.date, 'h:mm a');
-      const appointmentEndTime = format(
-        new Date(new Date(appointment.date).getTime() + appointment.duration * 60000),
-        'h:mm a'
+      const appointmentDate = new Date(appointment.date);
+      const appointmentEnd = new Date(appointmentDate.getTime() + appointment.duration * 60000);
+
+      // Проверяем, перекрывается ли выбранный слот с существующей встречей
+      return (
+        (timeSlotDate >= appointmentDate && timeSlotDate < appointmentEnd) || // Начало слота попадает в существующую встречу
+        (timeSlotDate <= appointmentDate && new Date(timeSlotDate.getTime() + duration * 60000) > appointmentDate) // Существующая встреча начинается во время слота
       );
-      return timeSlot >= appointmentTime && timeSlot < appointmentEndTime;
     });
   };
 
   const getAppointmentForTimeSlot = (timeSlot: string) => {
+    const timeSlotDate = parse(timeSlot, 'h:mm a', selectedDate);
+
     return filteredAppointments.find(appointment => {
-      const appointmentTime = format(appointment.date, 'h:mm a');
-      const appointmentEndTime = format(
-        new Date(new Date(appointment.date).getTime() + appointment.duration * 60000),
-        'h:mm a'
-      );
-      return timeSlot >= appointmentTime && timeSlot < appointmentEndTime;
+      const appointmentDate = new Date(appointment.date);
+      const appointmentEnd = new Date(appointmentDate.getTime() + appointment.duration * 60000);
+
+      return timeSlotDate >= appointmentDate && timeSlotDate < appointmentEnd;
     });
   };
 

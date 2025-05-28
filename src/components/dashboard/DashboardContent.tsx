@@ -109,6 +109,10 @@ export function DashboardContent() {
         }));
       }
 
+      // Sort appointments by date
+      transformedAppointments.sort((a, b) => a.date.getTime() - b.date.getTime());
+      transformedCalendarAppointments.sort((a, b) => a.date.getTime() - b.date.getTime());
+
       setAppointments(transformedAppointments);
       setCalendarAppointments(transformedCalendarAppointments);
     } catch (error) {
