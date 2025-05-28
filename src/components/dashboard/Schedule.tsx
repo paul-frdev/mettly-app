@@ -73,8 +73,10 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
       }
     };
 
-    fetchClients();
-  }, []);
+    if (!isClient) {
+      fetchClients();
+    }
+  }, [isClient]);
 
   useEffect(() => {
     if (settings) {
@@ -150,14 +152,19 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
         throw new Error('Failed to delete appointment');
       }
 
-      onAppointmentCreated(); // Обновляем список встреч после удаления
+      onAppointmentCreated();
     } catch (error) {
       showError(error);
     }
   };
 
   const handleCreateAppointment = async () => {
-    if (!selectedTimeSlot || !selectedClientId) {
+    if (!selectedTimeSlot) {
+      showError('Please select a time slot');
+      return;
+    }
+
+    if (!isClient && !selectedClientId) {
       showError('Please select a client');
       return;
     }
@@ -173,7 +180,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
         body: JSON.stringify({
           date: appointmentDate.toISOString(),
           duration,
-          clientId: selectedClientId,
+          clientId: isClient ? 'self' : selectedClientId,
           notes,
         }),
       });
@@ -199,10 +206,9 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
       const appointmentDate = new Date(appointment.date);
       const appointmentEnd = new Date(appointmentDate.getTime() + appointment.duration * 60000);
 
-      // Проверяем, перекрывается ли выбранный слот с существующей встречей
       return (
-        (timeSlotDate >= appointmentDate && timeSlotDate < appointmentEnd) || // Начало слота попадает в существующую встречу
-        (timeSlotDate <= appointmentDate && new Date(timeSlotDate.getTime() + duration * 60000) > appointmentDate) // Существующая встреча начинается во время слота
+        (timeSlotDate >= appointmentDate && timeSlotDate < appointmentEnd) ||
+        (timeSlotDate <= appointmentDate && new Date(timeSlotDate.getTime() + duration * 60000) > appointmentDate)
       );
     });
   };
@@ -292,6 +298,8 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                   new Date()
                 );
 
+                const isOwnAppointment = isClient && appointment?.client?.id === 'self';
+
                 return (
                   <div
                     key={timeSlot}
@@ -304,7 +312,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                           : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer"
                     )}
                     onClick={() => {
-                      if (!isBooked && !isPast && !isClient) {
+                      if (!isBooked && !isPast) {
                         setSelectedTimeSlot(timeSlot);
                         setIsCreateDialogOpen(true);
                       }
@@ -318,33 +326,35 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                             {appointment.client?.name || 'No client name'}
                             {appointment.duration > 60 && ` (${appointment.duration}min)`}
                           </span>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white hover:bg-white/10">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/20">
-                              <DropdownMenuItem
-                                onClick={() => handleEditAppointment(appointment)}
-                                className="text-white hover:bg-white/10"
-                              >
-                                Edit time
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-red-400 hover:bg-red-500/20"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteAppointment(appointment.id);
-                                }}
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {(!isClient || isOwnAppointment) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white hover:bg-white/10">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/20">
+                                <DropdownMenuItem
+                                  onClick={() => handleEditAppointment(appointment)}
+                                  className="text-white hover:bg-white/10"
+                                >
+                                  Edit time
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-red-400 hover:bg-red-500/20"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteAppointment(appointment.id);
+                                  }}
+                                >
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </>
                       )}
-                      {!isBooked && !isPast && !isClient && (
+                      {!isBooked && !isPast && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -374,25 +384,27 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="client" className="text-white">Select Client</Label>
-                  <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue placeholder="Select a client" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a2e] border-white/20">
-                      {clients.map((client) => (
-                        <SelectItem
-                          key={client.id}
-                          value={client.id}
-                          className="text-white hover:bg-white/10"
-                        >
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!isClient && (
+                  <div className="space-y-2">
+                    <Label htmlFor="client" className="text-white">Select Client</Label>
+                    <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                        <SelectValue placeholder="Select a client" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#1a1a2e] border-white/20">
+                        {clients.map((client) => (
+                          <SelectItem
+                            key={client.id}
+                            value={client.id}
+                            className="text-white hover:bg-white/10"
+                          >
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="notes" className="text-white">Notes</Label>
                   <Textarea
