@@ -39,31 +39,65 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
-    const appointment = await prisma.appointment.delete({
-      where: {
-        id: params.id,
-      },
-    });
+    const session = await getServerSession(authOptions);
 
-    return NextResponse.json(appointment);
-  } catch (error) {
-    console.error('Error deleting appointment:', error);
-    return NextResponse.json({ error: 'Failed to delete appointment' }, { status: 500 });
-  }
-}
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const body = await request.json();
-    const { date } = body;
-
+    // Instead of deleting, mark as cancelled
     const appointment = await prisma.appointment.update({
       where: {
         id: params.id,
       },
       data: {
-        date: new Date(date),
+        status: 'cancelled',
+        cancelledAt: new Date(),
       },
+    });
+
+    return NextResponse.json(appointment);
+  } catch (error) {
+    console.error('Error cancelling appointment:', error);
+    return NextResponse.json({ error: 'Failed to cancel appointment' }, { status: 500 });
+  }
+}
+
+interface AppointmentUpdateData {
+  date?: Date;
+  status?: string;
+  cancelledAt?: Date;
+  cancellationReason?: string;
+}
+
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const body = await request.json();
+    const { date, cancellationReason } = body;
+
+    const updateData: AppointmentUpdateData = {};
+
+    if (date) {
+      updateData.date = new Date(date);
+    }
+
+    if (cancellationReason) {
+      updateData.status = 'cancelled';
+      updateData.cancelledAt = new Date();
+      updateData.cancellationReason = cancellationReason;
+    }
+
+    const appointment = await prisma.appointment.update({
+      where: {
+        id: params.id,
+      },
+      data: updateData,
     });
 
     return NextResponse.json(appointment);

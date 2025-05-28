@@ -27,6 +27,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 import { toast } from 'sonner';
+import { CancelDialog } from '@/components/ui/cancel-dialog';
 
 interface Client {
   id: string;
@@ -59,6 +60,8 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const { settings, isHoliday } = useBusinessSettings();
   const [isLoading, setIsLoading] = useState(true);
+  const [isCancellationDialogOpen, setIsCancellationDialogOpen] = useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -142,17 +145,31 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
     console.log('Edit appointment:', appointment);
   };
 
-  const handleDeleteAppointment = async (appointmentId: string) => {
+  const handleDeleteAppointment = (appointment: Appointment) => {
+    setAppointmentToCancel(appointment);
+    setIsCancellationDialogOpen(true);
+  };
+
+  const handleCancelAppointment = async (reason: string) => {
+    if (!appointmentToCancel) return;
+
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}`, {
-        method: 'DELETE',
+      const response = await fetch(`/api/appointments/${appointmentToCancel.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cancellationReason: reason,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete appointment');
+        throw new Error('Failed to cancel appointment');
       }
 
       onAppointmentCreated();
+      setAppointmentToCancel(null);
     } catch (error) {
       showError(error);
     }
@@ -313,7 +330,9 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                           : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer"
                     )}
                     onClick={() => {
-                      if (!isBooked && !isPast) {
+                      if (isBooked && !isPast && appointment) {
+                        handleDeleteAppointment(appointment);
+                      } else if (!isBooked && !isPast) {
                         setSelectedTimeSlot(timeSlot);
                         setIsCreateDialogOpen(true);
                       }
@@ -345,7 +364,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                                   className="text-red-400 hover:bg-red-500/20"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleDeleteAppointment(appointment.id);
+                                    handleDeleteAppointment(appointment);
                                   }}
                                 >
                                   Delete
@@ -452,6 +471,12 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
               </div>
             </DialogContent>
           </Dialog>
+
+          <CancelDialog
+            isOpen={isCancellationDialogOpen}
+            onOpenChange={setIsCancellationDialogOpen}
+            onCancel={handleCancelAppointment}
+          />
         </>
       )}
     </div>
