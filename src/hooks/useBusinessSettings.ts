@@ -12,134 +12,83 @@ interface DaySchedule {
   end: string;
 }
 
-interface WorkingHours {
-  [key: string]: DaySchedule;
-}
-
 interface BusinessSettings {
   timezone: string;
-  workingHours: WorkingHours;
+  workingHours: {
+    [key: string]: DaySchedule;
+  };
   slotDuration: number;
   holidays: Date[];
 }
 
 export function useBusinessSettings() {
-  const [settings, setSettings] = useState<BusinessSettings>({
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    workingHours: {
-      Monday: { enabled: true, start: '09:00', end: '18:00' },
-      Tuesday: { enabled: true, start: '09:00', end: '18:00' },
-      Wednesday: { enabled: true, start: '09:00', end: '18:00' },
-      Thursday: { enabled: true, start: '09:00', end: '18:00' },
-      Friday: { enabled: true, start: '09:00', end: '18:00' },
-      Saturday: { enabled: false, start: '09:00', end: '18:00' },
-      Sunday: { enabled: false, start: '09:00', end: '18:00' },
-    },
-    slotDuration: 30,
-    holidays: [],
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [settings, setSettings] = useState<BusinessSettings | null>(null);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/settings/business');
+      if (response.ok) {
+        const data = await response.json();
+        if (!data || !data.workingHours) {
+          console.error('Invalid business settings data:', data);
+          return;
+        }
+        setSettings(data);
+      } else {
+        console.error('Failed to fetch business settings:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Failed to fetch business settings:', error);
+    }
+  };
 
   useEffect(() => {
-    // Setting up settings update listener
-    fetchSettings();
-
-    // Subscribe to settings updates
     const handleSettingsUpdate = () => {
-      // Settings update event received
       fetchSettings();
     };
 
+    // Initial fetch
+
+    fetchSettings();
+
+    // Listen for settings updates
     window.addEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
 
     return () => {
-      // Cleaning up settings update listener
       window.removeEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
     };
   }, []);
 
-  const fetchSettings = async () => {
-    try {
-      // Fetching business settings...
-      const response = await fetch('/api/settings/user');
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.details || 'Failed to fetch settings');
-      }
-
-      // Convert holidays from string to Date objects
-      const processedData = {
-        ...data,
-        holidays: (data.holidays || []).map((date: string) => new Date(date)),
-      };
-      setSettings(processedData);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching business settings:', err);
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const isWorkingDay = (date: Date): boolean => {
+    if (!settings?.workingHours) return false;
     const dayName = format(date, 'EEEE');
     return settings.workingHours[dayName]?.enabled || false;
   };
 
   const isHoliday = (date: Date): boolean => {
+    if (!settings?.holidays) return false;
     return settings.holidays.some((holiday) => isSameDay(holiday, date));
   };
 
-  const getWorkingHours = (date: Date): { start: string; end: string } | null => {
-    if (!isWorkingDay(date) || isHoliday(date)) {
-      return null;
-    }
-    const dayName = format(date, 'EEEE');
-    const daySchedule = settings.workingHours[dayName];
-    return {
-      start: daySchedule.start,
-      end: daySchedule.end,
-    };
-  };
-
   const getSlotDuration = (): number => {
-    return settings.slotDuration;
-  };
-
-  const isWithinWorkingHours = (date: Date): boolean => {
-    const workingHours = getWorkingHours(date);
-    if (!workingHours) return false;
-
-    const timeString = format(date, 'HH:mm');
-    const startTime = workingHours.start;
-    const endTime = workingHours.end;
-
-    return timeString >= startTime && timeString < endTime;
+    return settings?.slotDuration || 0;
   };
 
   const getTimezonedDate = (date: Date): Date => {
+    if (!settings?.timezone) return date;
     // Convert date to the business timezone
     return new Date(date.toLocaleString('en-US', { timeZone: settings.timezone }));
   };
 
   return {
     settings,
-    isLoading,
-    error,
     isWorkingDay,
     isHoliday,
-    getWorkingHours,
     getSlotDuration,
-    isWithinWorkingHours,
     getTimezonedDate,
-    refreshSettings: fetchSettings,
   };
 }
 
-// Export function to trigger settings update
 export function triggerSettingsUpdate() {
   window.dispatchEvent(new Event(SETTINGS_UPDATED_EVENT));
 }

@@ -17,10 +17,10 @@ interface ClientFormDialogProps {
 export function ClientFormDialog({ isOpen, onClose }: ClientFormDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="bg-[#1a1a2e] border-white/20 text-white">
         <DialogHeader>
-          <DialogTitle>Add New Client</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-white">Add New Client</DialogTitle>
+          <DialogDescription className="text-gray-300">
             Add a new client to your system. Fill in the required information below.
           </DialogDescription>
         </DialogHeader>

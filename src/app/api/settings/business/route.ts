@@ -28,11 +28,21 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Проверяем, является ли пользователь клиентом
+    const client = await prisma.client.findUnique({
+      where: { email: session.user.email },
+      select: { userId: true },
+    });
+
+    // Если это клиент, используем userId его пользователя
+    const userId = client?.userId || session.user.id;
+
     const settings = await prisma.businessSettings.findUnique({
-      where: { userId: session.user.id },
+      where: { userId },
     });
 
     // Return default settings if none exist

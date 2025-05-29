@@ -121,18 +121,11 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isCl
   async function onSubmit(data: AppointmentFormData) {
     setIsLoading(true);
     try {
-      console.log('Form data:', data);
-      console.log('Selected time:', selectedTime);
-      console.log('Client ID:', isClient ? clientId : data.clientId);
-      console.log('Is client:', isClient);
-      console.log('Session:', session);
-
       const requestBody = {
         ...data,
         date: selectedTime.toISOString(),
         clientId: isClient ? clientId : data.clientId,
       };
-      console.log('Request body:', requestBody);
 
       const response = await fetch('/api/appointments', {
         method: 'POST',

@@ -81,9 +81,11 @@ export async function GET() {
       // Фильтруем встречи для списка (только свои) и календаря (все)
       const ownAppointments = appointments.filter((appointment) => appointment.clientId === client.id);
       const busySlots = appointments.filter((appointment) => appointment.clientId !== client.id);
+
       // Для календаря: объединяем свои встречи и занятые слоты
       const calendarSlots = [...ownAppointments, ...busySlots].map((appointment) => ({
         ...appointment,
+        clientId: appointment.clientId === client.id ? 'self' : appointment.clientId,
         client:
           appointment.clientId === client.id
             ? appointment.client
@@ -96,8 +98,8 @@ export async function GET() {
 
       // Возвращаем разные данные для разных целей
       return NextResponse.json({
-        list: ownAppointments, // Для списка слева - только свои встречи
-        calendar: calendarSlots, // Для календаря - все слоты
+        list: ownAppointments,
+        calendar: calendarSlots,
       });
     }
 
@@ -140,7 +142,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    console.log('Received appointment creation request:', body);
     const { date, clientId, duration, notes } = body;
 
     // Validate required fields
@@ -152,34 +153,63 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
     }
 
-    // Check if client exists and get trainer ID
-    const client = await prisma.client.findUnique({
-      where: {
-        id: clientId,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
+    let client;
+    let trainer;
+
+    // If clientId is 'self', find the client record for the current user
+    if (clientId === 'self') {
+      if (!session.user.email) {
+        return NextResponse.json({ error: 'User email not found' }, { status: 400 });
+      }
+
+      client = await prisma.client.findFirst({
+        where: {
+          email: session.user.email,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    console.log('Found client:', client);
+      if (!client) {
+        return NextResponse.json({ error: 'Client profile not found' }, { status: 404 });
+      }
 
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+      // For self-booking, the trainer is the client's trainer
+      trainer = await prisma.user.findUnique({
+        where: {
+          id: client.userId,
+        },
+      });
+    } else {
+      // For trainer booking, find the client and trainer as before
+      client = await prisma.client.findUnique({
+        where: {
+          id: clientId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      if (!client) {
+        return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+      }
+
+      trainer = await prisma.user.findUnique({
+        where: {
+          id: session.user.id,
+        },
+      });
     }
-
-    // Get trainer ID from session
-    const trainer = await prisma.user.findUnique({
-      where: {
-        id: session.user.id,
-      },
-    });
-
-    console.log('Found trainer:', trainer);
 
     if (!trainer) {
       return NextResponse.json({ error: 'Trainer not found' }, { status: 404 });
@@ -204,8 +234,6 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-
-    console.log('Existing client appointment:', existingClientAppointment);
 
     if (existingClientAppointment) {
       return NextResponse.json({ error: 'Client already has an appointment at this time' }, { status: 400 });
@@ -244,8 +272,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log('Overlapping appointment:', overlappingAppointment);
-
     if (overlappingAppointment) {
       return NextResponse.json({ error: 'This time slot overlaps with another appointment' }, { status: 400 });
     }
@@ -267,8 +293,6 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-
-    console.log('Created appointment:', appointment);
 
     return NextResponse.json(appointment);
   } catch (error) {
