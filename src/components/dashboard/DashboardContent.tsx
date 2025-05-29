@@ -129,31 +129,48 @@ export function DashboardContent() {
     }
   }, [fetchAppointments, status]);
 
-  // Get today's appointments
-  const todayAppointments = appointments.filter(apt =>
-    format(apt.date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
-  ).sort((a, b) => a.date.getTime() - b.date.getTime());
+  useEffect(() => {
+    const updateStatuses = async () => {
+      try {
+        await fetch('/api/appointments/update-status', { method: 'POST' });
+      } catch (e) {
+        // Можно добавить обработку ошибок, если нужно
+        console.error(e)
+      }
+    };
 
-  // Get upcoming appointments (excluding today)
-  const upcomingAppointments = appointments.filter(apt =>
-    apt.date > new Date() && format(apt.date, 'yyyy-MM-dd') !== format(new Date(), 'yyyy-MM-dd')
-  ).sort((a, b) => a.date.getTime() - b.date.getTime());
+    // Сразу обновить при монтировании
+    updateStatuses();
 
-  // Get cancelled appointments
-  const cancelledAppointments = appointments.filter(apt =>
-    apt.status === 'cancelled'
-  ).sort((a, b) => b.date.getTime() - a.date.getTime());
+    // Обновлять статусы каждую минуту
+    const interval = setInterval(updateStatuses, 60 * 1000);
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-blue-100 text-blue-800';
-    }
-  };
+    return () => clearInterval(interval);
+  }, []);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const todayAppointments = appointments.filter(apt => {
+    const aptDate = new Date(apt.date);
+    return aptDate >= today && aptDate < tomorrow && apt.status !== 'completed';
+  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const upcomingAppointments = appointments.filter(apt => {
+    const aptDate = new Date(apt.date);
+    return aptDate >= tomorrow && apt.status !== 'completed';
+  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const completedAppointments = appointments.filter(apt => {
+    return apt.status === 'completed';
+  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const cancelledAppointments = appointments.filter(apt => {
+    const aptDate = new Date(apt.date);
+    return aptDate >= today && aptDate < tomorrow && apt.status === 'cancelled';
+  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   if (isLoading) {
     return (
@@ -205,130 +222,143 @@ export function DashboardContent() {
             )}
           </div>
 
-          {todayAppointments.length === 0 ? (
-            <div className="text-gray-300">No appointments for today</div>
-          ) : (
-            <div className="space-y-4">
-              {todayAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="flex items-center justify-between p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10"
-                >
-                  <div>
-                    <div className="font-medium text-white">
-                      {isClient ? session?.user?.name : appointment.client.name}
+          <div className="h-[calc(100vh-300px)] overflow-y-auto pr-2">
+            <div className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold text-white">Today&apos;s Appointments</h2>
+                  {todayAppointments.length === 0 ? (
+                    <p className="text-gray-400">No appointments scheduled for today.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {todayAppointments.map((appointment) => (
+                        <div
+                          key={appointment.id}
+                          className="p-4 rounded-lg bg-white/5 border border-white/10"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-medium text-white">
+                                {appointment.client?.name || 'No client name'}
+                              </h3>
+                              <p className="text-sm text-gray-400">
+                                {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
+                              </p>
+                            </div>
+                            <Badge variant={appointment.status === 'cancelled' ? 'destructive' : 'default'}>
+                              {appointment.status === 'cancelled' ? 'Cancelled' : 'Scheduled'}
+                            </Badge>
+                          </div>
+                          {appointment.status === 'cancelled' && appointment.cancellationReason && (
+                            <p className="mt-2 text-sm text-red-400">
+                              Cancellation reason: {appointment.cancellationReason}
+                            </p>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    <div className="text-sm text-gray-300">
-                      {format(appointment.date, 'h:mm a')} ({appointment.duration} minutes)
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold text-white">Upcoming Appointments</h2>
+                  {upcomingAppointments.length === 0 ? (
+                    <p className="text-gray-400">No upcoming appointments.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {upcomingAppointments.map((appointment) => (
+                        <div
+                          key={appointment.id}
+                          className="p-4 rounded-lg bg-white/5 border border-white/10"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-medium text-white">
+                                {appointment.client?.name || 'No client name'}
+                              </h3>
+                              <p className="text-sm text-gray-400">
+                                {format(new Date(appointment.date), 'PPP')} • {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
+                              </p>
+                            </div>
+                            <Badge variant={appointment.status === 'cancelled' ? 'destructive' : 'default'}>
+                              {appointment.status === 'cancelled' ? 'Cancelled' : 'Scheduled'}
+                            </Badge>
+                          </div>
+                          {appointment.status === 'cancelled' && appointment.cancellationReason && (
+                            <p className="mt-2 text-sm text-red-400">
+                              Cancellation reason: {appointment.cancellationReason}
+                            </p>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    {appointment.notes && (
-                      <div className="text-sm text-gray-400 mt-1">{appointment.notes}</div>
-                    )}
-                    {appointment.cancelledAt && (
-                      <div className="text-sm text-red-400 mt-1">
-                        Cancelled: {format(new Date(appointment.cancelledAt), 'MMM d, h:mm a')}
-                        {appointment.cancellationReason && ` - ${appointment.cancellationReason}`}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Badge className={getStatusColor(appointment.status)}>
-                      {appointment.status}
-                    </Badge>
-                    {appointment.attendance && (
-                      <Badge
-                        className={
-                          appointment.attendance.status === 'confirmed'
-                            ? 'bg-green-100 text-green-800'
-                            : appointment.attendance.status === 'declined'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                        }
+                  )}
+                </div>
+              </div>
+
+              {completedAppointments.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold text-white">Completed Appointments</h2>
+                  <div className="space-y-2">
+                    {completedAppointments.map((appointment) => (
+                      <div
+                        key={appointment.id}
+                        className="p-4 rounded-lg bg-white/5 border border-white/10"
                       >
-                        {appointment.attendance.status === 'confirmed'
-                          ? 'Confirmed'
-                          : appointment.attendance.status === 'declined'
-                            ? 'Declined'
-                            : 'Pending'}
-                      </Badge>
-                    )}
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium text-white">
+                              {appointment.client?.name || 'No client name'}
+                            </h3>
+                            <p className="text-sm text-gray-400">
+                              {format(new Date(appointment.date), 'PPP')} • {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
+                            </p>
+                          </div>
+                          <Badge variant="secondary">Completed</Badge>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {cancelledAppointments.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold text-white">Cancelled Appointments</h2>
+                  <div className="space-y-2">
+                    {cancelledAppointments.map((appointment) => (
+                      <div
+                        key={appointment.id}
+                        className="p-4 rounded-lg bg-white/5 border border-white/10"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium text-white">
+                              {appointment.client?.name || 'No client name'}
+                            </h3>
+                            <p className="text-sm text-gray-400">
+                              {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
+                            </p>
+                          </div>
+                          <Badge variant="destructive">Cancelled</Badge>
+                        </div>
+                        {appointment.cancellationReason && (
+                          <p className="mt-2 text-sm text-red-400">
+                            Cancellation reason: {appointment.cancellationReason}
+                          </p>
+                        )}
+                        {appointment.cancelledAt && (
+                          <p className="mt-1 text-sm text-gray-400">
+                            Cancelled on: {format(new Date(appointment.cancelledAt), 'PPP h:mm a')}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-
-          {upcomingAppointments.length > 0 && (
-            <>
-              <h2 className="text-xl font-semibold mt-8 mb-4 text-white">
-                {isClient ? 'Upcoming Sessions' : 'Upcoming Appointments'}
-              </h2>
-              <div className="space-y-4">
-                {upcomingAppointments.slice(0, 3).map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10"
-                  >
-                    <div>
-                      <div className="font-medium text-white">
-                        {isClient ? session?.user?.name : appointment.client.name}
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        {format(appointment.date, 'MMM d, h:mm a')} ({appointment.duration} minutes)
-                      </div>
-                      {appointment.notes && (
-                        <div className="text-sm text-gray-400 mt-1">{appointment.notes}</div>
-                      )}
-                    </div>
-                    <Badge className={`${appointment.status === 'completed'
-                      ? 'bg-green-500/20 text-green-300'
-                      : appointment.status === 'cancelled'
-                        ? 'bg-red-500/20 text-red-300'
-                        : 'bg-blue-500/20 text-blue-300'
-                      }`}>
-                      {appointment.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {cancelledAppointments.length > 0 && (
-            <>
-              <h2 className="text-xl font-semibold mt-8 mb-4 text-white">Cancelled Appointments</h2>
-              <div className="space-y-4">
-                {cancelledAppointments.map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10"
-                  >
-                    <div>
-                      <div className="font-medium text-white">
-                        {isClient ? session?.user?.name : appointment.client.name}
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        {format(appointment.date, 'MMM d, h:mm a')} ({appointment.duration} minutes)
-                      </div>
-                      {appointment.cancellationReason && (
-                        <div className="text-sm text-red-400 mt-1">
-                          Reason: {appointment.cancellationReason}
-                        </div>
-                      )}
-                      {appointment.cancelledAt && (
-                        <div className="text-sm text-red-400">
-                          Cancelled on: {format(new Date(appointment.cancelledAt), 'MMM d, h:mm a')}
-                        </div>
-                      )}
-                    </div>
-                    <Badge className="bg-red-500/20 text-red-300">
-                      Cancelled
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+          </div>
         </Card>
 
         <Card className="p-6 bg-white/10 backdrop-blur-lg border-none shadow-xl">

@@ -12,26 +12,61 @@ export async function POST(req: NextRequest) {
 
   try {
     const now = new Date();
+    const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
 
-    // Update all appointments that are in the past and still scheduled
-    await prisma.appointment.updateMany({
+    // Обновляем статус прошедших встреч
+    const updatedAppointments = await prisma.appointment.updateMany({
       where: {
-        date: {
-          lt: now,
-        },
-        status: 'scheduled',
-        attendance: {
-          status: {
-            not: 'declined',
+        AND: [
+          {
+            OR: [
+              // Встречи, которые уже закончились (время начала + длительность < текущее время)
+              {
+                date: {
+                  lt: new Date(localNow.getTime() - 30 * 60000), // Вычитаем 30 минут (минимальная длительность)
+                },
+              },
+              // Встречи, которые уже начались и их длительность прошла
+              {
+                AND: [
+                  {
+                    date: {
+                      lt: localNow,
+                    },
+                  },
+                  {
+                    duration: {
+                      lte: Math.floor((localNow.getTime() - new Date().getTime()) / 60000),
+                    },
+                  },
+                ],
+              },
+            ],
           },
-        },
+          {
+            status: {
+              not: 'cancelled',
+            },
+          },
+          {
+            status: {
+              not: 'completed',
+            },
+          },
+        ],
       },
       data: {
         status: 'completed',
       },
     });
 
-    return NextResponse.json({ success: true });
+    console.log('Found appointments:', updatedAppointments);
+
+    return NextResponse.json({
+      success: true,
+      updated: updatedAppointments.count,
+      timestamp: localNow.toISOString(),
+    });
   } catch (error) {
     console.error('Error updating appointment statuses:', error);
     return NextResponse.json({ error: 'Failed to update appointment statuses' }, { status: 500 });
