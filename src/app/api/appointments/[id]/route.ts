@@ -48,12 +48,6 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     const body = await request.json();
     const { cancellationReason } = body;
 
-    console.log('Cancelling appointment:', {
-      id: params.id,
-      cancellationReason,
-      userId: session.user.id,
-    });
-
     // Instead of deleting, mark as cancelled
     const appointment = await prisma.appointment.update({
       where: {
@@ -65,8 +59,6 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         cancellationReason: cancellationReason || 'No reason provided',
       },
     });
-
-    console.log('Updated appointment:', appointment);
 
     return NextResponse.json(appointment);
   } catch (error) {

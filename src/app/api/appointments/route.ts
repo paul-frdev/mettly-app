@@ -33,9 +33,6 @@ export async function GET() {
       // Получаем текущее время в локальной временной зоне
       const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
 
-      console.log('Current UTC time:', now.toISOString());
-      console.log('Current local time:', localNow.toISOString());
-
       // Обновляем статус прошедших встреч
       const updatedAppointments = await prisma.appointment.updateMany({
         where: {
@@ -108,25 +105,6 @@ export async function GET() {
         },
       });
 
-      // Логируем все встречи с подробной информацией
-      console.log(
-        'Found appointments:',
-        appointments.map((apt) => {
-          const localDate = new Date(apt.date.getTime() - apt.date.getTimezoneOffset() * 60000);
-          const isPast = localDate < localNow;
-          const isToday = localDate.toDateString() === localNow.toDateString();
-          return {
-            id: apt.id,
-            date: apt.date.toISOString(),
-            localDate: localDate.toISOString(),
-            status: apt.status,
-            isPast,
-            isToday,
-            timeUntil: Math.floor((apt.date.getTime() - localNow.getTime()) / (1000 * 60)), // minutes until appointment
-          };
-        })
-      );
-
       // Фильтруем встречи для списка (только свои) и календаря (все)
       const ownAppointments = appointments.filter((appointment) => appointment.clientId === client.id);
       const busySlots = appointments.filter((appointment) => appointment.clientId !== client.id);
@@ -173,8 +151,6 @@ export async function GET() {
         date: 'asc',
       },
     });
-
-    console.log('Trainer appointments:', appointments);
 
     return NextResponse.json(appointments);
   } catch (error) {

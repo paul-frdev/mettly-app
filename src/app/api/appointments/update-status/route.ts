@@ -60,8 +60,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log('Found appointments:', updatedAppointments);
-
     return NextResponse.json({
       success: true,
       updated: updatedAppointments.count,
