@@ -50,11 +50,6 @@ export async function GET() {
               ],
             },
             {
-              status: {
-                not: 'cancelled',
-              },
-            },
-            {
               OR: [{ attendance: null }, { attendance: { status: { not: 'declined' } } }],
             },
           ],
@@ -77,6 +72,8 @@ export async function GET() {
           date: 'asc',
         },
       });
+
+      console.log('Client appointments:', appointments);
 
       // Фильтруем встречи для списка (только свои) и календаря (все)
       const ownAppointments = appointments.filter((appointment) => appointment.clientId === client.id);
@@ -124,6 +121,8 @@ export async function GET() {
         date: 'asc',
       },
     });
+
+    console.log('Trainer appointments:', appointments);
 
     return NextResponse.json(appointments);
   } catch (error) {
@@ -326,6 +325,11 @@ export async function PUT(req: NextRequest) {
         status,
       },
       include: {
+        attendance: {
+          select: {
+            status: true,
+          },
+        },
         client: {
           select: {
             name: true,

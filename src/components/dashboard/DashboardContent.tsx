@@ -139,6 +139,11 @@ export function DashboardContent() {
     apt.date > new Date() && format(apt.date, 'yyyy-MM-dd') !== format(new Date(), 'yyyy-MM-dd')
   ).sort((a, b) => a.date.getTime() - b.date.getTime());
 
+  // Get cancelled appointments
+  const cancelledAppointments = appointments.filter(apt =>
+    apt.status === 'cancelled'
+  ).sort((a, b) => b.date.getTime() - a.date.getTime());
+
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
@@ -282,6 +287,42 @@ export function DashboardContent() {
                         : 'bg-blue-500/20 text-blue-300'
                       }`}>
                       {appointment.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {cancelledAppointments.length > 0 && (
+            <>
+              <h2 className="text-xl font-semibold mt-8 mb-4 text-white">Cancelled Appointments</h2>
+              <div className="space-y-4">
+                {cancelledAppointments.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className="flex items-center justify-between p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10"
+                  >
+                    <div>
+                      <div className="font-medium text-white">
+                        {isClient ? session?.user?.name : appointment.client.name}
+                      </div>
+                      <div className="text-sm text-gray-300">
+                        {format(appointment.date, 'MMM d, h:mm a')} ({appointment.duration} minutes)
+                      </div>
+                      {appointment.cancellationReason && (
+                        <div className="text-sm text-red-400 mt-1">
+                          Reason: {appointment.cancellationReason}
+                        </div>
+                      )}
+                      {appointment.cancelledAt && (
+                        <div className="text-sm text-red-400">
+                          Cancelled on: {format(new Date(appointment.cancelledAt), 'MMM d, h:mm a')}
+                        </div>
+                      )}
+                    </div>
+                    <Badge className="bg-red-500/20 text-red-300">
+                      Cancelled
                     </Badge>
                   </div>
                 ))}

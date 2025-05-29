@@ -78,6 +78,12 @@ export function DaySchedule({ appointments, onAppointmentUpdate }: DaySchedulePr
     try {
       const response = await fetch(`/api/appointments/${appointmentId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cancellationReason: 'Appointment cancelled by user',
+        }),
       });
 
       if (!response.ok) {

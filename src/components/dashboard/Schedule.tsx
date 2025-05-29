@@ -156,7 +156,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
 
     try {
       const response = await fetch(`/api/appointments/${appointmentToCancel.id}`, {
-        method: 'PATCH',
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -218,28 +218,30 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
   };
 
   const isTimeSlotBooked = (timeSlot: string) => {
-    const timeSlotDate = parse(timeSlot, 'h:mm a', selectedDate);
-
     return filteredAppointments.some(appointment => {
-      const appointmentDate = new Date(appointment.date);
-      const appointmentEnd = new Date(appointmentDate.getTime() + appointment.duration * 60000);
+      // Skip cancelled appointments
+      if (appointment.status === 'cancelled') {
+        return false;
+      }
 
-      // Проверяем, перекрывается ли выбранный слот с существующей встречей
-      return (
-        (timeSlotDate >= appointmentDate && timeSlotDate < appointmentEnd) || // Начало слота попадает в существующую встречу
-        (timeSlotDate <= appointmentDate && new Date(timeSlotDate.getTime() + duration * 60000) > appointmentDate) // Существующая встреча начинается во время слота
+      const appointmentTime = format(new Date(appointment.date), 'h:mm a');
+      const appointmentEndTime = format(
+        new Date(new Date(appointment.date).getTime() + appointment.duration * 60000),
+        'h:mm a'
       );
+      return timeSlot >= appointmentTime && timeSlot < appointmentEndTime;
     });
   };
 
   const getAppointmentForTimeSlot = (timeSlot: string) => {
-    const timeSlotDate = parse(timeSlot, 'h:mm a', selectedDate);
-
     return filteredAppointments.find(appointment => {
-      const appointmentDate = new Date(appointment.date);
-      const appointmentEnd = new Date(appointmentDate.getTime() + appointment.duration * 60000);
+      // Skip cancelled appointments
+      if (appointment.status === 'cancelled') {
+        return false;
+      }
 
-      return timeSlotDate >= appointmentDate && timeSlotDate < appointmentEnd;
+      const appointmentTime = format(new Date(appointment.date), 'h:mm a');
+      return timeSlot === appointmentTime;
     });
   };
 
@@ -318,8 +320,6 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                 );
 
                 const isOwnAppointment = isClient && appointment?.clientId === 'self';
-
-
 
                 return (
                   <div
