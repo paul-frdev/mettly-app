@@ -110,7 +110,6 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
     const daySchedule = workingHours[dayOfWeek];
 
     if (!daySchedule?.enabled) {
-      toast.info('Day is not enabled in schedule');
       return [];
     }
 
