@@ -22,7 +22,7 @@ export function LanguageSwitcher() {
         onClick={() => switchLanguage('en')}
         className={`${currentLocale === 'en'
           ? 'bg-[#e42627] text-white hover:bg-[#d41f20]'
-          : 'text-gray-200 hover:text-white'
+          : 'text-black hover:text-black'
           } transition-colors`}
       >
         EN
@@ -33,7 +33,7 @@ export function LanguageSwitcher() {
         onClick={() => switchLanguage('uk')}
         className={`${currentLocale === 'uk'
           ? 'bg-[#e42627] text-white hover:bg-[#d41f20]'
-          : 'text-gray-200 hover:text-white'
+          : 'text-black hover:text-black'
           } transition-colors`}
       >
         UA

@@ -36,23 +36,24 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const {
+    settings,
     isLoading,
     isHoliday,
     isWorkingDay,
-    getWorkingHours,
     getSlotDuration
   } = useBusinessSettings();
 
   // Generate time slots based on business settings
   const generateTimeSlots = () => {
     const slots: Date[] = [];
-    const workingHours = getWorkingHours(selectedDate);
+    if (!settings?.workingHours) return slots;
 
-    // If it's a holiday or non-working day, return empty array
-    if (!workingHours) return slots;
+    const dayOfWeek = format(selectedDate, 'EEEE');
+    const daySchedule = settings.workingHours[dayOfWeek];
+    if (!daySchedule?.enabled) return slots;
 
-    const startTime = parse(workingHours.start, 'HH:mm', selectedDate);
-    const endTime = parse(workingHours.end, 'HH:mm', selectedDate);
+    const startTime = parse(daySchedule.start, 'HH:mm', selectedDate);
+    const endTime = parse(daySchedule.end, 'HH:mm', selectedDate);
     const duration = getSlotDuration();
 
     let currentTime = startTime;
@@ -140,62 +141,64 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
   }
 
   return (
-    <div className="grid grid-cols-4 gap-2">
-      {timeSlots.map((time) => {
-        const { isPast, isBooked, isNonWorking, appointment, isBusy } = getSlotInfo(time);
+    <div className="container mx-auto py-8 px-4" style={{ background: '#f5f6fa' }}>
+      <div className="grid grid-cols-4 gap-2">
+        {timeSlots.map((time) => {
+          const { isPast, isBooked, isNonWorking, appointment, isBusy } = getSlotInfo(time);
 
-        return (
-          <button
-            key={time.toISOString()}
-            onClick={() => handleSlotClick(time)}
-            disabled={isPast || isBooked || isNonWorking || isBusy}
-            className={cn(
-              "p-2 rounded text-sm text-center transition-colors",
-              isPast && "bg-gray-100 text-gray-400 cursor-not-allowed",
-              isBusy && "bg-gray-200 text-gray-600 cursor-not-allowed",
-              isBooked && !isPast && !isBusy && "bg-blue-100 text-blue-800 cursor-not-allowed",
-              isBooked && isPast && "bg-purple-50 text-purple-600 cursor-not-allowed",
-              isNonWorking && "bg-gray-100 text-gray-400 cursor-not-allowed",
-              !isPast && !isBooked && !isNonWorking && !isBusy && "bg-green-50 hover:bg-green-100 text-green-800"
-            )}
-          >
-            {format(time, 'HH:mm')}
-            {isBooked && appointment?.client && (
-              <div className="text-xs mt-1 truncate">
-                {isBusy ? 'Busy' : appointment.client.name}
-                <div className="flex items-center justify-center gap-1 mt-1">
-                  {appointment.status && !isBusy && (
-                    <span className={cn(
-                      "px-1 rounded text-[10px]",
-                      appointment.status === 'completed' && "bg-green-100 text-green-800",
-                      appointment.status === 'scheduled' && "bg-yellow-100 text-yellow-800",
-                      appointment.status === 'cancelled' && "bg-red-100 text-red-800"
-                    )}>
-                      {appointment.status}
+          return (
+            <button
+              key={time.toISOString()}
+              onClick={() => handleSlotClick(time)}
+              disabled={isPast || isBooked || isNonWorking || isBusy}
+              className={cn(
+                "p-2 rounded text-sm text-center transition-colors",
+                isPast && "bg-gray-100 text-gray-400 cursor-not-allowed",
+                isBusy && "bg-gray-200 text-gray-600 cursor-not-allowed",
+                isBooked && !isPast && !isBusy && "bg-blue-100 text-blue-800 cursor-not-allowed",
+                isBooked && isPast && "bg-purple-50 text-purple-600 cursor-not-allowed",
+                isNonWorking && "bg-gray-100 text-gray-400 cursor-not-allowed",
+                !isPast && !isBooked && !isNonWorking && !isBusy && "bg-green-50 hover:bg-green-100 text-green-800"
+              )}
+            >
+              {format(time, 'HH:mm')}
+              {isBooked && appointment?.client && (
+                <div className="text-xs mt-1 truncate">
+                  {isBusy ? 'Busy' : appointment.client.name}
+                  <div className="flex items-center justify-center gap-1 mt-1">
+                    {appointment.status && !isBusy && (
+                      <span className={cn(
+                        "px-1 rounded text-[10px]",
+                        appointment.status === 'completed' && "bg-green-100 text-green-800",
+                        appointment.status === 'scheduled' && "bg-yellow-100 text-yellow-800",
+                        appointment.status === 'cancelled' && "bg-red-100 text-red-800"
+                      )}>
+                        {appointment.status}
+                      </span>
+                    )}
+                    <span className="text-[10px] text-gray-500">
+                      {format(new Date(appointment.date), 'HH:mm')}
                     </span>
-                  )}
-                  <span className="text-[10px] text-gray-500">
-                    {format(new Date(appointment.date), 'HH:mm')}
-                  </span>
+                  </div>
                 </div>
-              </div>
-            )}
-          </button>
-        );
-      })}
+              )}
+            </button>
+          );
+        })}
 
-      {selectedTime && (
-        <AppointmentForm
-          isOpen={isFormOpen}
-          onClose={handleFormClose}
-          selectedTime={selectedTime}
-          onSuccess={() => {
-            handleFormClose();
-            onAppointmentCreated?.();
-          }}
-          isClient={isClient}
-        />
-      )}
+        {selectedTime && (
+          <AppointmentForm
+            isOpen={isFormOpen}
+            onClose={handleFormClose}
+            selectedTime={selectedTime}
+            onSuccess={() => {
+              handleFormClose();
+              onAppointmentCreated?.();
+            }}
+            isClient={isClient}
+          />
+        )}
+      </div>
     </div>
   );
 } 

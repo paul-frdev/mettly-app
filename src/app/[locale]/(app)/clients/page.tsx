@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Phone, Mail } from 'lucide-react';
+import { Plus, Phone, Mail, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { showError } from '@/lib/utils/notifications';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 interface Client {
   id: string;
@@ -45,17 +45,20 @@ export default function ClientsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Clients</h1>
+    <div className="container mx-auto py-8 px-4">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
+          <p className="text-muted-foreground mt-1">Manage your client list and appointments</p>
+        </div>
         <Link href="/clients/add">
-          <Button>
+          <Button className="bg-primary hover:bg-primary/90">
             <Plus className="mr-2 h-4 w-4" />
             Add New Client
           </Button>
@@ -63,57 +66,59 @@ export default function ClientsPage() {
       </div>
 
       {clients.length === 0 ? (
-        <Card className="p-6">
-          <div className="text-center">
-            <p className="text-gray-500 mb-4">No clients yet. Add your first client to get started!</p>
+        <Card className="p-8 bg-card">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="rounded-full bg-primary/10 p-3 mb-4">
+              <Calendar className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No clients yet</h3>
+            <p className="text-muted-foreground text-center mb-6">
+              Add your first client to start managing appointments
+            </p>
             <Link href="/clients/add">
-              <Button>
+              <Button className="bg-primary hover:bg-primary/90">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Your First Client
               </Button>
             </Link>
-          </div>
+          </CardContent>
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {clients.map((client) => (
-            <Card key={client.id} className="p-6">
-              <div className="flex flex-col h-full">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-medium">{client.name}</h3>
-                    <div className="space-y-1 mt-2">
-                      {client.email && (
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Mail className="h-4 w-4 mr-2" />
-                          {client.email}
-                        </div>
-                      )}
-                      {client.phone && (
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Phone className="h-4 w-4 mr-2" />
-                          {client.phone}
-                        </div>
-                      )}
+            <Card key={client.id} className="bg-card hover:bg-card/80 transition-colors">
+              <CardHeader>
+                <CardTitle className="text-xl">{client.name}</CardTitle>
+                <CardDescription>
+                  {client._count?.appointments || 0} appointments
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {client.email && (
+                    <div className="flex items-center text-muted-foreground">
+                      <Mail className="h-4 w-4 mr-2" />
+                      <span className="text-sm">{client.email}</span>
                     </div>
-                  </div>
-                </div>
-                {client.notes && (
-                  <p className="text-sm text-gray-600 mb-4">{client.notes}</p>
-                )}
-                <div className="mt-auto pt-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">
-                      {client._count?.appointments || 0} appointments
-                    </span>
+                  )}
+                  {client.phone && (
+                    <div className="flex items-center text-muted-foreground">
+                      <Phone className="h-4 w-4 mr-2" />
+                      <span className="text-sm">{client.phone}</span>
+                    </div>
+                  )}
+                  {client.notes && (
+                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{client.notes}</p>
+                  )}
+                  <div className="pt-4">
                     <Link href={`/clients/${client.id}`}>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="w-full">
                         View Details
                       </Button>
                     </Link>
                   </div>
                 </div>
-              </div>
+              </CardContent>
             </Card>
           ))}
         </div>
