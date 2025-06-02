@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 export function AppNavigation() {
   const pathname = usePathname();
-  const [, setIsScrolled] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { data: session } = useSession();
@@ -74,7 +74,12 @@ export function AppNavigation() {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 100, damping: 20 }}
-      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out bg-gradient-to-br from-gray-50 via-sky-50 to-blue-100 border-b border-blue-100 shadow-sm"
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out border-b border-blue-100 shadow-sm",
+        isScrolled
+          ? "bg-white/70 backdrop-blur-md"
+          : "bg-gradient-to-br from-gray-50 via-sky-50 to-blue-100"
+      )}
     >
       {/* Animated background elements */}
       {!isLowPerformance && (
