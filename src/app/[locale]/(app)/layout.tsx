@@ -7,7 +7,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#1a1a2e]">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-sky-50 to-blue-100">
       <AppNavigation />
       <main className="pt-20">
         {children}

@@ -184,37 +184,37 @@ export function DashboardContent() {
     <div className="container mx-auto py-8">
       {!isClient && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 mb-8">
-          <Card className="bg-white/10 backdrop-blur-lg border-none shadow-xl">
+          <Card className="bg-blue-50 border-none shadow-xl">
             <CardHeader>
-              <CardTitle className="text-white">Upcoming</CardTitle>
+              <CardTitle className="text-blue-700">Upcoming</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">{upcomingAppointments.length}</div>
+              <div className="text-3xl font-bold text-blue-700">{upcomingAppointments.length}</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 backdrop-blur-lg border-none shadow-xl">
+          <Card className="bg-sky-50 border-none shadow-xl">
             <CardHeader>
-              <CardTitle className="text-white">Today&apos;s Appointments</CardTitle>
+              <CardTitle className="text-sky-700">Today&apos;s Appointments</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">{todayAppointments.length}</div>
+              <div className="text-3xl font-bold text-sky-700">{todayAppointments.length}</div>
             </CardContent>
           </Card>
         </div>
       )}
 
       <div className="grid md:grid-cols-2 gap-8">
-        <Card className="p-6 bg-white/10 backdrop-blur-lg border-none shadow-xl">
+        <Card className="p-6 bg-white border border-gray-100 shadow-xl">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-blue-700">
               {isClient ? 'My Appointments' : 'Today\'s Appointments'}
             </h2>
             {!isClient && (
               <Button
                 onClick={() => setIsClientFormOpen(true)}
                 size="sm"
-                className="bg-[#e42627] hover:bg-[#d41f20] text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Client
@@ -226,22 +226,22 @@ export function DashboardContent() {
             <div className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-white">Today&apos;s Appointments</h2>
+                  <h2 className="text-xl font-semibold text-sky-700">Today&apos;s Appointments</h2>
                   {todayAppointments.length === 0 ? (
-                    <p className="text-gray-400">No appointments scheduled for today.</p>
+                    <p className="text-gray-500">No appointments scheduled for today.</p>
                   ) : (
                     <div className="space-y-2">
                       {todayAppointments.map((appointment) => (
                         <div
                           key={appointment.id}
-                          className="p-4 rounded-lg bg-white/5 border border-white/10"
+                          className="p-4 rounded-lg bg-sky-50 border border-sky-100"
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <h3 className="font-medium text-white">
+                              <h3 className="font-medium text-blue-800">
                                 {appointment.client?.name || 'No client name'}
                               </h3>
-                              <p className="text-sm text-gray-400">
+                              <p className="text-sm text-gray-500">
                                 {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
                               </p>
                             </div>
@@ -250,7 +250,7 @@ export function DashboardContent() {
                             </Badge>
                           </div>
                           {appointment.status === 'cancelled' && appointment.cancellationReason && (
-                            <p className="mt-2 text-sm text-red-400">
+                            <p className="mt-2 text-sm text-red-500">
                               Cancellation reason: {appointment.cancellationReason}
                             </p>
                           )}
@@ -261,22 +261,22 @@ export function DashboardContent() {
                 </div>
 
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-white">Upcoming Appointments</h2>
+                  <h2 className="text-xl font-semibold text-blue-700">Upcoming Appointments</h2>
                   {upcomingAppointments.length === 0 ? (
-                    <p className="text-gray-400">No upcoming appointments.</p>
+                    <p className="text-gray-500">No upcoming appointments.</p>
                   ) : (
                     <div className="space-y-2">
                       {upcomingAppointments.map((appointment) => (
                         <div
                           key={appointment.id}
-                          className="p-4 rounded-lg bg-white/5 border border-white/10"
+                          className="p-4 rounded-lg bg-blue-50 border border-blue-100"
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <h3 className="font-medium text-white">
+                              <h3 className="font-medium text-blue-800">
                                 {appointment.client?.name || 'No client name'}
                               </h3>
-                              <p className="text-sm text-gray-400">
+                              <p className="text-sm text-gray-500">
                                 {format(new Date(appointment.date), 'PPP')} • {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
                               </p>
                             </div>
@@ -285,7 +285,7 @@ export function DashboardContent() {
                             </Badge>
                           </div>
                           {appointment.status === 'cancelled' && appointment.cancellationReason && (
-                            <p className="mt-2 text-sm text-red-400">
+                            <p className="mt-2 text-sm text-red-500">
                               Cancellation reason: {appointment.cancellationReason}
                             </p>
                           )}
@@ -298,19 +298,19 @@ export function DashboardContent() {
 
               {completedAppointments.length > 0 && (
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-white">Completed Appointments</h2>
+                  <h2 className="text-xl font-semibold text-green-700">Completed Appointments</h2>
                   <div className="space-y-2">
                     {completedAppointments.map((appointment) => (
                       <div
                         key={appointment.id}
-                        className="p-4 rounded-lg bg-white/5 border border-white/10"
+                        className="p-4 rounded-lg bg-green-50 border border-green-100"
                       >
                         <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="font-medium text-white">
+                            <h3 className="font-medium text-green-800">
                               {appointment.client?.name || 'No client name'}
                             </h3>
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm text-gray-500">
                               {format(new Date(appointment.date), 'PPP')} • {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
                             </p>
                           </div>
@@ -324,31 +324,31 @@ export function DashboardContent() {
 
               {cancelledAppointments.length > 0 && (
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-white">Cancelled Appointments</h2>
+                  <h2 className="text-xl font-semibold text-red-700">Cancelled Appointments</h2>
                   <div className="space-y-2">
                     {cancelledAppointments.map((appointment) => (
                       <div
                         key={appointment.id}
-                        className="p-4 rounded-lg bg-white/5 border border-white/10"
+                        className="p-4 rounded-lg bg-red-50 border border-red-100"
                       >
                         <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="font-medium text-white">
+                            <h3 className="font-medium text-red-800">
                               {appointment.client?.name || 'No client name'}
                             </h3>
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm text-gray-500">
                               {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
                             </p>
                           </div>
                           <Badge variant="destructive">Cancelled</Badge>
                         </div>
                         {appointment.cancellationReason && (
-                          <p className="mt-2 text-sm text-red-400">
+                          <p className="mt-2 text-sm text-red-500">
                             Cancellation reason: {appointment.cancellationReason}
                           </p>
                         )}
                         {appointment.cancelledAt && (
-                          <p className="mt-1 text-sm text-gray-400">
+                          <p className="mt-1 text-sm text-gray-500">
                             Cancelled on: {format(new Date(appointment.cancelledAt), 'PPP h:mm a')}
                           </p>
                         )}
@@ -361,8 +361,8 @@ export function DashboardContent() {
           </div>
         </Card>
 
-        <Card className="p-6 bg-white/10 backdrop-blur-lg border-none shadow-xl">
-          <h2 className="text-xl font-semibold mb-6 text-white">Schedule</h2>
+        <Card className="p-6 bg-sky-50 border border-sky-100 shadow-xl">
+          <h2 className="text-xl font-semibold mb-6 text-blue-700">Schedule</h2>
           <Schedule
             appointments={calendarAppointments}
             onAppointmentCreated={fetchAppointments}

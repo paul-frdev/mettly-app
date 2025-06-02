@@ -23,6 +23,7 @@ interface BusinessSettings {
 
 export function useBusinessSettings() {
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchSettings = async () => {
     try {
@@ -39,16 +40,18 @@ export function useBusinessSettings() {
       }
     } catch (error) {
       console.error('Failed to fetch business settings:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     const handleSettingsUpdate = () => {
+      setIsLoading(true);
       fetchSettings();
     };
 
     // Initial fetch
-
     fetchSettings();
 
     // Listen for settings updates
@@ -82,6 +85,7 @@ export function useBusinessSettings() {
 
   return {
     settings,
+    isLoading,
     isWorkingDay,
     isHoliday,
     getSlotDuration,

@@ -142,10 +142,10 @@ export default function AppointmentPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="min-h-screen pt-16">
+    <div className="min-h-screen pt-16 bg-gradient-to-br from-gray-50 via-sky-50 to-blue-100">
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold text-blue-700">
             {isEditing ? 'Edit Appointment' : 'Appointment Details'}
           </h1>
           <div className="space-x-4">
@@ -153,13 +153,13 @@ export default function AppointmentPage({ params }: { params: Promise<{ id: stri
               <>
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                 >
                   Edit
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
                 >
                   Delete
                 </button>
@@ -169,9 +169,9 @@ export default function AppointmentPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {isEditing ? (
-          <form onSubmit={handleUpdate} className="max-w-lg space-y-6">
+          <form onSubmit={handleUpdate} className="max-w-lg space-y-6 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2 text-blue-700">
                 Date and Time
               </label>
               <DatePicker
@@ -181,18 +181,18 @@ export default function AppointmentPage({ params }: { params: Promise<{ id: stri
                 timeFormat="HH:mm"
                 timeIntervals={15}
                 dateFormat="MMMM d, yyyy h:mm aa"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-800"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2 text-blue-700">
                 Client
               </label>
               <select
                 value={formData.clientId || ''}
                 onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-800"
               >
                 <option value="">Select a client</option>
                 {clients.map((client) => (
@@ -204,27 +204,37 @@ export default function AppointmentPage({ params }: { params: Promise<{ id: stri
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2 text-blue-700">
                 Duration (minutes)
               </label>
               <input
                 type="number"
                 value={formData.duration || ''}
                 onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                min="15"
-                step="15"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-800"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2 text-blue-700">
+                Notes
+              </label>
+              <textarea
+                value={formData.notes || ''}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-800 resize-none"
+                rows={4}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-blue-700">
                 Status
               </label>
               <select
-                value={formData.status}
+                value={formData.status || ''}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-800"
               >
                 <option value="scheduled">Scheduled</option>
                 <option value="completed">Completed</option>
@@ -232,83 +242,62 @@ export default function AppointmentPage({ params }: { params: Promise<{ id: stri
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Notes
-              </label>
-              <textarea
-                value={formData.notes || ''}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={4}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Add any additional notes..."
-              />
-            </div>
-
             <div className="flex justify-end space-x-4">
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={isLoading}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
               >
-                {isLoading ? 'Saving...' : 'Save Changes'}
+                Save Changes
               </button>
             </div>
           </form>
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <dl className="grid grid-cols-1 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div className="space-y-4">
               <div>
-                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Date and Time</dt>
-                <dd className="mt-1 text-lg">
-                  {format(new Date(appointment.date), 'PPP p')}
-                </dd>
+                <h2 className="text-sm font-medium text-blue-700">Date and Time</h2>
+                <p className="mt-1 text-gray-800">
+                  {format(new Date(appointment.date), 'MMMM d, yyyy h:mm aa')}
+                </p>
               </div>
 
-              {appointment.client && (
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Client</dt>
-                  <dd className="mt-1 text-lg">{appointment.client.name}</dd>
-                </div>
-              )}
-
-              {appointment.duration && (
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Duration</dt>
-                  <dd className="mt-1 text-lg">{appointment.duration} minutes</dd>
-                </div>
-              )}
+              <div>
+                <h2 className="text-sm font-medium text-blue-700">Client</h2>
+                <p className="mt-1 text-gray-800">
+                  {appointment.client?.name || 'No client assigned'}
+                </p>
+              </div>
 
               <div>
-                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</dt>
-                <dd className="mt-1">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${appointment.status === 'scheduled'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : appointment.status === 'completed'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                      }`}
-                  >
-                    {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                  </span>
-                </dd>
+                <h2 className="text-sm font-medium text-blue-700">Duration</h2>
+                <p className="mt-1 text-gray-800">
+                  {appointment.duration} minutes
+                </p>
+              </div>
+
+              <div>
+                <h2 className="text-sm font-medium text-blue-700">Status</h2>
+                <p className="mt-1 text-gray-800">
+                  {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                </p>
               </div>
 
               {appointment.notes && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Notes</dt>
-                  <dd className="mt-1 text-lg whitespace-pre-wrap">{appointment.notes}</dd>
+                  <h2 className="text-sm font-medium text-blue-700">Notes</h2>
+                  <p className="mt-1 text-gray-800 whitespace-pre-wrap">
+                    {appointment.notes}
+                  </p>
                 </div>
               )}
-            </dl>
+            </div>
           </div>
         )}
       </div>

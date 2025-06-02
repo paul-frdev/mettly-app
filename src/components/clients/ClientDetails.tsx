@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Phone, Mail, ArrowLeft, Trash, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Phone, Mail, ArrowLeft, Trash, ChevronLeft, ChevronRight, Calendar, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { format, addDays, subDays } from 'date-fns';
 import {
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { showSuccess, showError } from '@/lib/utils/notifications';
 import { TimeSlots } from '@/components/appointments/TimeSlots';
+import { Badge } from '@/components/ui/badge';
 
 interface Appointment {
   id: string;
@@ -48,11 +49,10 @@ export function ClientDetails({ clientId }: ClientDetailsProps) {
   const [client, setClient] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showCompleted, setShowCompleted] = useState(false);
 
   const fetchClient = useCallback(async () => {
     try {
-      const response = await fetch(`/api/clients/${clientId}?includeCompleted=${showCompleted}`);
+      const response = await fetch(`/api/clients/${clientId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch client');
       }
@@ -64,7 +64,7 @@ export function ClientDetails({ clientId }: ClientDetailsProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [clientId, showCompleted]);
+  }, [clientId]);
 
   useEffect(() => {
     fetchClient();
@@ -87,7 +87,6 @@ export function ClientDetails({ clientId }: ClientDetailsProps) {
         throw new Error('Failed to update appointment status');
       }
 
-      // Refresh client data after status update
       fetchClient();
       showSuccess('Appointment status updated successfully');
     } catch (error) {
@@ -116,7 +115,7 @@ export function ClientDetails({ clientId }: ClientDetailsProps) {
   if (isLoading || !client) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -129,19 +128,22 @@ export function ClientDetails({ clientId }: ClientDetailsProps) {
   );
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="container mx-auto py-8 px-4">
+      <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <Link href="/clients">
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="rounded-full">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold">{client.name}</h1>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{client.name}</h1>
+            <p className="text-muted-foreground">Client since {format(new Date(client.createdAt), 'MMMM d, yyyy')}</p>
+          </div>
         </div>
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive">
+            <Button variant="destructive" className="bg-destructive hover:bg-destructive/90">
               <Trash className="h-4 w-4 mr-2" />
               Delete Client
             </Button>
@@ -155,158 +157,173 @@ export function ClientDetails({ clientId }: ClientDetailsProps) {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteClient}>Delete</AlertDialogAction>
+              <AlertDialogAction onClick={handleDeleteClient} className="bg-destructive hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Client Information</h2>
-          <div className="space-y-4">
+        <Card className="bg-card">
+          <CardHeader>
+            <CardTitle>Client Information</CardTitle>
+            <CardDescription>Contact details and notes</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
             {client.email && (
-              <div className="flex items-center text-gray-600">
+              <div className="flex items-center text-muted-foreground">
                 <Mail className="h-4 w-4 mr-3" />
                 <span>{client.email}</span>
               </div>
             )}
             {client.phone && (
-              <div className="flex items-center text-gray-600">
+              <div className="flex items-center text-muted-foreground">
                 <Phone className="h-4 w-4 mr-3" />
                 <span>{client.phone}</span>
               </div>
             )}
             {client.notes && (
               <div className="mt-4">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Notes</h3>
-                <p className="text-gray-600">{client.notes}</p>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Notes</h3>
+                <p className="text-muted-foreground">{client.notes}</p>
               </div>
             )}
-            <div className="text-sm text-gray-500">
-              Client since {format(new Date(client.createdAt), 'MMMM d, yyyy')}
-            </div>
-          </div>
+          </CardContent>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setSelectedDate(subDays(selectedDate, 1))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="text-lg font-medium">
-              {format(selectedDate, 'MMMM d, yyyy')}
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <TimeSlots
-            selectedDate={selectedDate}
-            appointments={client.appointments.filter(
-              (apt) => format(new Date(apt.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-            ).map(apt => ({
-              ...apt,
-              date: new Date(apt.date)
-            }))}
-            onAppointmentCreated={fetchClient}
-          />
-        </Card>
-
-        <Card className="p-6 md:col-span-2">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">Upcoming Appointments</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowCompleted(!showCompleted)}
-            >
-              {showCompleted ? 'Hide Completed' : 'Show Completed'}
-            </Button>
-          </div>
-
-          {upcomingAppointments.length === 0 ? (
-            <p className="text-gray-500">No upcoming appointments.</p>
-          ) : (
-            <div className="space-y-4">
-              {upcomingAppointments
-                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                .map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="flex items-center justify-between p-4 rounded-lg border"
-                  >
-                    <div>
-                      <div className="font-medium">
-                        {format(new Date(appointment.date), 'MMMM d, yyyy')}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {format(new Date(appointment.date), 'h:mm a')} ({appointment.duration} minutes)
-                      </div>
-                      {appointment.notes && (
-                        <div className="text-sm text-gray-600 mt-1">{appointment.notes}</div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={appointment.status}
-                        onChange={(e) => handleStatusChange(appointment.id, e.target.value)}
-                        className="px-2 py-1 rounded text-sm border border-gray-300"
-                      >
-                        <option value="scheduled">Scheduled</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-
-          {showCompleted && pastAppointments.length > 0 && (
-            <>
-              <h2 className="text-xl font-semibold mt-8 mb-4">Past Appointments</h2>
-              <div className="space-y-4">
-                {pastAppointments
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                  .map((appointment) => (
-                    <div
-                      key={appointment.id}
-                      className="flex items-center justify-between p-4 rounded-lg border"
-                    >
-                      <div>
-                        <div className="font-medium">
-                          {format(new Date(appointment.date), 'MMMM d, yyyy')}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {format(new Date(appointment.date), 'h:mm a')} ({appointment.duration} minutes)
-                        </div>
-                        {appointment.notes && (
-                          <div className="text-sm text-gray-600 mt-1">{appointment.notes}</div>
-                        )}
-                      </div>
-                      <div
-                        className={`px-2 py-1 rounded text-sm ${appointment.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                          }`}
-                      >
-                        {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                      </div>
-                    </div>
-                  ))}
+        <Card className="bg-card">
+          <CardHeader>
+            <CardTitle>Schedule Appointment</CardTitle>
+            <CardDescription>Select a date and time for the appointment</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-6">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSelectedDate(subDays(selectedDate, 1))}
+                className="rounded-full"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="text-center">
+                <div className="text-lg font-semibold">
+                  {format(selectedDate, 'EEEE, MMMM d')}
+                </div>
               </div>
-            </>
-          )}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                className="rounded-full"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <TimeSlots
+              selectedDate={selectedDate}
+              onAppointmentCreated={fetchClient}
+              appointments={client?.appointments.filter(
+                (apt) => format(new Date(apt.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+              ).map(apt => ({
+                ...apt,
+                date: new Date(apt.date),
+                client: client
+              })) || []}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-8">
+        <Card className="bg-card">
+          <CardHeader>
+            <CardTitle>Appointments</CardTitle>
+            <CardDescription>View and manage client appointments</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {upcomingAppointments.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Upcoming Appointments</h3>
+                  <div className="space-y-4">
+                    {upcomingAppointments.map((appointment) => (
+                      <Card key={appointment.id} className="bg-card/50">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="rounded-full bg-primary/10 p-2">
+                                <Calendar className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <div className="font-medium">
+                                  {format(new Date(appointment.date), 'EEEE, MMMM d')}
+                                </div>
+                                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                  <Clock className="h-3 w-3" />
+                                  {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="capitalize">
+                                {appointment.status}
+                              </Badge>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleStatusChange(appointment.id, 'completed')}
+                              >
+                                Mark as Completed
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {pastAppointments.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Past Appointments</h3>
+                  <div className="space-y-4">
+                    {pastAppointments.map((appointment) => (
+                      <Card key={appointment.id} className="bg-card/50">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="rounded-full bg-muted p-2">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                              <div>
+                                <div className="font-medium">
+                                  {format(new Date(appointment.date), 'EEEE, MMMM d')}
+                                </div>
+                                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                  <Clock className="h-3 w-3" />
+                                  {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
+                                </div>
+                              </div>
+                            </div>
+                            <Badge
+                              variant={appointment.status === 'cancelled' ? 'destructive' : 'secondary'}
+                              className="capitalize"
+                            >
+                              {appointment.status}
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>

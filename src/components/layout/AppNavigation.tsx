@@ -11,10 +11,11 @@ import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDevicePerformance } from '@/hooks/useDevicePerformance';
+import { cn } from '@/lib/utils';
 
 export function AppNavigation() {
   const pathname = usePathname();
-  const [, setIsScrolled] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { data: session } = useSession();
@@ -73,7 +74,12 @@ export function AppNavigation() {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 100, damping: 20 }}
-      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out bg-gradient-to-br from-[#0f0880] via-[#1a1a2e] to-[#16213e] backdrop-blur-xl shadow-lg"
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out border-b border-blue-100 shadow-sm",
+        isScrolled
+          ? "bg-white/70 backdrop-blur-md"
+          : "bg-gradient-to-br from-gray-50 via-sky-50 to-blue-100"
+      )}
     >
       {/* Animated background elements */}
       {!isLowPerformance && (
@@ -143,7 +149,7 @@ export function AppNavigation() {
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <Link href="/dashboard">
-                <Logo className="h-8 w-auto text-white" />
+                <Logo className="h-8 w-auto text-black" />
               </Link>
             </div>
             <div className="hidden md:ml-10 md:flex md:space-x-6">
@@ -160,10 +166,10 @@ export function AppNavigation() {
                   >
                     <Link
                       href={item.href}
-                      className={`${isActive
-                        ? 'text-[#e42627]'
-                        : 'text-gray-200 hover:text-white'
-                        } inline-flex items-center px-4 py-2 text-sm font-medium transition-all duration-200 relative`}
+                      className={cn(
+                        'text-gray-700 bg-inherit hover:text-blue-700 px-4 py-2 text-sm font-medium transition-all duration-200 relative',
+                        isActive && 'bg-inherit text-blue-700'
+                      )}
                     >
                       {t(item.name)}
                       {isActive && (
@@ -194,7 +200,7 @@ export function AppNavigation() {
             >
               <Link
                 href="/profile"
-                className="text-gray-200 hover:text-white px-4 py-2 text-sm font-medium transition-all duration-200"
+                className="text-gray-700 hover:text-blue-700 px-4 py-2 text-sm font-medium transition-all duration-200"
               >
                 {t('profile')}
               </Link>
@@ -208,7 +214,7 @@ export function AppNavigation() {
             >
               <button
                 onClick={handleLogout}
-                className="text-gray-200 hover:text-white flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-all duration-200"
+                className="text-gray-700 hover:text-blue-700 flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-all duration-200"
               >
                 <LogOut className="h-4 w-4" />
                 <span>{tAuth('logout')}</span>
@@ -223,7 +229,7 @@ export function AppNavigation() {
             >
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="text-gray-200 hover:text-white p-2 transition-all duration-200"
+                className="text-gray-700 hover:text-blue-700 p-2 transition-all duration-200"
               >
                 {theme === 'dark' ? (
                   <Sun className="h-5 w-5" />
@@ -239,7 +245,7 @@ export function AppNavigation() {
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="text-gray-200 hover:text-white p-2 transition-all duration-200"
+                className="text-gray-700 hover:text-blue-700 p-2 transition-all duration-200"
               >
                 {isMobileMenuOpen ? (
                   <X className="h-6 w-6" />
@@ -277,10 +283,10 @@ export function AppNavigation() {
                     <Link
                       href={item.href}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`${isActive
-                        ? 'text-[#e42627]'
-                        : 'text-gray-200 hover:text-white'
-                        } block px-4 py-3 text-base font-medium transition-all duration-200 relative`}
+                      className={cn(
+                        'text-gray-700 hover:text-blue-700 block px-4 py-3 text-base font-medium transition-all duration-200 relative',
+                        isActive && 'bg-blue-100 shadow'
+                      )}
                     >
                       {t(item.name)}
                       {isActive && (
