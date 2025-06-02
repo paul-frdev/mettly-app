@@ -263,7 +263,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
               onClick={handlePreviousDay}
               disabled={isBefore(startOfDay(selectedDate), startOfDay(new Date())) ||
                 isEqual(startOfDay(selectedDate), startOfDay(new Date()))}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              className="bg-black/70 border-white/20 text-white hover:bg-black/20"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -271,7 +271,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-[280px] justify-start text-left font-normal bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  className="w-[280px] justify-start text-left font-normal bg-black/70 border-white/20 text-white hover:bg-white/20 hover:text-black hover:border-black/40"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {format(selectedDate, 'PPP')} • {format(selectedDate, 'EEEE')}
@@ -296,7 +296,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
               variant="outline"
               size="icon"
               onClick={handleNextDay}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              className="bg-black/70 border-white/20 text-white hover:bg-black/50"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
