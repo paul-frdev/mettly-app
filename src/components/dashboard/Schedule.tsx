@@ -63,6 +63,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
   const [isLoading, setIsLoading] = useState(true);
   const [isCancellationDialogOpen, setIsCancellationDialogOpen] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -87,6 +88,14 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
       setIsLoading(false);
     }
   }, [settings]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
 
   const handlePreviousDay = () => {
     const newDate = subDays(selectedDate, 1);
@@ -345,7 +354,45 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                 : "No working hours set for this day."}
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 relative">
+              {format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && (
+                <div
+                  className="absolute left-0 right-0 h-0.5 bg-red-500 z-10"
+                  style={{
+                    top: `${(() => {
+                      if (!settings) return 0;
+                      const now = currentTime;
+                      const dayStart = new Date(selectedDate);
+                      const [startHour, startMinute] = settings.workingHours[format(selectedDate, 'EEEE')]?.start.split(':').map(Number) || [0, 0];
+                      dayStart.setHours(startHour, startMinute, 0, 0);
+
+                      // Calculate total minutes since start of day
+                      const totalMinutesSinceStart = (now.getTime() - dayStart.getTime()) / (1000 * 60);
+
+                      // Calculate position based on slot height (40px) and gap (8px)
+                      const slotHeight = 40; // height of each time slot
+                      const gapHeight = 8; // gap between slots
+                      const totalHeight = slotHeight + gapHeight;
+
+                      // Calculate which slot we're in
+                      const slotIndex = Math.floor(totalMinutesSinceStart / settings.slotDuration);
+
+                      // Calculate position within the slot
+                      const minutesInCurrentSlot = totalMinutesSinceStart % settings.slotDuration;
+                      const positionInSlot = minutesInCurrentSlot / settings.slotDuration;
+
+                      // Calculate final position
+                      return (slotIndex * totalHeight) + (positionInSlot * slotHeight);
+                    })()}px`,
+                    transform: 'translateY(-50%)',
+                  }}
+                >
+                  <div className="absolute -left-1 -top-1 w-2 h-2 bg-red-500 rounded-full" />
+                  <div className="absolute -left-16 top-1/2 -translate-y-1/2 text-red-500 text-sm font-medium">
+                    {format(currentTime, 'HH:mm')}
+                  </div>
+                </div>
+              )}
               {timeSlots.map((timeSlot) => {
                 const isBooked = isTimeSlotBooked(timeSlot);
                 const appointment = getAppointmentForTimeSlot(timeSlot);
