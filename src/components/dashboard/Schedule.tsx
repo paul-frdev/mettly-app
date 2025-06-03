@@ -244,6 +244,42 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
     });
   };
 
+  function getAvailableDurationsForTimeSlot(timeSlot: string) {
+    const MIN = 30;
+    const MAX = 180;
+    const step = 15;
+    let maxDuration = MAX;
+
+    // Найти дату и время начала выбранного слота
+    const start = parse(timeSlot, 'h:mm a', selectedDate);
+
+    // Отфильтровать все записи на этот день, которые начинаются после выбранного времени
+    const sorted = filteredAppointments
+      .filter(a => a.status !== 'cancelled')
+      .map(a => ({
+        start: new Date(a.date),
+        end: new Date(new Date(a.date).getTime() + a.duration * 60000)
+      }))
+      .filter(a => a.start > start)
+      .sort((a, b) => a.start.getTime() - b.start.getTime());
+
+    if (sorted.length > 0) {
+      const next = sorted[0].start;
+      maxDuration = Math.floor((next.getTime() - start.getTime()) / 60000);
+      if (maxDuration > MAX) maxDuration = MAX;
+    }
+    if (maxDuration < MIN) maxDuration = 0;
+    const durations = [];
+    for (let d = MIN; d <= maxDuration; d += step) {
+      durations.push(d);
+    }
+    return durations;
+  }
+
+  const availableDurations = selectedTimeSlot
+    ? getAvailableDurationsForTimeSlot(selectedTimeSlot)
+    : [30, 45, 60, 90, 120, 150, 180];
+
   return (
     <div className="space-y-6">
       {isLoading ? (
@@ -442,20 +478,25 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="duration" className="text-white">Duration</Label>
-                  <Select value={duration.toString()} onValueChange={(value) => setDuration(Number(value))}>
+                  <Select
+                    value={duration.toString()}
+                    onValueChange={(value) => setDuration(Number(value))}
+                    disabled={availableDurations.length === 0}
+                  >
                     <SelectTrigger className="bg-white/10 border-white/20 text-white">
                       <SelectValue placeholder="Select duration" />
                     </SelectTrigger>
                     <SelectContent className="bg-[#1a1a2e] border-white/20">
-                      <SelectItem value="30" className="text-white hover:bg-white/10">30 minutes</SelectItem>
-                      <SelectItem value="45" className="text-white hover:bg-white/10">45 minutes</SelectItem>
-                      <SelectItem value="60" className="text-white hover:bg-white/10">1 hour</SelectItem>
-                      <SelectItem value="90" className="text-white hover:bg-white/10">1.5 hours</SelectItem>
-                      <SelectItem value="120" className="text-white hover:bg-white/10">2 hours</SelectItem>
-                      <SelectItem value="150" className="text-white hover:bg-white/10">2.5 hours</SelectItem>
-                      <SelectItem value="180" className="text-white hover:bg-white/10">3 hours</SelectItem>
+                      {availableDurations.map(d => (
+                        <SelectItem key={d} value={d.toString()} className="text-white hover:bg-white/10">
+                          {d} мин
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  {availableDurations.length === 0 && (
+                    <div className="text-red-500 text-xs mt-1">Нет доступных длительностей для этого времени</div>
+                  )}
                 </div>
               </div>
               <div className="flex justify-end space-x-2">
