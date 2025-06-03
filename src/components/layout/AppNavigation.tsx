@@ -18,8 +18,9 @@ export function AppNavigation() {
   const [isScrolled, setIsScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const t = useTranslations('navigation');
   const tAuth = useTranslations('auth');
@@ -40,9 +41,15 @@ export function AppNavigation() {
   useEffect(() => {
     const checkClientStatus = async () => {
       if (session?.user?.email) {
-        const res = await fetch(`/api/clients/check?email=${session.user.email}`);
-        const data = await res.json();
-        setIsClient(data.isClient);
+        try {
+          const res = await fetch(`/api/clients/check?email=${session.user.email}`);
+          const data = await res.json();
+          setIsClient(data.isClient);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
       }
     };
     checkClientStatus();
@@ -65,8 +72,10 @@ export function AppNavigation() {
     await signOut({ redirect: true, callbackUrl: '/en' });
   };
 
-  if (!mounted) {
-    return null;
+  if (!mounted || status === 'loading' || isLoading) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 h-20 bg-gradient-to-br from-gray-50 via-sky-50 to-blue-100" />
+    );
   }
 
   return (
