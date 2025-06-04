@@ -65,6 +65,14 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
   const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
+  let dayEnd: Date | null = null;
+  let endHour = 23, endMinute = 59;
+  if (settings) {
+    dayEnd = new Date(selectedDate);
+    [endHour, endMinute] = settings.workingHours[format(selectedDate, 'EEEE')]?.end.split(':').map(Number) || [23, 59];
+    dayEnd.setHours(endHour, endMinute, 0, 0);
+  }
+
   useEffect(() => {
     const fetchClients = async () => {
       try {
@@ -370,25 +378,21 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                       const totalMinutesSinceStart = (now.getTime() - dayStart.getTime()) / (1000 * 60);
 
                       // Calculate position based on slot height (40px) and gap (8px)
-                      const slotHeight = 40; // height of each time slot
-                      const gapHeight = 8; // gap between slots
+                      const slotHeight = 48; // height of each time slot
+                      const gapHeight = 2; // gap between slots
                       const totalHeight = slotHeight + gapHeight;
 
-                      // Calculate which slot we're in
-                      const slotIndex = Math.floor(totalMinutesSinceStart / settings.slotDuration);
-
-                      // Calculate position within the slot
-                      const minutesInCurrentSlot = totalMinutesSinceStart % settings.slotDuration;
-                      const positionInSlot = minutesInCurrentSlot / settings.slotDuration;
-
                       // Calculate final position
-                      return (slotIndex * totalHeight) + (positionInSlot * slotHeight);
+                      if (now > dayEnd!) {
+                        const slotsCount = Math.ceil(totalMinutesSinceStart / settings.slotDuration);
+                        return (slotsCount - 1) * totalHeight + slotHeight / 2;
+                      }
                     })()}px`,
                     transform: 'translateY(-50%)',
                   }}
                 >
                   <div className="absolute -left-1 -top-1 w-2 h-2 bg-red-500 rounded-full" />
-                  <div className="absolute -left-16 top-1/2 -translate-y-1/2 text-red-500 text-sm font-medium">
+                  <div className="absolute -left-11 top-1/2 -translate-y-1/2 text-red-500 text-sm font-medium">
                     {format(currentTime, 'HH:mm')}
                   </div>
                 </div>
@@ -404,77 +408,80 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                 const isOwnAppointment = isClient && appointment?.clientId === 'self';
 
                 return (
-                  <div
-                    key={timeSlot}
-                    className={cn(
-                      "p-2 rounded text-sm flex justify-between items-center",
-                      isBooked
-                        ? "bg-[#e42627]/20 text-[#e42627]"
-                        : isPast
-                          ? "bg-gray-500/10 text-gray-300"
-                          : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer"
-                    )}
-                    onClick={() => {
-                      if (isBooked && !isPast && appointment) {
-                        if (!isClient || (isClient && isOwnAppointment)) {
-                          handleDeleteAppointment(appointment);
+                  <div key={timeSlot} className='relative flex justify-end items-start gap-x-2' style={{ marginTop: '2px' }}>
+                    <div className={cn(isBooked ? "bg-[#e42627]/20 text-[#e42627] line-through" : 'text-black', 'absolute left-0 top-0 whitespace-nowrap text-[14px] ')}>{timeSlot}</div>
+                    <div
+                      className={cn(
+                        "p-2 rounded text-sm flex justify-end items-center w-full max-w-[calc(100%-72px)] h-[48px]",
+                        isBooked
+                          ? "bg-[#e42627]/20 text-[#e42627]"
+                          : isPast
+                            ? "bg-gray-500/10 text-gray-300"
+                            : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer"
+                      )}
+                      onClick={() => {
+                        if (isBooked && !isPast && appointment) {
+                          if (!isClient || (isClient && isOwnAppointment)) {
+                            handleDeleteAppointment(appointment);
+                          }
+                        } else if (!isBooked && !isPast) {
+                          setSelectedTimeSlot(timeSlot);
+                          setIsCreateDialogOpen(true);
                         }
-                      } else if (!isBooked && !isPast) {
-                        setSelectedTimeSlot(timeSlot);
-                        setIsCreateDialogOpen(true);
-                      }
-                    }}
-                  >
-                    <span className={cn(isBooked && "line-through")}>{timeSlot}</span>
-                    <div className="flex items-center gap-2">
-                      {appointment && !isPast && (
-                        <>
-                          <span className="text-xs text-white">
-                            {appointment.client?.name || 'No client name'}
-                            {appointment.duration > 60 && ` (${appointment.duration}min)`}
-                          </span>
-                          {(!isClient || (isClient && isOwnAppointment)) && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white hover:bg-white/10">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/20">
-                                <DropdownMenuItem
-                                  onClick={() => handleEditAppointment(appointment)}
-                                  className="text-white hover:bg-white/10"
-                                >
-                                  Edit time
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-red-400 hover:bg-red-500/20"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteAppointment(appointment);
-                                  }}
-                                >
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </>
-                      )}
-                      {!isBooked && !isPast && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-white hover:bg-white/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedTimeSlot(timeSlot);
-                            setIsCreateDialogOpen(true);
-                          }}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      )}
+                      }}
+
+                    >
+
+                      <div className="flex items-center gap-2">
+                        {appointment && !isPast && (
+                          <>
+                            <span className="text-xs text-white">
+                              {appointment.client?.name || 'No client name'}
+                              {appointment.duration > 60 && ` (${appointment.duration}min)`}
+                            </span>
+                            {(!isClient || (isClient && isOwnAppointment)) && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white hover:bg-white/10">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/20">
+                                  <DropdownMenuItem
+                                    onClick={() => handleEditAppointment(appointment)}
+                                    className="text-white hover:bg-white/10"
+                                  >
+                                    Edit time
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-red-400 hover:bg-red-500/20"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteAppointment(appointment);
+                                    }}
+                                  >
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </>
+                        )}
+                        {!isBooked && !isPast && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-white hover:bg-white/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTimeSlot(timeSlot);
+                              setIsCreateDialogOpen(true);
+                            }}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
