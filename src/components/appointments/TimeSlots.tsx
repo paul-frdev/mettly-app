@@ -43,6 +43,10 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
     getSlotDuration
   } = useBusinessSettings();
 
+  console.log('TimeSlots');
+
+  console.log('selectedTime', selectedTime);
+
   // Generate time slots based on business settings
   const generateTimeSlots = () => {
     const slots: Date[] = [];
@@ -196,6 +200,7 @@ export function TimeSlots({ selectedDate, appointments = [], onAppointmentCreate
               onAppointmentCreated?.();
             }}
             isClient={isClient}
+            appointments={appointments}
           />
         )}
       </div>

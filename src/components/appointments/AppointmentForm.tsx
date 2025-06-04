@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from '@/components/ui/input';
+
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
@@ -38,6 +38,20 @@ import { useSession } from 'next-auth/react';
 interface Client {
   id: string;
   name: string;
+}
+
+interface Appointment {
+  id: string;
+  date: Date;
+  duration: number;
+  client: Client;
+  status: string;
+  notes?: string;
+  cancelledAt?: Date;
+  cancellationReason?: string;
+  attendance?: {
+    status: 'confirmed' | 'declined' | null;
+  };
 }
 
 const appointmentSchema = (isClient: boolean) => z.object({
@@ -54,9 +68,11 @@ interface AppointmentFormProps {
   selectedTime: Date;
   onSuccess?: () => void;
   isClient?: boolean;
+  appointments?: Appointment[];
 }
 
-export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isClient }: AppointmentFormProps) {
+export function AppointmentForm(props: AppointmentFormProps) {
+  console.log('AppointmentForm props', props);
   const [isLoading, setIsLoading] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const router = useRouter();
@@ -64,7 +80,7 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isCl
   const [clientId, setClientId] = useState<string | null>(null);
 
   const form = useForm<AppointmentFormData>({
-    resolver: zodResolver(appointmentSchema(!!isClient)),
+    resolver: zodResolver(appointmentSchema(!!props.isClient)),
     defaultValues: {
       duration: 30,
       notes: '',
@@ -73,7 +89,7 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isCl
 
   useEffect(() => {
     async function fetchClients() {
-      if (isClient) {
+      if (props.isClient) {
         // Для клиента не нужно загружать список клиентов
         return;
       }
@@ -91,14 +107,14 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isCl
       }
     }
 
-    if (isOpen) {
+    if (props.isOpen) {
       fetchClients();
     }
-  }, [isOpen, isClient]);
+  }, [props.isOpen, props.isClient]);
 
   useEffect(() => {
     async function fetchClientId() {
-      if (isClient && session?.user?.email) {
+      if (props.isClient && session?.user?.email) {
         try {
           const response = await fetch(`/api/clients/by-email?email=${session.user.email}`);
           if (!response.ok) {
@@ -113,18 +129,55 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isCl
       }
     }
 
-    if (isOpen && isClient) {
+    if (props.isOpen && props.isClient) {
       fetchClientId();
     }
-  }, [isOpen, isClient, session?.user?.email]);
+  }, [props.isOpen, props.isClient, session?.user?.email]);
+
+  function getAvailableDurations() {
+    const MIN = 30;
+    const MAX = 180;
+    const step = 15;
+    let maxDuration = MAX;
+    const start = props.selectedTime;
+    const sorted = (props.appointments ?? [])
+      .filter(a => a.status !== 'cancelled')
+      .map(a => ({
+        start: new Date(a.date),
+        end: new Date(new Date(a.date).getTime() + a.duration * 60000)
+      }))
+      .filter(a => a.start > start)
+      .sort((a, b) => a.start.getTime() - b.start.getTime());
+    if (sorted.length > 0) {
+      const next = sorted[0].start;
+      maxDuration = Math.floor((next.getTime() - start.getTime()) / 60000);
+      if (maxDuration > MAX) maxDuration = MAX;
+    }
+    if (maxDuration < MIN) maxDuration = 0;
+    const durations = [];
+    for (let d = MIN; d <= maxDuration; d += step) {
+      durations.push(d);
+    }
+    console.log('selectedTime', props.selectedTime);
+    console.log('appointments', props.appointments);
+    console.log('availableDurations', durations);
+    return durations;
+  }
+  const availableDurations = getAvailableDurations();
+
+  console.log('availableDurations', availableDurations);
+
+  if (props.selectedTime) {
+    console.log('selectedTime for form', props.selectedTime);
+  }
 
   async function onSubmit(data: AppointmentFormData) {
     setIsLoading(true);
     try {
       const requestBody = {
         ...data,
-        date: selectedTime.toISOString(),
-        clientId: isClient ? clientId : data.clientId,
+        date: props.selectedTime.toISOString(),
+        clientId: props.isClient ? clientId : data.clientId,
       };
 
       const response = await fetch('/api/appointments', {
@@ -146,9 +199,9 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isCl
 
       showSuccess('Appointment created successfully');
       form.reset();
-      onClose();
-      if (onSuccess) {
-        onSuccess();
+      props.onClose();
+      if (props.onSuccess) {
+        props.onSuccess();
       }
       router.refresh();
     } catch (error) {
@@ -160,18 +213,18 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isCl
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={props.isOpen} onOpenChange={props.onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New Appointment</DialogTitle>
           <DialogDescription>
-            {format(selectedTime, 'MMMM d, yyyy')} at {format(selectedTime, 'h:mm a')}
+            {format(props.selectedTime, 'MMMM d, yyyy')} at {format(props.selectedTime, 'h:mm a')}
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {!isClient && (
+            {!props.isClient && (
               <FormField
                 control={form.control}
                 name="clientId"
@@ -201,38 +254,28 @@ export function AppointmentForm({ isOpen, onClose, selectedTime, onSuccess, isCl
             <FormField
               control={form.control}
               name="duration"
-              render={({ field: { value, onChange, ...field } }) => (
+              render={({ field: { value, onChange } }) => (
                 <FormItem>
                   <FormLabel>Duration (minutes)</FormLabel>
                   <FormControl>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => onChange(Math.max(30, value - 30))}
-                      >
-                        -
-                      </Button>
-                      <Input
-                        type="number"
-                        min={30}
-                        step={30}
-                        className="w-20 text-center"
-                        {...field}
-                        value={value}
-                        onChange={(e) => onChange(parseInt(e.target.value, 10))}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => onChange(value + 30)}
-                      >
-                        +
-                      </Button>
-                    </div>
+                    <Select
+                      value={value.toString()}
+                      onValueChange={v => onChange(Number(v))}
+                      disabled={availableDurations.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableDurations.map(d => (
+                          <SelectItem key={d} value={d.toString()}>{d} min</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
+                  {availableDurations.length === 0 && (
+                    <div className="text-red-500 text-xs mt-1">No available durations for this slot</div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
