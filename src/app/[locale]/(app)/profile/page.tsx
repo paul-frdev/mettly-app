@@ -1,5 +1,5 @@
-import ProfileClient from './ProfileClient';
+import Profile from '@/components/profile/Profile';
 
 export default function ProfilePage() {
-  return <ProfileClient />;
+  return <Profile />;
 } 
