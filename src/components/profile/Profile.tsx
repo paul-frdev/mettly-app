@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { DeleteAccountDialog } from '@/components/dialogs/DeleteAccountDialog';
+import { DeleteClientDialog } from '@/components/dialogs/DeleteClientDialog';
 import { Button } from '@/components/ui/button';
 
 export default function Profile() {
@@ -26,6 +27,7 @@ export default function Profile() {
   });
   const isClient = session?.user?.isClient;
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const clientId = session?.user?.id; // если id клиента совпадает с session.user.id
 
   // Load initial profile data
   useEffect(() => {
@@ -299,13 +301,24 @@ export default function Profile() {
       >
         Удалить аккаунт
       </Button>
-      <DeleteAccountDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        onDeleted={() => {
-          router.push('/auth/signin');
-        }}
-      />
+      {isClient ? (
+        <DeleteClientDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          clientId={clientId ?? ''}
+          onDeleted={() => {
+            router.push('/auth/login');
+          }}
+        />
+      ) : (
+        <DeleteAccountDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onDeleted={() => {
+            router.push('/auth/login');
+          }}
+        />
+      )}
     </div>
   );
 } 
