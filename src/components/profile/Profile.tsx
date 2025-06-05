@@ -5,8 +5,11 @@ import { User, Mail, Phone, Settings, Briefcase } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { DeleteAccountDialog } from '@/components/dialogs/DeleteAccountDialog';
+import { DeleteClientDialog } from '@/components/dialogs/DeleteClientDialog';
+import { Button } from '@/components/ui/button';
 
-export default function ProfileClient() {
+export default function Profile() {
   const router = useRouter();
   const { data: session, update: updateSession, status } = useSession();
   const [isEditing, setIsEditing] = useState(false);
@@ -23,6 +26,8 @@ export default function ProfileClient() {
     monthlyRevenue: 0
   });
   const isClient = session?.user?.isClient;
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const clientId = session?.user?.id; // если id клиента совпадает с session.user.id
 
   // Load initial profile data
   useEffect(() => {
@@ -289,6 +294,31 @@ export default function ProfileClient() {
           )}
         </div>
       </div>
+      <Button
+        variant="destructive"
+        onClick={() => setIsDeleteDialogOpen(true)}
+        className="w-full mt-8"
+      >
+        Удалить аккаунт
+      </Button>
+      {isClient ? (
+        <DeleteClientDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          clientId={clientId ?? ''}
+          onDeleted={() => {
+            router.push('/auth/login');
+          }}
+        />
+      ) : (
+        <DeleteAccountDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onDeleted={() => {
+            router.push('/auth/login');
+          }}
+        />
+      )}
     </div>
   );
 } 

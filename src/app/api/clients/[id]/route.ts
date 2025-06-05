@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { compare } from 'bcryptjs';
 
 export async function GET(request: Request, context: { params: { id: string } }) {
   try {
@@ -72,7 +73,9 @@ export async function PUT(request: Request, context: { params: { id: string } })
   }
 }
 
-export async function DELETE(request: Request, context: { params: { id: string } }) {
+export async function DELETE(request: Request, context: { params: { id: string } } | { params: Promise<{ id: string }> }) {
+  const params = 'then' in context.params ? await context.params : context.params;
+  const { id } = params;
   try {
     const session = await getServerSession(authOptions);
 
@@ -80,11 +83,45 @@ export async function DELETE(request: Request, context: { params: { id: string }
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await prisma.client.delete({
+    const { password } = await request.json();
+
+    if (!password) {
+      return NextResponse.json({ error: 'Password is required' }, { status: 400 });
+    }
+
+    const client = await prisma.client.findUnique({
+      where: { id },
+      select: { password: true, userId: true },
+    });
+
+    if (!client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    }
+
+    if (session.user.id !== id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const isValid = await compare(password, client.password);
+    if (!isValid) {
+      return NextResponse.json({ error: 'Invalid password' }, { status: 400 });
+    }
+
+    const now = new Date();
+    const activeAppointments = await prisma.appointment.findMany({
       where: {
-        id: context.params.id,
-        userId: session.user.id,
+        clientId: id,
+        date: { gte: now },
+        status: { not: 'cancelled' },
       },
+    });
+
+    if (activeAppointments.length > 0) {
+      return NextResponse.json({ error: 'Нельзя удалить клиента с активными бронями. Сначала отмените или завершите все будущие записи.' }, { status: 400 });
+    }
+
+    await prisma.client.delete({
+      where: { id },
     });
 
     return NextResponse.json({ message: 'Client deleted successfully' });
