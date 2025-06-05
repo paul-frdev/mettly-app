@@ -21,6 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 
 const locales = {
   'en-US': enUS,
@@ -43,6 +44,7 @@ export function Calendar() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [eventTitle, setEventTitle] = useState('');
   const [eventDescription, setEventDescription] = useState('');
+  const { settings, isHoliday } = useBusinessSettings();
 
   useEffect(() => {
     if (session?.user) {
@@ -56,15 +58,31 @@ export function Calendar() {
     }
   }, [error]);
 
+  const isBusinessSlot = (date: Date) => {
+    if (!settings) return false;
+    const dayName = format(date, 'EEEE');
+    const daySchedule = settings.workingHours[dayName];
+    if (!daySchedule?.enabled) return false;
+    if (isHoliday && isHoliday(date)) return false;
+    const [startHour, startMinute] = daySchedule.start.split(':').map(Number);
+    const [endHour, endMinute] = daySchedule.end.split(':').map(Number);
+    const slotMinutes = date.getHours() * 60 + date.getMinutes();
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+    return slotMinutes >= startMinutes && slotMinutes < endMinutes;
+  };
+
   const handleSelectSlot = useCallback((slotInfo: { start: Date; end: Date; slots?: Date[]; action?: string }) => {
-    console.log('Slot selected:', slotInfo);
     if (!session?.user) return;
     const now = new Date();
-    // Обрезаем секунды и миллисекунды для корректного сравнения
     const startTime = new Date(slotInfo.start);
     startTime.setSeconds(0, 0);
     if (startTime < now) {
       toast.error('Нельзя создавать события в прошлом');
+      return;
+    }
+    if (!isBusinessSlot(startTime)) {
+      toast.error('Слот вне рабочих часов или нерабочий день');
       return;
     }
     setEventTitle('New Appointment');
@@ -78,7 +96,7 @@ export function Calendar() {
       trainerId: session.user.id,
     });
     setIsDialogOpen(true);
-  }, [session]);
+  }, [session, settings]);
 
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
     setEventTitle(event.title);
@@ -194,7 +212,7 @@ export function Calendar() {
           selectable={true}
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
-          eventPropGetter={(event) => ({
+          eventPropGetter={() => ({
             style: {
               backgroundColor: '#ef4444', // Красный
               borderColor: '#dc2626',
@@ -206,6 +224,9 @@ export function Calendar() {
             const now = new Date();
             if (date < now) {
               return { style: { backgroundColor: '#e5e7eb', pointerEvents: 'none', opacity: 0.7 } };
+            }
+            if (!isBusinessSlot(date)) {
+              return { style: { backgroundColor: '#f3f4f6', pointerEvents: 'none', opacity: 0.5 } };
             }
             return { style: { backgroundColor: '#d1fae5' } };
           }}
