@@ -30,11 +30,13 @@ export function AppNavigation() {
     { name: 'dashboard', href: '/dashboard' },
     { name: 'clients', href: '/clients' },
     { name: 'appointments', href: '/appointments' },
+    { name: 'calendar', href: '/calendar' },
     { name: 'settings', href: '/settings/user' }
   ];
 
   const clientNavigation = [
     { name: 'dashboard', href: '/dashboard' },
+    { name: 'calendar', href: '/calendar' },
     { name: 'settings', href: '/settings/client' }
   ];
 
