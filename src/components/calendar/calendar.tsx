@@ -11,16 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CalendarEvent, CalendarView } from '@/types/calendar';
 import { useCalendar } from '@/hooks/use-calendar';
 import { toast } from 'sonner';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { AppointmentDialog } from '@/components/dialogs/AppointmentDialog';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 
 const locales = {
@@ -35,16 +26,32 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
+// Кастомный компонент для отображения события
+const CustomEvent = ({ event }: { event: CalendarEvent }) => (
+  <span>
+    {event.title}
+    {event.duration ? ` (${event.duration} мин)` : ''}
+  </span>
+);
+
+interface Client {
+  id: string;
+  name: string;
+}
+
 export function Calendar() {
   const { data: session } = useSession();
   const [view, setView] = useState<CalendarView['type']>('month');
   const [date, setDate] = useState(new Date());
-  const { events, loading, error, fetchEvents, createEvent, updateEvent, deleteEvent } = useCalendar();
+  const { events, loading, error, fetchEvents, createEvent, updateEvent } = useCalendar();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [eventTitle, setEventTitle] = useState('');
   const [eventDescription, setEventDescription] = useState('');
   const { settings, isHoliday } = useBusinessSettings();
+  const [eventDuration, setEventDuration] = useState(60);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const isClient = false;
 
   useEffect(() => {
     if (session?.user) {
@@ -57,6 +64,21 @@ export function Calendar() {
       toast.error(error);
     }
   }, [error]);
+
+  // Загрузка клиентов
+  useEffect(() => {
+    async function fetchClients() {
+      try {
+        const response = await fetch('/api/clients');
+        if (!response.ok) throw new Error('Failed to fetch clients');
+        const data = await response.json();
+        setClients(data);
+      } catch {
+        // Можно добавить обработку ошибок
+      }
+    }
+    fetchClients();
+  }, []);
 
   const isBusinessSlot = (date: Date) => {
     if (!settings) return false;
@@ -85,11 +107,9 @@ export function Calendar() {
       toast.error('Слот вне рабочих часов или нерабочий день');
       return;
     }
-    setEventTitle('New Appointment');
-    setEventDescription('');
     setSelectedEvent({
       id: '',
-      title: 'New Appointment',
+      title: '',
       start: slotInfo.start,
       end: slotInfo.end,
       status: 'pending',
@@ -99,7 +119,6 @@ export function Calendar() {
   }, [session, settings]);
 
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
-    setEventTitle(event.title);
     setEventDescription(event.description || '');
     setSelectedEvent(event);
     setIsDialogOpen(true);
@@ -107,20 +126,21 @@ export function Calendar() {
 
   const handleSaveEvent = useCallback(async () => {
     if (!selectedEvent) return;
-
+    const client = clients.find(c => c.id === selectedClientId);
+    const eventTitle = client ? client.name : 'Appointment';
     try {
       if (selectedEvent.id) {
-        // Update existing event
         await updateEvent(selectedEvent.id, {
           title: eventTitle,
           description: eventDescription,
           start: selectedEvent.start,
           end: selectedEvent.end,
           status: selectedEvent.status,
+          clientId: selectedClientId,
+          duration: eventDuration,
         });
         toast.success('Appointment updated successfully');
       } else {
-        // Create new event
         await createEvent({
           title: eventTitle,
           description: eventDescription,
@@ -128,28 +148,18 @@ export function Calendar() {
           end: selectedEvent.end,
           status: 'pending',
           trainerId: selectedEvent.trainerId,
+          clientId: selectedClientId,
+          duration: eventDuration,
         });
         toast.success('Appointment created successfully');
       }
+      await fetchEvents();
       setIsDialogOpen(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save appointment';
       toast.error(errorMessage);
     }
-  }, [selectedEvent, eventTitle, eventDescription, createEvent, updateEvent]);
-
-  const handleDeleteEvent = useCallback(async () => {
-    if (!selectedEvent?.id) return;
-
-    try {
-      await deleteEvent(selectedEvent.id);
-      toast.success('Appointment deleted successfully');
-      setIsDialogOpen(false);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete appointment';
-      toast.error(errorMessage);
-    }
-  }, [selectedEvent, deleteEvent]);
+  }, [selectedEvent, eventDescription, eventDuration, createEvent, updateEvent, clients, selectedClientId, fetchEvents]);
 
   if (loading) {
     return (
@@ -230,57 +240,27 @@ export function Calendar() {
             }
             return { style: { backgroundColor: '#d1fae5' } };
           }}
+          components={{ event: CustomEvent }}
         />
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {selectedEvent?.id ? 'Edit Appointment' : 'New Appointment'}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedEvent?.id
-                ? 'Update the appointment details below.'
-                : 'Fill in the appointment details below.'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={eventTitle}
-                onChange={(e) => setEventTitle(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={eventDescription}
-                onChange={(e) => setEventDescription(e.target.value)}
-              />
-            </div>
-
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
-              <div className="space-x-2">
-                {selectedEvent?.id && (
-                  <Button variant="destructive" onClick={handleDeleteEvent}>
-                    Delete
-                  </Button>
-                )}
-                <Button onClick={handleSaveEvent}>Save</Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AppointmentDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        clients={clients}
+        isClient={isClient}
+        selectedClientId={selectedClientId}
+        onClientChange={setSelectedClientId}
+        notes={eventDescription}
+        onNotesChange={setEventDescription}
+        duration={eventDuration}
+        onDurationChange={setEventDuration}
+        availableDurations={[30, 45, 60, 90, 120]}
+        onSubmit={handleSaveEvent}
+        onCancel={() => setIsDialogOpen(false)}
+        timeLabel={selectedEvent ? format(selectedEvent.start, 'HH:mm') : ''}
+        dateLabel={selectedEvent ? format(selectedEvent.start, 'PPP') : ''}
+      />
     </>
   );
 } 

@@ -9,6 +9,7 @@ export interface CalendarEvent {
   trainerId: string;
   clientId?: string;
   description?: string;
+  duration?: number;
 }
 
 export interface CalendarView {
