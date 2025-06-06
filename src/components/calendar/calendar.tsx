@@ -135,7 +135,10 @@ export function Calendar() {
     if (!selectedEvent) return;
     const client = clients.find(c => c.id === selectedClientId);
     const eventTitle = client ? client.name : 'Appointment';
-    if (isSlotBooked(selectedEvent.start, selectedEvent.end, selectedEvent.id)) {
+    const durationMinutes = eventDuration;
+    const start = selectedEvent.start;
+    const end = new Date(start.getTime() + durationMinutes * 60000);
+    if (isSlotBooked(start, end, selectedEvent.id)) {
       toast.error('Этот слот уже занят');
       return;
     }
@@ -144,23 +147,23 @@ export function Calendar() {
         await updateEvent(selectedEvent.id, {
           title: eventTitle,
           description: eventDescription,
-          start: selectedEvent.start,
-          end: selectedEvent.end,
+          start,
+          end,
           status: selectedEvent.status,
           clientId: selectedClientId,
-          duration: eventDuration,
+          duration: durationMinutes,
         });
         toast.success('Appointment updated successfully');
       } else {
         await createEvent({
           title: eventTitle,
           description: eventDescription,
-          start: selectedEvent.start,
-          end: selectedEvent.end,
+          start,
+          end,
           status: 'pending',
           trainerId: selectedEvent.trainerId,
           clientId: selectedClientId,
-          duration: eventDuration,
+          duration: durationMinutes,
         });
         toast.success('Appointment created successfully');
       }
