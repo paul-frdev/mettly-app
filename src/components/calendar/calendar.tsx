@@ -202,6 +202,20 @@ export function Calendar() {
 
   const visibleEvents = events.filter(event => event.status !== 'cancelled');
 
+  // Получить минимальное и максимальное время из business settings
+  const hours = Object.values(settings?.workingHours || {})
+    .filter(day => day.enabled)
+    .map(day => ({
+      start: day.start,
+      end: day.end,
+    }));
+
+  const minTime = hours.reduce((min, h) => h.start < min ? h.start : min, '23:59');
+  const maxTime = hours.reduce((max, h) => h.end > max ? h.end : max, '00:00');
+
+  const [minHour, minMinute] = minTime.split(':').map(Number);
+  const [maxHour, maxMinute] = maxTime.split(':').map(Number);
+
   if (loading) {
     return (
       <div className="h-[800px] flex items-center justify-center">
@@ -251,6 +265,8 @@ export function Calendar() {
             return { style: { backgroundColor: '#d1fae5' } };
           }}
           components={{ event: CustomEvent }}
+          min={new Date(1970, 1, 1, minHour, minMinute)}
+          max={new Date(1970, 1, 1, maxHour, maxMinute)}
         />
       </div>
 
