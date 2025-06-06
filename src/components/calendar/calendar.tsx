@@ -6,8 +6,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSession } from 'next-auth/react';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { CalendarEvent, CalendarView } from '@/types/calendar';
 import { useCalendar } from '@/hooks/use-calendar';
 import { toast } from 'sonner';
@@ -43,7 +42,7 @@ export function Calendar() {
   const { data: session } = useSession();
   const [view, setView] = useState<CalendarView['type']>('month');
   const [date, setDate] = useState(new Date());
-  const { events, loading, error, fetchEvents, createEvent, updateEvent } = useCalendar();
+  const { events, loading, error, fetchEvents, createEvent, updateEvent, deleteEvent } = useCalendar();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [eventDescription, setEventDescription] = useState('');
@@ -124,10 +123,22 @@ export function Calendar() {
     setIsDialogOpen(true);
   }, []);
 
+  const isSlotBooked = useCallback((start: Date, end: Date, excludeId?: string) => {
+    return events.some(event => {
+      if (event.status === 'cancelled') return false;
+      if (excludeId && event.id === excludeId) return false;
+      return start < event.end && end > event.start;
+    });
+  }, [events]);
+
   const handleSaveEvent = useCallback(async () => {
     if (!selectedEvent) return;
     const client = clients.find(c => c.id === selectedClientId);
     const eventTitle = client ? client.name : 'Appointment';
+    if (isSlotBooked(selectedEvent.start, selectedEvent.end, selectedEvent.id)) {
+      toast.error('Этот слот уже занят');
+      return;
+    }
     try {
       if (selectedEvent.id) {
         await updateEvent(selectedEvent.id, {
@@ -159,7 +170,20 @@ export function Calendar() {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save appointment';
       toast.error(errorMessage);
     }
-  }, [selectedEvent, eventDescription, eventDuration, createEvent, updateEvent, clients, selectedClientId, fetchEvents]);
+  }, [selectedEvent, eventDescription, eventDuration, createEvent, updateEvent, clients, selectedClientId, fetchEvents, isSlotBooked]);
+
+  const handleDeleteEvent = useCallback(async () => {
+    if (!selectedEvent?.id) return;
+    try {
+      await deleteEvent(selectedEvent.id);
+      await fetchEvents();
+      setIsDialogOpen(false);
+      toast.success('Appointment deleted successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete appointment';
+      toast.error(errorMessage);
+    }
+  }, [selectedEvent, deleteEvent, fetchEvents]);
 
   if (loading) {
     return (
@@ -172,41 +196,6 @@ export function Calendar() {
   return (
     <>
       <div className="w-full overflow-x-auto" style={{ height: 700 }}>
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex gap-2">
-            <Button
-              variant={view === 'month' ? 'default' : 'outline'}
-              onClick={() => setView('month')}
-            >
-              Month
-            </Button>
-            <Button
-              variant={view === 'week' ? 'default' : 'outline'}
-              onClick={() => setView('week')}
-            >
-              Week
-            </Button>
-            <Button
-              variant={view === 'day' ? 'default' : 'outline'}
-              onClick={() => setView('day')}
-            >
-              Day
-            </Button>
-          </div>
-          <Select
-            value={view}
-            onValueChange={(value) => setView(value as CalendarView['type'])}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select view" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="month">Month View</SelectItem>
-              <SelectItem value="week">Week View</SelectItem>
-              <SelectItem value="day">Day View</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
         <BigCalendar
           localizer={localizer}
@@ -222,10 +211,14 @@ export function Calendar() {
           selectable={true}
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
-          eventPropGetter={() => ({
+          eventPropGetter={(event) => ({
             style: {
-              backgroundColor: '#ef4444', // Красный
-              borderColor: '#dc2626',
+              backgroundColor: event.status === 'pending' || event.status === 'confirmed'
+                ? '#ef4444'
+                : '#d1fae5',
+              borderColor: event.status === 'pending' || event.status === 'confirmed'
+                ? '#dc2626'
+                : '#10b981',
               color: 'white',
             },
           })}
@@ -257,6 +250,7 @@ export function Calendar() {
         onDurationChange={setEventDuration}
         availableDurations={[30, 45, 60, 90, 120]}
         onSubmit={handleSaveEvent}
+        onDelete={handleDeleteEvent}
         onCancel={() => setIsDialogOpen(false)}
         timeLabel={selectedEvent ? format(selectedEvent.start, 'HH:mm') : ''}
         dateLabel={selectedEvent ? format(selectedEvent.start, 'PPP') : ''}

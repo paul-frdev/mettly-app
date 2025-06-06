@@ -498,6 +498,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
             availableDurations={availableDurations}
             onSubmit={handleCreateAppointment}
             onCancel={() => setIsCreateDialogOpen(false)}
+            onDelete={() => { }}
             timeLabel={selectedTimeSlot}
             dateLabel={format(selectedDate, 'PPP')}
           />

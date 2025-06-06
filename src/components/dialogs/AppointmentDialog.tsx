@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,9 +32,9 @@ interface AppointmentDialogProps {
   availableDurations: number[];
   onSubmit: () => void;
   onCancel: () => void;
+  onDelete: () => void;
   timeLabel?: string;
   dateLabel?: string;
-  loading?: boolean;
 }
 
 export function AppointmentDialog({
@@ -50,9 +51,9 @@ export function AppointmentDialog({
   availableDurations,
   onSubmit,
   onCancel,
+  onDelete,
   timeLabel,
   dateLabel,
-  loading = false,
 }: AppointmentDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -121,23 +122,11 @@ export function AppointmentDialog({
             )}
           </div>
         </div>
-        <div className="flex justify-end space-x-2">
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={onSubmit}
-            className="bg-[#e42627] hover:bg-[#d41f20] text-white"
-            disabled={loading}
-          >
-            {loading ? 'Saving...' : 'Create Appointment'}
-          </Button>
-        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button variant="destructive" onClick={onDelete}>Delete</Button>
+          <Button onClick={onSubmit}>Save</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
