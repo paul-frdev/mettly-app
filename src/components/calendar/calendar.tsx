@@ -214,12 +214,12 @@ export function Calendar() {
           eventPropGetter={(event) => ({
             style: {
               backgroundColor: event.status === 'pending' || event.status === 'confirmed'
-                ? '#ef4444'
-                : '#d1fae5',
+                ? '#d1fae5'
+                : '#ef4444',
               borderColor: event.status === 'pending' || event.status === 'confirmed'
-                ? '#dc2626'
-                : '#10b981',
-              color: 'white',
+                ? '#10b981'
+                : '#dc2626',
+              color: 'black',
             },
           })}
           popup

@@ -34,12 +34,32 @@ export async function GET(request: Request) {
           filters.endDate ? { date: { lte: filters.endDate } } : {},
         ],
       },
+      include: {
+        client: {
+          select: {
+            name: true,
+          },
+        },
+      },
       orderBy: {
         date: 'asc',
       },
     });
 
-    return NextResponse.json(events);
+    // Преобразуем события в формат для календаря
+    const calendarEvents = events.map((event) => ({
+      id: event.id,
+      title: event.client?.name || 'Appointment',
+      start: event.date,
+      end: new Date(event.date.getTime() + event.duration * 60000),
+      status: event.status,
+      trainerId: event.userId,
+      clientId: event.clientId,
+      duration: event.duration,
+      description: event.notes,
+    }));
+
+    return NextResponse.json(calendarEvents);
   } catch (error) {
     console.error('Error fetching calendar events:', error);
     return new NextResponse('Internal Server Error', { status: 500 });

@@ -51,7 +51,6 @@ export function AppointmentDialog({
   availableDurations,
   onSubmit,
   onCancel,
-  onDelete,
   timeLabel,
   dateLabel,
 }: AppointmentDialogProps) {
@@ -122,9 +121,8 @@ export function AppointmentDialog({
             )}
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button variant="destructive" onClick={onDelete}>Delete</Button>
+        <DialogFooter className='font-medium'>
+          <Button className='text-black' variant="outline" onClick={onCancel}>Cancel</Button>
           <Button onClick={onSubmit}>Save</Button>
         </DialogFooter>
       </DialogContent>
