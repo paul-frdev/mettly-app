@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 import { toast } from 'sonner';
-import { CancelDialog } from '@/components/ui/cancel-dialog';
+import { CancelDialog } from '@/components/dialogs/CancelDialog';
 import { AppointmentDialog } from '@/components/dialogs/AppointmentDialog';
 import { showError } from '@/lib/utils/notifications';
 
