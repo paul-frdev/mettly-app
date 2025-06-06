@@ -51,7 +51,7 @@ export function Calendar() {
   const [eventDuration, setEventDuration] = useState(60);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
-  const isClient = false;
+  const isClient = !!session?.user?.isClient;
   const { subscribeCalendarUpdate } = useCalendarSync();
 
   useEffect(() => {
@@ -159,21 +159,24 @@ export function Calendar() {
           start,
           end,
           status: selectedEvent.status,
-          clientId: selectedClientId,
+          clientId: isClient ? 'self' : selectedClientId,
           duration: durationMinutes,
         });
         toast.success('Appointment updated successfully');
       } else {
-        await createEvent({
+        const eventData: Partial<CalendarEvent> = {
           title: eventTitle,
           description: eventDescription,
           start,
           end,
           status: 'pending',
-          trainerId: selectedEvent.trainerId,
-          clientId: selectedClientId,
+          clientId: isClient ? 'self' : selectedClientId,
           duration: durationMinutes,
-        });
+        };
+        if (!isClient && session?.user?.id) {
+          eventData.trainerId = String(session.user.id);
+        }
+        await createEvent(eventData as Omit<CalendarEvent, 'id'>);
         toast.success('Appointment created successfully');
       }
       await fetchEvents();
@@ -182,7 +185,7 @@ export function Calendar() {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save appointment';
       toast.error(errorMessage);
     }
-  }, [selectedEvent, eventDescription, eventDuration, createEvent, updateEvent, clients, selectedClientId, fetchEvents, isSlotBooked]);
+  }, [selectedEvent, eventDescription, eventDuration, createEvent, updateEvent, clients, selectedClientId, fetchEvents, isSlotBooked, isClient, session]);
 
   const handleDeleteEvent = useCallback(async () => {
     if (!selectedEvent?.id) return;
