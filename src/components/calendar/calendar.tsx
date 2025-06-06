@@ -43,7 +43,7 @@ export function Calendar() {
   const { data: session } = useSession();
   const [view, setView] = useState<CalendarView['type']>('month');
   const [date, setDate] = useState(new Date());
-  const { events, loading, error, fetchEvents, createEvent, updateEvent, deleteEvent } = useCalendar();
+  const { events, loading, error, fetchEvents, deleteEvent } = useCalendar();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [eventDescription, setEventDescription] = useState('');
@@ -142,50 +142,37 @@ export function Calendar() {
 
   const handleSaveEvent = useCallback(async () => {
     if (!selectedEvent) return;
-    const client = clients.find(c => c.id === selectedClientId);
-    const eventTitle = client ? client.name : 'Appointment';
     const durationMinutes = eventDuration;
     const start = selectedEvent.start;
-    const end = new Date(start.getTime() + durationMinutes * 60000);
-    if (isSlotBooked(start, end, selectedEvent.id)) {
+    const isClient = !!session?.user?.isClient;
+    const appointmentDate = start;
+    if (isSlotBooked(start, new Date(start.getTime() + durationMinutes * 60000), selectedEvent.id)) {
       toast.error('Этот слот уже занят');
       return;
     }
     try {
-      if (selectedEvent.id) {
-        await updateEvent(selectedEvent.id, {
-          title: eventTitle,
-          description: eventDescription,
-          start,
-          end,
-          status: selectedEvent.status,
-          clientId: isClient ? 'self' : selectedClientId,
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: appointmentDate.toISOString(),
           duration: durationMinutes,
-        });
-        toast.success('Appointment updated successfully');
-      } else {
-        const eventData: Partial<CalendarEvent> = {
-          title: eventTitle,
-          description: eventDescription,
-          start,
-          end,
-          status: 'pending',
           clientId: isClient ? 'self' : selectedClientId,
-          duration: durationMinutes,
-        };
-        if (!isClient && session?.user?.id) {
-          eventData.trainerId = String(session.user.id);
-        }
-        await createEvent(eventData as Omit<CalendarEvent, 'id'>);
-        toast.success('Appointment created successfully');
+          notes: eventDescription,
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create appointment');
       }
+      toast.success('Appointment created successfully');
       await fetchEvents();
       setIsDialogOpen(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save appointment';
       toast.error(errorMessage);
     }
-  }, [selectedEvent, eventDescription, eventDuration, createEvent, updateEvent, clients, selectedClientId, fetchEvents, isSlotBooked, isClient, session]);
+  }, [selectedEvent, eventDescription, eventDuration, clients, selectedClientId, fetchEvents, isSlotBooked, session]);
 
   const handleDeleteEvent = useCallback(async () => {
     if (!selectedEvent?.id) return;
