@@ -12,6 +12,7 @@ import { useCalendar } from '@/hooks/use-calendar';
 import { toast } from 'sonner';
 import { AppointmentDialog } from '@/components/dialogs/AppointmentDialog';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
+import { useCalendarSync } from '@/hooks/useCalendarSync';
 
 const locales = {
   'en-US': enUS,
@@ -51,6 +52,7 @@ export function Calendar() {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const isClient = false;
+  const { subscribeCalendarUpdate } = useCalendarSync();
 
   useEffect(() => {
     if (session?.user) {
@@ -78,6 +80,13 @@ export function Calendar() {
     }
     fetchClients();
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeCalendarUpdate(() => {
+      fetchEvents();
+    });
+    return unsubscribe;
+  }, [fetchEvents, subscribeCalendarUpdate]);
 
   const isBusinessSlot = (date: Date) => {
     if (!settings) return false;
@@ -188,6 +197,8 @@ export function Calendar() {
     }
   }, [selectedEvent, deleteEvent, fetchEvents]);
 
+  const visibleEvents = events.filter(event => event.status !== 'cancelled');
+
   if (loading) {
     return (
       <div className="h-[800px] flex items-center justify-center">
@@ -202,7 +213,7 @@ export function Calendar() {
 
         <BigCalendar
           localizer={localizer}
-          events={events}
+          events={visibleEvents}
           startAccessor="start"
           endAccessor="end"
           style={{ height: '100%' }}

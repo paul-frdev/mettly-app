@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { CancelDialog } from '@/components/dialogs/CancelDialog';
 import { AppointmentDialog } from '@/components/dialogs/AppointmentDialog';
 import { showError } from '@/lib/utils/notifications';
+import { useCalendarSync } from '@/hooks/useCalendarSync';
 
 interface Client {
   id: string;
@@ -49,6 +50,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
   const [isCancellationDialogOpen, setIsCancellationDialogOpen] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const { triggerCalendarUpdate } = useCalendarSync();
 
   let dayEnd: Date | null = null;
   let endHour = 23, endMinute = 59;
@@ -171,6 +173,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
       }
 
       onAppointmentCreated();
+      triggerCalendarUpdate();
       setAppointmentToCancel(null);
     } catch (error) {
       showError(error);
@@ -213,6 +216,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
       setSelectedClientId('');
       setDuration(60);
       onAppointmentCreated();
+      triggerCalendarUpdate();
     } catch (error) {
       showError(error);
     }
@@ -248,7 +252,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
 
   function getAvailableDurationsForTimeSlot(timeSlot: string) {
     const MIN = 30;
-    const MAX = 180;
+    const MAX = 120;
     const step = 15;
     let maxDuration = MAX;
 
@@ -280,7 +284,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
 
   const availableDurations = selectedTimeSlot
     ? getAvailableDurationsForTimeSlot(selectedTimeSlot)
-    : [30, 45, 60, 90, 120, 150, 180];
+    : [30, 45, 60, 90, 120];
 
   return (
     <div className="space-y-6">
