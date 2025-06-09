@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { Moon, Sun, LogOut, Menu, X } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { useRouter, usePathname } from 'next/navigation';
-import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslations } from 'next-intl';
 
 export default function Header() {

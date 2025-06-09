@@ -8,26 +8,12 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { showError } from '@/lib/utils/notifications';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 import { toast } from 'sonner';
-import { CancelDialog } from '@/components/ui/cancel-dialog';
+import { CancelDialog } from '@/components/dialogs/CancelDialog';
+import { AppointmentDialog } from '@/components/dialogs/AppointmentDialog';
+import { showError } from '@/lib/utils/notifications';
+import { useCalendarSync } from '@/hooks/useCalendarSync';
 
 interface Client {
   id: string;
@@ -64,6 +50,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
   const [isCancellationDialogOpen, setIsCancellationDialogOpen] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const { triggerCalendarUpdate } = useCalendarSync();
 
   let dayEnd: Date | null = null;
   let endHour = 23, endMinute = 59;
@@ -186,6 +173,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
       }
 
       onAppointmentCreated();
+      triggerCalendarUpdate();
       setAppointmentToCancel(null);
     } catch (error) {
       showError(error);
@@ -228,6 +216,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
       setSelectedClientId('');
       setDuration(60);
       onAppointmentCreated();
+      triggerCalendarUpdate();
     } catch (error) {
       showError(error);
     }
@@ -263,7 +252,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
 
   function getAvailableDurationsForTimeSlot(timeSlot: string) {
     const MIN = 30;
-    const MAX = 180;
+    const MAX = 120;
     const step = 15;
     let maxDuration = MAX;
 
@@ -295,7 +284,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
 
   const availableDurations = selectedTimeSlot
     ? getAvailableDurationsForTimeSlot(selectedTimeSlot)
-    : [30, 45, 60, 90, 120, 150, 180];
+    : [30, 45, 60, 90, 120];
 
   return (
     <div className="space-y-6">
@@ -499,87 +488,24 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
             </div>
           )}
 
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogContent className="bg-[#1a1a2e] border-white/20 text-white">
-              <DialogHeader>
-                <DialogTitle className="text-white">Create New Appointment</DialogTitle>
-                <DialogDescription className="text-gray-300">
-                  Create a new appointment for {selectedTimeSlot} on {format(selectedDate, 'PPP')}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                {!isClient && (
-                  <div className="space-y-2">
-                    <Label htmlFor="client" className="text-white">Select Client</Label>
-                    <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                        <SelectValue placeholder="Select a client" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#1a1a2e] border-white/20">
-                        {clients.map((client) => (
-                          <SelectItem
-                            key={client.id}
-                            value={client.id}
-                            className="text-white hover:bg-white/10"
-                          >
-                            {client.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="notes" className="text-white">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="bg-white/10 border-white/20 text-white resize-none"
-                    placeholder="Add any notes about the appointment"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="duration" className="text-white">Duration</Label>
-                  <Select
-                    value={duration.toString()}
-                    onValueChange={(value) => setDuration(Number(value))}
-                    disabled={availableDurations.length === 0}
-                  >
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue placeholder="Select duration" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a2e] border-white/20">
-                      {availableDurations.map(d => (
-                        <SelectItem key={d} value={d.toString()} className="text-white hover:bg-white/10">
-                          {d} мин
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {availableDurations.length === 0 && (
-                    <div className="text-red-500 text-xs mt-1">Нет доступных длительностей для этого времени</div>
-                  )}
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsCreateDialogOpen(false)}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateAppointment}
-                  className="bg-[#e42627] hover:bg-[#d41f20] text-white"
-                >
-                  Create Appointment
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <AppointmentDialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+            clients={clients}
+            isClient={isClient}
+            selectedClientId={selectedClientId}
+            onClientChange={setSelectedClientId}
+            notes={notes}
+            onNotesChange={setNotes}
+            duration={duration}
+            onDurationChange={setDuration}
+            availableDurations={availableDurations}
+            onSubmit={handleCreateAppointment}
+            onCancel={() => setIsCreateDialogOpen(false)}
+            onDelete={() => { }}
+            timeLabel={selectedTimeSlot}
+            dateLabel={format(selectedDate, 'PPP')}
+          />
 
           <CancelDialog
             isOpen={isCancellationDialogOpen}

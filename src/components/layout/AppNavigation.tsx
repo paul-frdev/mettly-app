@@ -7,7 +7,7 @@ import { LogOut, Moon, Sun, Menu, X } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { signOut, useSession } from 'next-auth/react';
 import Logo from '@/components/Logo';
-import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDevicePerformance } from '@/hooks/useDevicePerformance';
@@ -30,11 +30,13 @@ export function AppNavigation() {
     { name: 'dashboard', href: '/dashboard' },
     { name: 'clients', href: '/clients' },
     { name: 'appointments', href: '/appointments' },
+    { name: 'calendar', href: '/calendar' },
     { name: 'settings', href: '/settings/user' }
   ];
 
   const clientNavigation = [
     { name: 'dashboard', href: '/dashboard' },
+    { name: 'calendar', href: '/calendar' },
     { name: 'settings', href: '/settings/client' }
   ];
 

@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from '@/components/dialogs/AlertDialog';
 import { showSuccess, showError } from '@/lib/utils/notifications';
 import { TimeSlots } from '@/components/appointments/TimeSlots';
 import { Badge } from '@/components/ui/badge';

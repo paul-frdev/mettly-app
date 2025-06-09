@@ -1,18 +1,35 @@
 'use client';
 
+import { Calendar } from '@/components/calendar/calendar';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function CalendarPage() {
-  return (
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Calendar</h1>
-      </div>
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div className="p-6">
-          <p className="text-gray-500 dark:text-gray-400">Calendar view coming soon...</p>
-        </div>
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/signin');
+    }
+  }, [status, router]);
+
+  if (status === 'loading') {
+    return (
+      <div className="h-[800px] flex items-center justify-center">
+        <div className="text-gray-500">Loading...</div>
       </div>
-    </>
+    );
+  }
+
+  if (!session) {
+    return null;
+  }
+
+  return (
+    <div className="container mx-auto py-8">
+      <Calendar />
+    </div>
   );
 } 
