@@ -53,6 +53,7 @@ export function Calendar() {
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const isClient = !!session?.user?.isClient;
   const { subscribeCalendarUpdate } = useCalendarSync();
+  const [maxAvailableDuration, setMaxAvailableDuration] = useState(120);
 
   useEffect(() => {
     if (session?.user) {
@@ -102,6 +103,40 @@ export function Calendar() {
     return slotMinutes >= startMinutes && slotMinutes < endMinutes;
   };
 
+  const isSlotAvailable = useCallback((date: Date) => {
+    // Проверяем, не в прошлом ли время
+    const now = new Date();
+    if (date < now) return false;
+
+    // Проверяем, рабочий ли это слот
+    if (!isBusinessSlot(date)) return false;
+
+    // Получаем рабочие часы для текущего дня
+    const dayName = format(date, 'EEEE');
+    const daySchedule = settings?.workingHours[dayName];
+    if (!daySchedule?.enabled) return false;
+
+    // Находим ближайшее событие после выбранного времени
+    const nextEvent = events
+      .filter(event => event.status !== 'cancelled' && event.start > date)
+      .sort((a, b) => a.start.getTime() - b.start.getTime())[0];
+
+    // Проверяем доступное время до следующего события
+    if (nextEvent) {
+      const availableMinutes = (nextEvent.start.getTime() - date.getTime()) / (1000 * 60);
+      if (availableMinutes < 30) return false; // Минимальная длительность встречи
+    }
+
+    // Проверяем, достаточно ли времени до конца рабочего дня
+    const [endHour, endMinute] = daySchedule.end.split(':').map(Number);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(endHour, endMinute, 0, 0);
+    const minutesUntilEndOfDay = (endOfDay.getTime() - date.getTime()) / (1000 * 60);
+    if (minutesUntilEndOfDay < 30) return false; // Минимальная длительность встречи
+
+    return true;
+  }, [events, settings, isBusinessSlot]);
+
   const handleSelectSlot = useCallback((slotInfo: { start: Date; end: Date; slots?: Date[]; action?: string }) => {
     if (!session?.user) return;
     const now = new Date();
@@ -115,6 +150,40 @@ export function Calendar() {
       toast.error('Слот вне рабочих часов или нерабочий день');
       return;
     }
+
+    // Находим ближайшее событие после выбранного времени
+    const nextEvent = events
+      .filter(event => event.status !== 'cancelled' && event.start > startTime)
+      .sort((a, b) => a.start.getTime() - b.start.getTime())[0];
+
+    // Получаем рабочие часы для текущего дня
+    const dayName = format(startTime, 'EEEE');
+    const daySchedule = settings?.workingHours[dayName];
+    if (!daySchedule?.enabled) {
+      toast.error('Этот день не является рабочим');
+      return;
+    }
+
+    // Вычисляем максимальную доступную длительность
+    let maxDuration = 120;
+
+    // Проверяем ограничение по следующему событию
+    if (nextEvent) {
+      const availableMinutes = (nextEvent.start.getTime() - startTime.getTime()) / (1000 * 60);
+      maxDuration = Math.min(maxDuration, Math.floor(availableMinutes));
+    }
+
+    // Проверяем ограничение по концу рабочего дня
+    const [endHour, endMinute] = daySchedule.end.split(':').map(Number);
+    const endOfDay = new Date(startTime);
+    endOfDay.setHours(endHour, endMinute, 0, 0);
+    const minutesUntilEndOfDay = (endOfDay.getTime() - startTime.getTime()) / (1000 * 60);
+    maxDuration = Math.min(maxDuration, Math.floor(minutesUntilEndOfDay));
+
+    // Устанавливаем длительность встречи (по умолчанию 60 минут, но не больше доступного времени)
+    setEventDuration(Math.min(60, maxDuration));
+    setMaxAvailableDuration(maxDuration);
+
     setSelectedEvent({
       id: '',
       title: '',
@@ -124,7 +193,7 @@ export function Calendar() {
       trainerId: session.user.id,
     });
     setIsDialogOpen(true);
-  }, [session, settings]);
+  }, [session, settings, events]);
 
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
     setEventDescription(event.description || '');
@@ -214,7 +283,6 @@ export function Calendar() {
   return (
     <>
       <div className="w-full overflow-x-auto" style={{ height: 700 }}>
-
         <BigCalendar
           localizer={localizer}
           events={visibleEvents}
@@ -246,7 +314,7 @@ export function Calendar() {
             if (date < now) {
               return { style: { backgroundColor: '#e5e7eb', pointerEvents: 'none', opacity: 0.7 } };
             }
-            if (!isBusinessSlot(date)) {
+            if (!isSlotAvailable(date)) {
               return { style: { backgroundColor: '#f3f4f6', pointerEvents: 'none', opacity: 0.5 } };
             }
             return { style: { backgroundColor: '#d1fae5' } };
@@ -269,6 +337,7 @@ export function Calendar() {
         duration={eventDuration}
         onDurationChange={setEventDuration}
         availableDurations={[30, 45, 60, 90, 120]}
+        maxAvailableDuration={maxAvailableDuration}
         onSubmit={handleSaveEvent}
         onDelete={handleDeleteEvent}
         onCancel={() => setIsDialogOpen(false)}

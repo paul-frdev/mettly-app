@@ -30,6 +30,7 @@ interface AppointmentDialogProps {
   duration: number;
   onDurationChange: (val: number) => void;
   availableDurations: number[];
+  maxAvailableDuration: number;
   onSubmit: () => void;
   onCancel: () => void;
   onDelete: () => void;
@@ -49,6 +50,7 @@ export function AppointmentDialog({
   duration,
   onDurationChange,
   availableDurations,
+  maxAvailableDuration,
   onSubmit,
   onCancel,
   timeLabel,
@@ -102,9 +104,9 @@ export function AppointmentDialog({
                 <SelectValue placeholder="Select duration" />
               </SelectTrigger>
               <SelectContent className="bg-[#23243a] border-[#35365a] text-white">
-                {availableDurations.map((duration) => (
-                  <SelectItem key={duration} value={duration.toString()} className="hover:bg-[#10b981]/10">
-                    {duration} мин
+                {availableDurations.map((d) => (
+                  <SelectItem key={d} value={d.toString()} disabled={d > maxAvailableDuration}>
+                    {d} мин
                   </SelectItem>
                 ))}
               </SelectContent>
