@@ -6,6 +6,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSession } from 'next-auth/react';
+import { MoreVertical } from 'lucide-react';
 
 import { CalendarEvent, CalendarView } from '@/types/calendar';
 import { useCalendar } from '@/hooks/use-calendar';
@@ -13,6 +14,7 @@ import { toast } from 'sonner';
 import { AppointmentDialog } from '@/components/dialogs/AppointmentDialog';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
+import { CancelDialog } from '@/components/dialogs/CancelDialog';
 
 const locales = {
   'en-US': enUS,
@@ -27,12 +29,27 @@ const localizer = dateFnsLocalizer({
 });
 
 // Кастомный компонент для отображения события
-const CustomEvent = ({ event }: { event: CalendarEvent }) => (
-  <span>
-    {event.title}
-    {event.duration ? ` (${event.duration} мин)` : ''}
-  </span>
-);
+const CustomEvent = ({ event, onRequestCancel }: { event: CalendarEvent; onRequestCancel: (event: CalendarEvent) => void }) => {
+  const isPast = event.end < new Date();
+
+  return (
+    <span>
+      {event.title}
+      {event.duration ? ` (${event.duration} мин)` : ''}
+      <button
+        className="ml-2 p-1 rounded hover:bg-gray-200"
+        onClick={e => {
+          e.stopPropagation();
+          if (!isPast) onRequestCancel(event);
+        }}
+        disabled={isPast}
+        style={isPast ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+      >
+        <MoreVertical size={16} />
+      </button>
+    </span>
+  );
+};
 
 interface Client {
   id: string;
@@ -54,6 +71,8 @@ export function Calendar() {
   const isClient = !!session?.user?.isClient;
   const { subscribeCalendarUpdate } = useCalendarSync();
   const [maxAvailableDuration, setMaxAvailableDuration] = useState(120);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<CalendarEvent | null>(null);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
   useEffect(() => {
     if (session?.user) {
@@ -196,6 +215,7 @@ export function Calendar() {
   }, [session, settings, events]);
 
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
+    if (event.end < new Date()) return; // Не открывать диалог для прошедших
     setEventDescription(event.description || '');
     setSelectedEvent(event);
     setIsDialogOpen(true);
@@ -319,7 +339,17 @@ export function Calendar() {
             }
             return { style: { backgroundColor: '#d1fae5' } };
           }}
-          components={{ event: CustomEvent }}
+          components={{
+            event: (props) => (
+              <CustomEvent
+                {...props}
+                onRequestCancel={(event) => {
+                  setAppointmentToCancel(event);
+                  setIsCancelDialogOpen(true);
+                }}
+              />
+            ),
+          }}
           min={new Date(1970, 1, 1, minHour, minMinute)}
           max={new Date(1970, 1, 1, maxHour, maxMinute)}
         />
@@ -343,6 +373,22 @@ export function Calendar() {
         onCancel={() => setIsDialogOpen(false)}
         timeLabel={selectedEvent ? format(selectedEvent.start, 'HH:mm') : ''}
         dateLabel={selectedEvent ? format(selectedEvent.start, 'PPP') : ''}
+      />
+
+      <CancelDialog
+        isOpen={isCancelDialogOpen}
+        onOpenChange={setIsCancelDialogOpen}
+        onCancel={async (reason) => {
+          if (!appointmentToCancel) return;
+          await fetch(`/api/appointments/${appointmentToCancel.id}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cancellationReason: reason }),
+          });
+          setIsCancelDialogOpen(false);
+          setAppointmentToCancel(null);
+          fetchEvents();
+        }}
       />
     </>
   );
