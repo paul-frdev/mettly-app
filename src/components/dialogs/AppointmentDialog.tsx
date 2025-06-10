@@ -36,6 +36,10 @@ interface AppointmentDialogProps {
   onDelete: () => void;
   timeLabel?: string;
   dateLabel?: string;
+  manualTime?: string | null;
+  onManualTimeChange?: (val: string) => void;
+  showTimeSelect?: boolean;
+  workingHours?: { start: string; end: string };
 }
 
 export function AppointmentDialog({
@@ -55,7 +59,29 @@ export function AppointmentDialog({
   onCancel,
   timeLabel,
   dateLabel,
+  manualTime,
+  onManualTimeChange,
+  showTimeSelect = false,
+  workingHours,
 }: AppointmentDialogProps) {
+  const timeOptions: string[] = (() => {
+    if (showTimeSelect && workingHours) {
+      const [startHour, startMinute] = workingHours.start.split(':').map(Number);
+      const [endHour, endMinute] = workingHours.end.split(':').map(Number);
+      let d = new Date();
+      d.setHours(startHour, startMinute, 0, 0);
+      const end = new Date();
+      end.setHours(endHour, endMinute, 0, 0);
+      const arr: string[] = [];
+      while (d <= end) {
+        arr.push(d.toTimeString().slice(0, 5));
+        d = new Date(d.getTime() + 15 * 60000);
+      }
+      return arr;
+    }
+    return [];
+  })();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-[#2d2e48] border border-[#35365a] shadow-2xl rounded-xl text-white px-8 py-6">
@@ -112,6 +138,21 @@ export function AppointmentDialog({
               </SelectContent>
             </Select>
           </div>
+          {showTimeSelect && workingHours && (
+            <div>
+              <Label htmlFor="manual-time" className="text-[#b0b3c6] mb-1 block">Время встречи</Label>
+              <Select value={manualTime || ''} onValueChange={onManualTimeChange}>
+                <SelectTrigger className="bg-[#23243a] border border-[#35365a] text-white focus:ring-2 focus:ring-[#10b981]">
+                  <SelectValue placeholder="Выберите время" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#23243a] border-[#35365a] text-white">
+                  {timeOptions.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
         <DialogFooter className="flex justify-end gap-2 mt-4">
           <Button variant="outline" onClick={onCancel} className="border border-[#35365a] text-[#b0b3c6] hover:bg-[#23243a]/80 hover:text-white">Cancel</Button>

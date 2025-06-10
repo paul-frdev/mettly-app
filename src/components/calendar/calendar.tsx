@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { format, parse, startOfWeek, getDay, setHours, setMinutes } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSession } from 'next-auth/react';
@@ -73,6 +73,7 @@ export function Calendar() {
   const [maxAvailableDuration, setMaxAvailableDuration] = useState(120);
   const [appointmentToCancel, setAppointmentToCancel] = useState<CalendarEvent | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [manualTime, setManualTime] = useState<string | null>(null);
 
   useEffect(() => {
     if (session?.user) {
@@ -158,9 +159,19 @@ export function Calendar() {
 
   const handleSelectSlot = useCallback((slotInfo: { start: Date; end: Date; slots?: Date[]; action?: string }) => {
     if (!session?.user) return;
+    let startTime = new Date(slotInfo.start);
     const now = new Date();
-    const startTime = new Date(slotInfo.start);
-    startTime.setSeconds(0, 0);
+    const slotDayName = format(startTime, 'EEEE');
+    const slotDaySchedule = settings?.workingHours[slotDayName];
+    // Если клик по дню в режиме month и рабочий день
+    if (view === 'month' && startTime.getHours() === 0 && startTime.getMinutes() === 0 && slotDaySchedule?.enabled) {
+      setManualTime(slotDaySchedule.start); // например, '09:00'
+      // выставляем startTime на начало рабочего дня
+      const [h, m] = slotDaySchedule.start.split(':').map(Number);
+      startTime = setHours(setMinutes(startTime, m), h);
+    } else {
+      setManualTime(null);
+    }
     if (startTime < now) {
       toast.error('Нельзя создавать события в прошлом');
       return;
@@ -169,20 +180,17 @@ export function Calendar() {
       toast.error('Слот вне рабочих часов или нерабочий день');
       return;
     }
-
     // Находим ближайшее событие после выбранного времени
     const nextEvent = events
       .filter(event => event.status !== 'cancelled' && event.start > startTime)
       .sort((a, b) => a.start.getTime() - b.start.getTime())[0];
-
     // Получаем рабочие часы для текущего дня
-    const dayName = format(startTime, 'EEEE');
-    const daySchedule = settings?.workingHours[dayName];
-    if (!daySchedule?.enabled) {
+    const slotDayName2 = format(startTime, 'EEEE');
+    const slotDaySchedule2 = settings?.workingHours[slotDayName2];
+    if (!slotDaySchedule2?.enabled) {
       toast.error('Этот день не является рабочим');
       return;
     }
-
     // Вычисляем максимальную доступную длительность
     let maxDuration = 120;
 
@@ -193,7 +201,7 @@ export function Calendar() {
     }
 
     // Проверяем ограничение по концу рабочего дня
-    const [endHour, endMinute] = daySchedule.end.split(':').map(Number);
+    const [endHour, endMinute] = slotDaySchedule2.end.split(':').map(Number);
     const endOfDay = new Date(startTime);
     endOfDay.setHours(endHour, endMinute, 0, 0);
     const minutesUntilEndOfDay = (endOfDay.getTime() - startTime.getTime()) / (1000 * 60);
@@ -206,13 +214,13 @@ export function Calendar() {
     setSelectedEvent({
       id: '',
       title: '',
-      start: slotInfo.start,
+      start: startTime,
       end: slotInfo.end,
       status: 'pending',
       trainerId: session.user.id,
     });
     setIsDialogOpen(true);
-  }, [session, settings, events]);
+  }, [session, settings, events, view]);
 
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
     if (event.end < new Date()) return; // Не открывать диалог для прошедших
@@ -291,6 +299,17 @@ export function Calendar() {
 
   const [minHour, minMinute] = minTime.split(':').map(Number);
   const [maxHour, maxMinute] = maxTime.split(':').map(Number);
+
+  // Обновление времени старта встречи при ручном выборе времени
+  useEffect(() => {
+    if (manualTime && selectedEvent) {
+      const [h, m] = manualTime.split(':').map(Number);
+      const newStart = new Date(selectedEvent.start);
+      newStart.setHours(h, m, 0, 0);
+      setSelectedEvent({ ...selectedEvent, start: newStart });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manualTime]);
 
   if (loading) {
     return (
@@ -378,6 +397,10 @@ export function Calendar() {
         onCancel={() => setIsDialogOpen(false)}
         timeLabel={selectedEvent ? format(selectedEvent.start, 'HH:mm') : ''}
         dateLabel={selectedEvent ? format(selectedEvent.start, 'PPP') : ''}
+        manualTime={manualTime}
+        onManualTimeChange={setManualTime}
+        showTimeSelect={!!manualTime}
+        workingHours={selectedEvent ? settings?.workingHours[format(selectedEvent.start, 'EEEE')] : undefined}
       />
 
       <CancelDialog
