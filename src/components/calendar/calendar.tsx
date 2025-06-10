@@ -358,7 +358,13 @@ export function Calendar() {
             return { style: { backgroundColor: '#d1fae5' } };
           }}
           dayPropGetter={(date) => {
+            const now = new Date();
             if (isWorkingDay(date)) {
+              if (date < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+                // рабочий, но в прошлом
+                return { style: { backgroundColor: '#e5e7eb', opacity: 0.7 } };
+              }
+              // рабочий, не в прошлом
               return { style: { backgroundColor: '#d1fae5' } };
             }
             return {};
