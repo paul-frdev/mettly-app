@@ -361,22 +361,25 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                       const now = currentTime;
                       const dayStart = new Date(selectedDate);
                       const [startHour, startMinute] = settings.workingHours[format(selectedDate, 'EEEE')]?.start.split(':').map(Number) || [0, 0];
+                      const [endHour, endMinute] = settings.workingHours[format(selectedDate, 'EEEE')]?.end.split(':').map(Number) || [23, 59];
                       dayStart.setHours(startHour, startMinute, 0, 0);
+                      const dayEnd = new Date(selectedDate);
+                      dayEnd.setHours(endHour, endMinute, 0, 0);
 
                       // Calculate total minutes since start of day
                       const totalMinutesSinceStart = (now.getTime() - dayStart.getTime()) / (1000 * 60);
+                      const totalMinutesInDay = (dayEnd.getTime() - dayStart.getTime()) / (1000 * 60);
 
                       // Calculate position based on slot height (40px) and gap (8px)
                       const slotHeight = 48; // height of each time slot
                       const gapHeight = 2; // gap between slots
                       const totalHeight = slotHeight + gapHeight;
+                      const slotsCount = Math.ceil(totalMinutesInDay / settings.slotDuration);
+                      const maxHeight = (slotsCount - 1) * totalHeight + slotHeight / 2;
 
-                      // Calculate final position
-                      if (now > dayEnd!) {
-                        const slotsCount = Math.ceil(totalMinutesSinceStart / settings.slotDuration);
-                        return (slotsCount - 1) * totalHeight + slotHeight / 2;
+                      if (now > dayEnd) {
+                        return maxHeight;
                       }
-
                       if (now < dayStart) {
                         return 0;
                       }
@@ -500,6 +503,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
             duration={duration}
             onDurationChange={setDuration}
             availableDurations={availableDurations}
+            maxAvailableDuration={availableDurations.length > 0 ? Math.max(...availableDurations) : 120}
             onSubmit={handleCreateAppointment}
             onCancel={() => setIsCreateDialogOpen(false)}
             onDelete={() => { }}
