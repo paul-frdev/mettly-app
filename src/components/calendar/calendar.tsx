@@ -64,7 +64,7 @@ export function Calendar() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [eventDescription, setEventDescription] = useState('');
-  const { settings, isHoliday } = useBusinessSettings();
+  const { settings, isHoliday, isWorkingDay } = useBusinessSettings();
   const [eventDuration, setEventDuration] = useState(60);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
@@ -328,7 +328,6 @@ export function Calendar() {
               color: 'black',
             },
           })}
-          popup
           slotPropGetter={(date) => {
             const now = new Date();
             if (date < now) {
@@ -338,6 +337,12 @@ export function Calendar() {
               return { style: { backgroundColor: '#f3f4f6', pointerEvents: 'none', opacity: 0.5 } };
             }
             return { style: { backgroundColor: '#d1fae5' } };
+          }}
+          dayPropGetter={(date) => {
+            if (isWorkingDay(date)) {
+              return { style: { backgroundColor: '#d1fae5' } };
+            }
+            return {};
           }}
           components={{
             event: (props) => (
