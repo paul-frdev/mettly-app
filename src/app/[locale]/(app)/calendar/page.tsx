@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar } from '@/components/calendar/Calendar';
+import { Calendar } from '@/components/calendar/Сalendar';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
