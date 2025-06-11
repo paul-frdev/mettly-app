@@ -402,8 +402,6 @@ export function Calendar() {
         onSubmit={handleSaveEvent}
         onDelete={handleDeleteEvent}
         onCancel={() => setIsDialogOpen(false)}
-        timeLabel={selectedEvent ? format(selectedEvent.start, 'HH:mm') : ''}
-        dateLabel={selectedEvent ? format(selectedEvent.start, 'PPP') : ''}
         manualTime={manualTime}
         onManualTimeChange={setManualTime}
         showTimeSelect={!!manualTime}
