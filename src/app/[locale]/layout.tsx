@@ -1,4 +1,4 @@
-import '../globals.css';
+import '../../styles/globals.css';
 import { Inter, Outfit } from 'next/font/google';
 import { Providers } from '@/components/Providers';
 import { Toaster } from 'sonner';

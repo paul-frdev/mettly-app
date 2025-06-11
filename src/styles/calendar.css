@@ -1,0 +1,75 @@
+/* globals.css — кастомизация react-big-calendar под минималистичный дизайн */
+
+.rbc-calendar {
+  background: #fff;
+  border: none;
+  font-family: inherit;
+}
+
+.rbc-header {
+  @apply text-lg font-semibold text-gray-700 bg-white border-b border-gray-200;
+  padding: 0.5rem 0;
+}
+
+.rbc-header.rbc-today {
+  @apply text-red-500 bg-gray-50;
+}
+
+.rbc-time-header {
+  @apply border-b border-gray-200;
+}
+
+.rbc-timeslot-group {
+  @apply border-b border-gray-100;
+}
+
+.rbc-time-content {
+  @apply border-t-0;
+}
+
+.rbc-time-gutter,
+.rbc-timeslot-group {
+  @apply text-gray-400 text-sm;
+}
+
+.rbc-time-gutter {
+  @apply bg-white;
+}
+
+.rbc-row-segment,
+.rbc-event {
+  @apply bg-transparent shadow-none border-none p-0 m-0;
+}
+
+.rbc-event {
+  @apply rounded-xl bg-white border-l-4 border-emerald-400 text-gray-800 font-medium px-2 py-1;
+  box-shadow: 0 1px 4px 0 rgb(0 0 0 / 0.04);
+}
+
+.rbc-selected {
+  @apply ring-2 ring-emerald-400;
+}
+
+.rbc-today {
+  @apply bg-gray-50;
+}
+
+.rbc-off-range-bg {
+  @apply bg-gray-50;
+}
+
+.rbc-toolbar {
+  @apply bg-white border-b border-gray-200 mb-2;
+}
+
+.rbc-toolbar-label {
+  @apply text-xl font-bold text-gray-800;
+}
+
+.rbc-btn-group button {
+  @apply bg-white border border-gray-200 text-gray-500 px-3 py-1 rounded hover:bg-gray-100;
+}
+
+.rbc-btn-group button.rbc-active {
+  @apply bg-emerald-100 text-emerald-700 border-emerald-400;
+}

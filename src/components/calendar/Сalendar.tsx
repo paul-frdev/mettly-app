@@ -1,5 +1,6 @@
 'use client';
 
+import '../../styles/calendar.css';
 import { useState, useCallback, useEffect } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, setHours, setMinutes } from 'date-fns';
