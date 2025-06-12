@@ -38,11 +38,11 @@
 
 .rbc-row-segment,
 .rbc-event {
-  @apply bg-transparent shadow-none border-none p-0 m-0;
+  @apply !bg-transparent shadow-none !border-none !py-0 pl-[1px] pr-[1px] !m-0 cursor-pointer;
 }
 
 .rbc-event {
-  @apply rounded-xl bg-white border-l-4 border-emerald-400 text-gray-800 font-medium px-2 py-1;
+  @apply rounded-xl bg-white !border-none text-gray-800 font-medium px-2 py-1;
   box-shadow: 0 1px 4px 0 rgb(0 0 0 / 0.04);
 }
 
@@ -72,4 +72,35 @@
 
 .rbc-btn-group button.rbc-active {
   @apply bg-emerald-100 text-emerald-700 border-emerald-400;
+}
+
+.custom-calendar-event {
+  background: #fff !important;
+  border-radius: 6px !important;
+  color: #222 !important;
+  font-size: 14px !important;
+  min-height: 24px !important;
+  align-items: center !important;
+  display: flex !important;
+  padding: 2px 8px !important;
+  box-sizing: border-box !important;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.custom-calendar-event .event-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  transition: background 0.15s;
+}
+.custom-calendar-event:hover {
+  background: #f3f4f6 !important;
+}
+.custom-calendar-event.selected {
+  color: #fff !important;
+}
+.custom-calendar-event.selected .event-dot {
+  background: #fff !important;
 }

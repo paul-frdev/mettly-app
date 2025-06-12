@@ -10,6 +10,7 @@ export interface CalendarEvent {
   clientId?: string;
   description?: string;
   duration?: number;
+  color?: string;
 }
 
 export interface CalendarView {

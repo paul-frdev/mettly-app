@@ -16,6 +16,7 @@ import { AppointmentDialog } from '@/components/dialogs/AppointmentDialog';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { CancelDialog } from '@/components/dialogs/CancelDialog';
+import { cn } from '@/lib/utils';
 
 const locales = {
   'en-US': enUS,
@@ -30,21 +31,35 @@ const localizer = dateFnsLocalizer({
 });
 
 // Кастомный компонент для отображения события
-const CustomEvent = ({ event, onRequestEdit, onRequestDelete }: {
+const CustomEvent = ({ event, onRequestEdit, onRequestDelete, isSelected }: {
   event: CalendarEvent;
   onRequestEdit: (event: CalendarEvent) => void;
   onRequestDelete: (event: CalendarEvent) => void;
+  isSelected: boolean;
 }) => {
+  const color = event.color || "#3b82f6";
   return (
     <PopoverInfo
       event={event}
       onEdit={() => onRequestEdit(event)}
       onDelete={() => onRequestDelete(event)}
     >
-      <div className="cursor-pointer w-full">
-        {event.title}
-        {event.duration ? ` (${event.duration} мин)` : ''}
-      </div>
+      <span
+        className={cn(
+          "custom-calendar-event",
+          isSelected && "selected"
+        )}
+        style={{
+          background: isSelected ? color : undefined,
+        }}
+        onClick={() => onRequestEdit(event)}
+      >
+        <span
+          className="event-dot"
+          style={{ background: isSelected ? "#fff" : color }}
+        />
+        <span className="truncate">{event.title}</span>
+      </span>
     </PopoverInfo>
   );
 };
@@ -371,6 +386,7 @@ export function Calendar() {
             event: (props) => (
               <CustomEvent
                 {...props}
+                isSelected={props.isSelected}
                 onRequestEdit={(event) => {
                   setSelectedEvent(event);
                   setIsDialogOpen(true);
