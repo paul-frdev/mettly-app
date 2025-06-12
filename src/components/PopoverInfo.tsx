@@ -1,4 +1,5 @@
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { Button } from "@/components/ui/button";
 import { Edit2, Trash2 } from "lucide-react";
 
@@ -14,19 +15,27 @@ interface PopoverInfoDialogProps {
   onEdit: () => void;
   onDelete: () => void;
   children: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function PopoverInfo({ event, onEdit, onDelete, children }: PopoverInfoDialogProps) {
+export function PopoverInfo({ event, onEdit, onDelete, children, open, onOpenChange }: PopoverInfoDialogProps) {
   const startTime = event.start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const endTime = event.end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const duration = event.duration || Math.round((+event.end - +event.start) / 60000);
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         {children}
       </PopoverTrigger>
-      <PopoverContent className="w-72">
+      <PopoverContent
+        className="w-72"
+        side="right"
+        align="center"
+        sideOffset={8}
+      >
+        <PopoverPrimitive.Arrow className="fill-white drop-shadow-md" width={16} height={8} />
         <div className="flex justify-between items-center mb-2">
           <span className="font-bold">{event.title}</span>
           <div className="flex gap-1">

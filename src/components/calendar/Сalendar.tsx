@@ -37,12 +37,16 @@ const CustomEvent = ({ event, onRequestEdit, onRequestDelete, isSelected }: {
   onRequestDelete: (event: CalendarEvent) => void;
   isSelected: boolean;
 }) => {
+  const [open, setOpen] = useState(false);
   const color = event.color || "#3b82f6";
+
   return (
     <PopoverInfo
       event={event}
       onEdit={() => onRequestEdit(event)}
       onDelete={() => onRequestDelete(event)}
+      open={open}
+      onOpenChange={setOpen}
     >
       <span
         className={cn(
@@ -52,7 +56,7 @@ const CustomEvent = ({ event, onRequestEdit, onRequestDelete, isSelected }: {
         style={{
           background: isSelected ? color : undefined,
         }}
-        onClick={() => onRequestEdit(event)}
+        onMouseEnter={() => setOpen(true)}
       >
         <span
           className="event-dot"
@@ -87,6 +91,8 @@ export function Calendar() {
   const [appointmentToCancel, setAppointmentToCancel] = useState<CalendarEvent | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [manualTime, setManualTime] = useState<string | null>(null);
+  const [hoveredSlot, setHoveredSlot] = useState<Date | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (session?.user) {
@@ -360,16 +366,18 @@ export function Calendar() {
               color: 'black',
             },
           })}
-          slotPropGetter={(date) => {
-            const now = new Date();
-            if (date < now) {
-              return { style: { backgroundColor: 'rgb(rgb(232 239 255)', pointerEvents: 'none', opacity: 0.7 } };
+          slotPropGetter={(date) => ({
+            className: "calendar-slot",
+            onMouseEnter: (e) => {
+              const rect = (e.target as HTMLElement).getBoundingClientRect();
+              setHoveredSlot(date);
+              setPopoverPosition({ x: rect.left, y: rect.top });
+            },
+            onMouseLeave: () => {
+              setHoveredSlot(null);
+              setPopoverPosition(null);
             }
-            if (!isSlotAvailable(date)) {
-              return { style: { backgroundColor: '#f3f4f6', pointerEvents: 'none', opacity: 0.5 } };
-            }
-            return { style: { backgroundColor: '#f3f4f6' } };
-          }}
+          })}
           dayPropGetter={(date) => {
             const now = new Date();
             if (isWorkingDay(date)) {
