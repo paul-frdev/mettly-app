@@ -7,7 +7,7 @@ import { format, parse, startOfWeek, getDay, setHours, setMinutes } from 'date-f
 import { enUS } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSession } from 'next-auth/react';
-import { MoreVertical } from 'lucide-react';
+import { PopoverInfo } from "@/components/PopoverInfo";
 
 import { CalendarEvent, CalendarView } from '@/types/calendar';
 import { useCalendar } from '@/hooks/use-calendar';
@@ -30,25 +30,22 @@ const localizer = dateFnsLocalizer({
 });
 
 // Кастомный компонент для отображения события
-const CustomEvent = ({ event, onRequestCancel }: { event: CalendarEvent; onRequestCancel: (event: CalendarEvent) => void }) => {
-  const isPast = event.end < new Date();
-
+const CustomEvent = ({ event, onRequestEdit, onRequestDelete }: {
+  event: CalendarEvent;
+  onRequestEdit: (event: CalendarEvent) => void;
+  onRequestDelete: (event: CalendarEvent) => void;
+}) => {
   return (
-    <span>
-      {event.title}
-      {event.duration ? ` (${event.duration} мин)` : ''}
-      <button
-        className="ml-2 p-1 rounded hover:bg-gray-200"
-        onClick={e => {
-          e.stopPropagation();
-          if (!isPast) onRequestCancel(event);
-        }}
-        disabled={isPast}
-        style={isPast ? { opacity: 0.5, pointerEvents: 'none' } : {}}
-      >
-        <MoreVertical size={16} />
-      </button>
-    </span>
+    <PopoverInfo
+      event={event}
+      onEdit={() => onRequestEdit(event)}
+      onDelete={() => onRequestDelete(event)}
+    >
+      <div className="cursor-pointer w-full">
+        {event.title}
+        {event.duration ? ` (${event.duration} мин)` : ''}
+      </div>
+    </PopoverInfo>
   );
 };
 
@@ -351,22 +348,22 @@ export function Calendar() {
           slotPropGetter={(date) => {
             const now = new Date();
             if (date < now) {
-              return { style: { backgroundColor: '#e5e7eb', pointerEvents: 'none', opacity: 0.7 } };
+              return { style: { backgroundColor: 'rgb(rgb(232 239 255)', pointerEvents: 'none', opacity: 0.7 } };
             }
             if (!isSlotAvailable(date)) {
               return { style: { backgroundColor: '#f3f4f6', pointerEvents: 'none', opacity: 0.5 } };
             }
-            return { style: { backgroundColor: '#d1fae5' } };
+            return { style: { backgroundColor: '#f3f4f6' } };
           }}
           dayPropGetter={(date) => {
             const now = new Date();
             if (isWorkingDay(date)) {
               if (date < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
                 // рабочий, но в прошлом
-                return { style: { backgroundColor: '#e5e7eb', opacity: 0.7 } };
+                return { style: { backgroundColor: '#f3f4f6', opacity: 0.7 } };
               }
               // рабочий, не в прошлом
-              return { style: { backgroundColor: '#d1fae5' } };
+              return { style: { backgroundColor: 'rgb(rgb(239 239 239)' } };
             }
             return {};
           }}
@@ -374,9 +371,13 @@ export function Calendar() {
             event: (props) => (
               <CustomEvent
                 {...props}
-                onRequestCancel={(event) => {
-                  setAppointmentToCancel(event);
-                  setIsCancelDialogOpen(true);
+                onRequestEdit={(event) => {
+                  setSelectedEvent(event);
+                  setIsDialogOpen(true);
+                }}
+                onRequestDelete={async (event) => {
+                  setSelectedEvent(event);
+                  await handleDeleteEvent();
                 }}
               />
             ),
