@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Edit2, Trash2, Calendar } from 'lucide-react';
-import ClientForm from './ClientForm';
+import { Loader } from '../Loader';
+import ClientForm from '../forms/ClientForm';
 
 interface Client {
   id: string;
@@ -98,11 +99,7 @@ export default function ClientList({ searchQuery, filterStatus, onClientUpdated 
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <Loader />
   }
 
   if (error) {

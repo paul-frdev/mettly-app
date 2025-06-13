@@ -375,6 +375,15 @@ export function DashboardContent() {
         <ClientFormDialog
           isOpen={isClientFormOpen}
           onClose={() => setIsClientFormOpen(false)}
+          onSubmit={async (data) => {
+            // Handle form submission here
+            console.log('New client data:', data);
+            // You'll likely want to add your API call to create/update the client here
+            // For example:
+            // await createClient(data);
+            // Then close the dialog
+            setIsClientFormOpen(false);
+          }}
         />
       )}
     </div>

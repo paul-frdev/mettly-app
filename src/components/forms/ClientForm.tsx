@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -20,50 +19,42 @@ import { clientSchema } from '@/lib/validations/client';
 import type { ClientFormData } from '@/lib/validations/client';
 import { showSuccess, showError } from '@/lib/utils/notifications';
 
-export function ClientForm() {
-  const router = useRouter();
+interface ClientFormProps {
+  client?: Partial<ClientFormData>;
+  onSubmit: (data: ClientFormData) => Promise<void>;
+  onCancel: () => void;
+}
+
+export default function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
-      name: '',
-      email: '',
-      phone: '',
-      notes: '',
-      telegramUsername: '',
+      name: client?.name || '',
+      email: client?.email || '',
+      phone: client?.phone || '',
+      notes: client?.notes || '',
+      telegramUsername: client?.telegramUsername || '',
     },
   });
 
-  async function onSubmit(data: ClientFormData) {
+  const handleFormSubmit = async (data: ClientFormData) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/clients', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create client');
-      }
-
-      showSuccess('Client created successfully');
-      router.push('/clients');
-      router.refresh();
+      await onSubmit(data);
+      form.reset();
+      showSuccess('Client saved successfully');
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'Failed to create client');
+      showError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -137,9 +128,19 @@ export function ClientForm() {
           )}
         />
 
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Creating...' : 'Create Client'}
-        </Button>
+        <div className="flex justify-end space-x-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Saving...' : client ? 'Update Client' : 'Create Client'}
+          </Button>
+        </div>
       </form>
     </Form>
   );

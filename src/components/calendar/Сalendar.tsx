@@ -18,6 +18,7 @@ import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { CancelDialog } from '@/components/dialogs/CancelDialog';
 import { cn } from '@/lib/utils';
 import { getClientColor } from '@/lib/colorUtils';
+import { Loader } from '../Loader';
 
 const locales = {
   'en-US': enUS,
@@ -41,18 +42,18 @@ interface CustomEventProps {
   isSelected: boolean;
 }
 
-const CustomEvent: React.FC<CustomEventProps> = ({ 
-  event, 
-  onRequestEdit, 
-  onRequestDelete, 
-  isSelected 
+const CustomEvent: React.FC<CustomEventProps> = ({
+  event,
+  onRequestEdit,
+  onRequestDelete,
+  isSelected
 }) => {
   const [open, setOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const color = event.clientId ? getClientColor(event.clientId) : (event.color || "#3b82f6");
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);
-  
+
   // Check if the event is in the past or ongoing
   const isEventInPastOrOngoing = useMemo(() => {
     if (!event || !event.end) return false;
@@ -100,7 +101,7 @@ const CustomEvent: React.FC<CustomEventProps> = ({
   }, []);
 
   return (
-    <div 
+    <div
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -405,11 +406,7 @@ export function Calendar() {
   }, [manualTime]);
 
   if (loading) {
-    return (
-      <div className="h-[800px] flex items-center justify-center">
-        <div className="text-gray-500">Loading calendar...</div>
-      </div>
-    );
+    return <Loader />
   }
 
   return (
