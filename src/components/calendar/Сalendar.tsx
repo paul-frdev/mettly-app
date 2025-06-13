@@ -1,7 +1,7 @@
 'use client';
 
 import '../../styles/calendar.css';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, setHours, setMinutes } from 'date-fns';
 import { enUS } from 'date-fns/locale';
@@ -51,6 +51,13 @@ const CustomEvent: React.FC<CustomEventProps> = ({
   const color = event.color || "#3b82f6";
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);
+  
+  // Check if the event is in the past or ongoing
+  const isEventInPastOrOngoing = useMemo(() => {
+    if (!event || !event.end) return false;
+    const now = new Date();
+    return new Date(event.end) <= now;
+  }, [event?.end]);
 
   const clearHoverTimeout = () => {
     if (hoverTimeoutRef.current) {
@@ -99,9 +106,10 @@ const CustomEvent: React.FC<CustomEventProps> = ({
     >
       <PopoverInfo
         event={event}
-        onEdit={() => onRequestEdit(event)}
-        onDelete={() => onRequestDelete(event)}
+        onEdit={() => !isEventInPastOrOngoing && onRequestEdit(event)}
+        onDelete={() => !isEventInPastOrOngoing && onRequestDelete(event)}
         open={open}
+        disabled={isEventInPastOrOngoing}
         onOpenChange={(isOpen) => {
           setOpen(isOpen);
           if (!isOpen) {

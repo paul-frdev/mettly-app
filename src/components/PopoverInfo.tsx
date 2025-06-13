@@ -8,6 +8,7 @@ type Event = {
   start: Date;
   end: Date;
   duration?: number;
+  description?: string;
 };
 
 interface PopoverInfoDialogProps {
@@ -16,20 +17,22 @@ interface PopoverInfoDialogProps {
   onDelete: () => void;
   children: React.ReactNode;
   open?: boolean;
+  disabled?: boolean;
   onOpenChange?: (open: boolean) => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
 }
 
-export function PopoverInfo({ 
-  event, 
-  onEdit, 
-  onDelete, 
-  children, 
-  open, 
-  onOpenChange, 
-  onMouseEnter, 
-  onMouseLeave 
+export function PopoverInfo({
+  event,
+  onEdit,
+  onDelete,
+  children,
+  open,
+  disabled = false,
+  onOpenChange,
+  onMouseEnter,
+  onMouseLeave
 }: PopoverInfoDialogProps) {
   const startTime = event.start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const endTime = event.end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -57,12 +60,26 @@ export function PopoverInfo({
       >
         <PopoverPrimitive.Arrow className="fill-white drop-shadow-md" width={16} height={8} />
         <div className="flex justify-between items-center mb-2">
-          <span className="font-bold">{event.title}</span>
+          <span className="font-bold">{event.description}</span>
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" onClick={onEdit} title="Редактировать">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onEdit}
+              title={disabled ? 'Редактирование недоступно' : 'Редактировать'}
+              disabled={disabled}
+              className={disabled ? 'opacity-50 cursor-not-allowed' : ''}
+            >
               <Edit2 className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={onDelete} title="Удалить">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              title={disabled ? 'Удаление недоступно' : 'Удалить'}
+              disabled={disabled}
+              className={disabled ? 'opacity-50 cursor-not-allowed' : ''}
+            >
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
