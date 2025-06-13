@@ -1,7 +1,7 @@
 'use client';
 
 import '../../styles/calendar.css';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, setHours, setMinutes } from 'date-fns';
 import { enUS } from 'date-fns/locale';
@@ -30,41 +30,104 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
+// Moved to PopoverInfo.tsx
+
 // Кастомный компонент для отображения события
-const CustomEvent = ({ event, onRequestEdit, onRequestDelete, isSelected }: {
+interface CustomEventProps {
   event: CalendarEvent;
   onRequestEdit: (event: CalendarEvent) => void;
   onRequestDelete: (event: CalendarEvent) => void;
   isSelected: boolean;
+}
+
+const CustomEvent: React.FC<CustomEventProps> = ({ 
+  event, 
+  onRequestEdit, 
+  onRequestDelete, 
+  isSelected 
 }) => {
   const [open, setOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const color = event.color || "#3b82f6";
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMounted = useRef(true);
+
+  const clearHoverTimeout = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  };
+
+  const handleMouseEnter = () => {
+    clearHoverTimeout();
+    hoverTimeoutRef.current = setTimeout(() => {
+      setOpen(true);
+      setIsHovering(true);
+    }, 150);
+  };
+
+  const handleMouseLeave = () => {
+    clearHoverTimeout();
+    hoverTimeoutRef.current = setTimeout(() => {
+      setOpen(false);
+      setIsHovering(false);
+    }, 200);
+  };
+
+  const handlePopoverEnter = () => {
+    clearHoverTimeout();
+  };
+
+  const handlePopoverLeave = () => {
+    handleMouseLeave();
+  };
+
+  // Clean up timeouts on unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+      clearHoverTimeout();
+    };
+  }, []);
 
   return (
-    <PopoverInfo
-      event={event}
-      onEdit={() => onRequestEdit(event)}
-      onDelete={() => onRequestDelete(event)}
-      open={open}
-      onOpenChange={setOpen}
+    <div 
+      className="relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
-      <span
-        className={cn(
-          "custom-calendar-event",
-          isSelected && "selected"
-        )}
-        style={{
-          background: isSelected ? color : undefined,
+      <PopoverInfo
+        event={event}
+        onEdit={() => onRequestEdit(event)}
+        onDelete={() => onRequestDelete(event)}
+        open={open}
+        onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+            setIsHovering(false);
+          }
         }}
-        onMouseEnter={() => setOpen(true)}
+        onMouseEnter={handlePopoverEnter}
+        onMouseLeave={handlePopoverLeave}
       >
-        <span
-          className="event-dot"
-          style={{ background: isSelected ? "#fff" : color }}
-        />
-        <span className="truncate">{event.title}</span>
-      </span>
-    </PopoverInfo>
+        <div
+          className={cn(
+            "custom-calendar-event group",
+            isSelected && "selected",
+            isHovering && "ring-2",
+            "transition-all duration-150 ease-in-out"
+          )}
+          style={{
+            '--event-bg': color,
+            '--ring-color': 'rgba(255, 255, 255, 0.5)',
+          } as React.CSSProperties}
+        >
+          <span className="event-dot" />
+          <span className="truncate">{event.description || 'Новое событие'}</span>
+        </div>
+      </PopoverInfo>
+    </div>
   );
 };
 
@@ -75,24 +138,26 @@ interface Client {
 
 export function Calendar() {
   const { data: session } = useSession();
+  const { events, loading, error, fetchEvents, deleteEvent } = useCalendar();
+  const { settings, isHoliday, isWorkingDay } = useBusinessSettings();
+  const { subscribeCalendarUpdate } = useCalendarSync();
+
   const [view, setView] = useState<CalendarView['type']>('month');
   const [date, setDate] = useState(new Date());
-  const { events, loading, error, fetchEvents, deleteEvent } = useCalendar();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [eventDescription, setEventDescription] = useState('');
-  const { settings, isHoliday, isWorkingDay } = useBusinessSettings();
   const [eventDuration, setEventDuration] = useState(60);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
-  const isClient = !!session?.user?.isClient;
-  const { subscribeCalendarUpdate } = useCalendarSync();
   const [maxAvailableDuration, setMaxAvailableDuration] = useState(120);
   const [appointmentToCancel, setAppointmentToCancel] = useState<CalendarEvent | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [manualTime, setManualTime] = useState<string | null>(null);
-  const [hoveredSlot, setHoveredSlot] = useState<Date | null>(null);
-  const [popoverPosition, setPopoverPosition] = useState<{ x: number; y: number } | null>(null);
+  const [, setHoveredSlot] = useState<Date | null>(null);
+  const [, setPopoverPosition] = useState<{ x: number; y: number } | null>(null);
+
+  const isClient = !!session?.user?.isClient;
 
   useEffect(() => {
     if (session?.user) {

@@ -17,9 +17,20 @@ interface PopoverInfoDialogProps {
   children: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export function PopoverInfo({ event, onEdit, onDelete, children, open, onOpenChange }: PopoverInfoDialogProps) {
+export function PopoverInfo({ 
+  event, 
+  onEdit, 
+  onDelete, 
+  children, 
+  open, 
+  onOpenChange, 
+  onMouseEnter, 
+  onMouseLeave 
+}: PopoverInfoDialogProps) {
   const startTime = event.start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const endTime = event.end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const duration = event.duration || Math.round((+event.end - +event.start) / 60000);
@@ -34,6 +45,15 @@ export function PopoverInfo({ event, onEdit, onDelete, children, open, onOpenCha
         side="right"
         align="center"
         sideOffset={8}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        onPointerDownOutside={(e) => {
+          // Prevent closing when clicking on the popover content
+          const target = e.target as HTMLElement;
+          if (target.closest('.custom-calendar-event')) {
+            e.preventDefault();
+          }
+        }}
       >
         <PopoverPrimitive.Arrow className="fill-white drop-shadow-md" width={16} height={8} />
         <div className="flex justify-between items-center mb-2">
