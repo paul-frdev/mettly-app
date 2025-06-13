@@ -17,6 +17,7 @@ import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { CancelDialog } from '@/components/dialogs/CancelDialog';
 import { cn } from '@/lib/utils';
+import { getClientColor } from '@/lib/colorUtils';
 
 const locales = {
   'en-US': enUS,
@@ -48,7 +49,7 @@ const CustomEvent: React.FC<CustomEventProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const color = event.color || "#3b82f6";
+  const color = event.clientId ? getClientColor(event.clientId) : (event.color || "#3b82f6");
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);
   
