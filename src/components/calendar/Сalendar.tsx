@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import '../../styles/calendar.css';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { format, parse, startOfWeek, getDay, setHours, setMinutes } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSession } from 'next-auth/react';
-import { MoreVertical } from 'lucide-react';
+import { PopoverInfo } from "@/components/PopoverInfo";
 
 import { CalendarEvent, CalendarView } from '@/types/calendar';
 import { useCalendar } from '@/hooks/use-calendar';
@@ -15,6 +16,8 @@ import { AppointmentDialog } from '@/components/dialogs/AppointmentDialog';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { CancelDialog } from '@/components/dialogs/CancelDialog';
+import { cn } from '@/lib/utils';
+import { getClientColor } from '@/lib/colorUtils';
 
 const locales = {
   'en-US': enUS,
@@ -28,26 +31,112 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
+// Moved to PopoverInfo.tsx
+
 // Кастомный компонент для отображения события
-const CustomEvent = ({ event, onRequestCancel }: { event: CalendarEvent; onRequestCancel: (event: CalendarEvent) => void }) => {
-  const isPast = event.end < new Date();
+interface CustomEventProps {
+  event: CalendarEvent;
+  onRequestEdit: (event: CalendarEvent) => void;
+  onRequestDelete: (event: CalendarEvent) => void;
+  isSelected: boolean;
+}
+
+const CustomEvent: React.FC<CustomEventProps> = ({ 
+  event, 
+  onRequestEdit, 
+  onRequestDelete, 
+  isSelected 
+}) => {
+  const [open, setOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const color = event.clientId ? getClientColor(event.clientId) : (event.color || "#3b82f6");
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMounted = useRef(true);
+  
+  // Check if the event is in the past or ongoing
+  const isEventInPastOrOngoing = useMemo(() => {
+    if (!event || !event.end) return false;
+    const now = new Date();
+    return new Date(event.end) <= now;
+  }, [event?.end]);
+
+  const clearHoverTimeout = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  };
+
+  const handleMouseEnter = () => {
+    clearHoverTimeout();
+    hoverTimeoutRef.current = setTimeout(() => {
+      setOpen(true);
+      setIsHovering(true);
+    }, 150);
+  };
+
+  const handleMouseLeave = () => {
+    clearHoverTimeout();
+    hoverTimeoutRef.current = setTimeout(() => {
+      setOpen(false);
+      setIsHovering(false);
+    }, 200);
+  };
+
+  const handlePopoverEnter = () => {
+    clearHoverTimeout();
+  };
+
+  const handlePopoverLeave = () => {
+    handleMouseLeave();
+  };
+
+  // Clean up timeouts on unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+      clearHoverTimeout();
+    };
+  }, []);
 
   return (
-    <span>
-      {event.title}
-      {event.duration ? ` (${event.duration} мин)` : ''}
-      <button
-        className="ml-2 p-1 rounded hover:bg-gray-200"
-        onClick={e => {
-          e.stopPropagation();
-          if (!isPast) onRequestCancel(event);
+    <div 
+      className="relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <PopoverInfo
+        event={event}
+        onEdit={() => !isEventInPastOrOngoing && onRequestEdit(event)}
+        onDelete={() => !isEventInPastOrOngoing && onRequestDelete(event)}
+        open={open}
+        disabled={isEventInPastOrOngoing}
+        onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+            setIsHovering(false);
+          }
         }}
-        disabled={isPast}
-        style={isPast ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+        onMouseEnter={handlePopoverEnter}
+        onMouseLeave={handlePopoverLeave}
       >
-        <MoreVertical size={16} />
-      </button>
-    </span>
+        <div
+          className={cn(
+            "custom-calendar-event group",
+            isSelected && "selected",
+            isHovering && "ring-2",
+            "transition-all duration-150 ease-in-out"
+          )}
+          style={{
+            '--event-bg': color,
+            '--ring-color': 'rgba(255, 255, 255, 0.5)',
+          } as React.CSSProperties}
+        >
+          <span className="event-dot" />
+          <span className="truncate">{event.description || 'Новое событие'}</span>
+        </div>
+      </PopoverInfo>
+    </div>
   );
 };
 
@@ -58,21 +147,26 @@ interface Client {
 
 export function Calendar() {
   const { data: session } = useSession();
+  const { events, loading, error, fetchEvents, deleteEvent } = useCalendar();
+  const { settings, isHoliday, isWorkingDay } = useBusinessSettings();
+  const { subscribeCalendarUpdate } = useCalendarSync();
+
   const [view, setView] = useState<CalendarView['type']>('month');
   const [date, setDate] = useState(new Date());
-  const { events, loading, error, fetchEvents, deleteEvent } = useCalendar();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [eventDescription, setEventDescription] = useState('');
-  const { settings, isHoliday } = useBusinessSettings();
   const [eventDuration, setEventDuration] = useState(60);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
-  const isClient = !!session?.user?.isClient;
-  const { subscribeCalendarUpdate } = useCalendarSync();
   const [maxAvailableDuration, setMaxAvailableDuration] = useState(120);
   const [appointmentToCancel, setAppointmentToCancel] = useState<CalendarEvent | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [manualTime, setManualTime] = useState<string | null>(null);
+  const [, setHoveredSlot] = useState<Date | null>(null);
+  const [, setPopoverPosition] = useState<{ x: number; y: number } | null>(null);
+
+  const isClient = !!session?.user?.isClient;
 
   useEffect(() => {
     if (session?.user) {
@@ -158,9 +252,19 @@ export function Calendar() {
 
   const handleSelectSlot = useCallback((slotInfo: { start: Date; end: Date; slots?: Date[]; action?: string }) => {
     if (!session?.user) return;
+    let startTime = new Date(slotInfo.start);
     const now = new Date();
-    const startTime = new Date(slotInfo.start);
-    startTime.setSeconds(0, 0);
+    const slotDayName = format(startTime, 'EEEE');
+    const slotDaySchedule = settings?.workingHours[slotDayName];
+    // Если клик по дню в режиме month и рабочий день
+    if (view === 'month' && startTime.getHours() === 0 && startTime.getMinutes() === 0 && slotDaySchedule?.enabled) {
+      setManualTime(slotDaySchedule.start); // например, '09:00'
+      // выставляем startTime на начало рабочего дня
+      const [h, m] = slotDaySchedule.start.split(':').map(Number);
+      startTime = setHours(setMinutes(startTime, m), h);
+    } else {
+      setManualTime(null);
+    }
     if (startTime < now) {
       toast.error('Нельзя создавать события в прошлом');
       return;
@@ -169,20 +273,17 @@ export function Calendar() {
       toast.error('Слот вне рабочих часов или нерабочий день');
       return;
     }
-
     // Находим ближайшее событие после выбранного времени
     const nextEvent = events
       .filter(event => event.status !== 'cancelled' && event.start > startTime)
       .sort((a, b) => a.start.getTime() - b.start.getTime())[0];
-
     // Получаем рабочие часы для текущего дня
-    const dayName = format(startTime, 'EEEE');
-    const daySchedule = settings?.workingHours[dayName];
-    if (!daySchedule?.enabled) {
+    const slotDayName2 = format(startTime, 'EEEE');
+    const slotDaySchedule2 = settings?.workingHours[slotDayName2];
+    if (!slotDaySchedule2?.enabled) {
       toast.error('Этот день не является рабочим');
       return;
     }
-
     // Вычисляем максимальную доступную длительность
     let maxDuration = 120;
 
@@ -193,7 +294,7 @@ export function Calendar() {
     }
 
     // Проверяем ограничение по концу рабочего дня
-    const [endHour, endMinute] = daySchedule.end.split(':').map(Number);
+    const [endHour, endMinute] = slotDaySchedule2.end.split(':').map(Number);
     const endOfDay = new Date(startTime);
     endOfDay.setHours(endHour, endMinute, 0, 0);
     const minutesUntilEndOfDay = (endOfDay.getTime() - startTime.getTime()) / (1000 * 60);
@@ -206,13 +307,13 @@ export function Calendar() {
     setSelectedEvent({
       id: '',
       title: '',
-      start: slotInfo.start,
+      start: startTime,
       end: slotInfo.end,
       status: 'pending',
       trainerId: session.user.id,
     });
     setIsDialogOpen(true);
-  }, [session, settings, events]);
+  }, [session, settings, events, view]);
 
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
     if (event.end < new Date()) return; // Не открывать диалог для прошедших
@@ -292,6 +393,17 @@ export function Calendar() {
   const [minHour, minMinute] = minTime.split(':').map(Number);
   const [maxHour, maxMinute] = maxTime.split(':').map(Number);
 
+  // Обновление времени старта встречи при ручном выборе времени
+  useEffect(() => {
+    if (manualTime && selectedEvent) {
+      const [h, m] = manualTime.split(':').map(Number);
+      const newStart = new Date(selectedEvent.start);
+      newStart.setHours(h, m, 0, 0);
+      setSelectedEvent({ ...selectedEvent, start: newStart });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manualTime]);
+
   if (loading) {
     return (
       <div className="h-[800px] flex items-center justify-center">
@@ -328,24 +440,42 @@ export function Calendar() {
               color: 'black',
             },
           })}
-          popup
-          slotPropGetter={(date) => {
+          slotPropGetter={(date) => ({
+            className: "calendar-slot",
+            onMouseEnter: (e) => {
+              const rect = (e.target as HTMLElement).getBoundingClientRect();
+              setHoveredSlot(date);
+              setPopoverPosition({ x: rect.left, y: rect.top });
+            },
+            onMouseLeave: () => {
+              setHoveredSlot(null);
+              setPopoverPosition(null);
+            }
+          })}
+          dayPropGetter={(date) => {
             const now = new Date();
-            if (date < now) {
-              return { style: { backgroundColor: '#e5e7eb', pointerEvents: 'none', opacity: 0.7 } };
+            if (isWorkingDay(date)) {
+              if (date < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+                // рабочий, но в прошлом
+                return { style: { backgroundColor: '#f3f4f6', opacity: 0.7 } };
+              }
+              // рабочий, не в прошлом
+              return { style: { backgroundColor: 'rgb(rgb(239 239 239)' } };
             }
-            if (!isSlotAvailable(date)) {
-              return { style: { backgroundColor: '#f3f4f6', pointerEvents: 'none', opacity: 0.5 } };
-            }
-            return { style: { backgroundColor: '#d1fae5' } };
+            return {};
           }}
           components={{
             event: (props) => (
               <CustomEvent
                 {...props}
-                onRequestCancel={(event) => {
-                  setAppointmentToCancel(event);
-                  setIsCancelDialogOpen(true);
+                isSelected={props.isSelected}
+                onRequestEdit={(event) => {
+                  setSelectedEvent(event);
+                  setIsDialogOpen(true);
+                }}
+                onRequestDelete={async (event) => {
+                  setSelectedEvent(event);
+                  await handleDeleteEvent();
                 }}
               />
             ),
@@ -371,8 +501,10 @@ export function Calendar() {
         onSubmit={handleSaveEvent}
         onDelete={handleDeleteEvent}
         onCancel={() => setIsDialogOpen(false)}
-        timeLabel={selectedEvent ? format(selectedEvent.start, 'HH:mm') : ''}
-        dateLabel={selectedEvent ? format(selectedEvent.start, 'PPP') : ''}
+        manualTime={manualTime}
+        onManualTimeChange={setManualTime}
+        showTimeSelect={!!manualTime}
+        workingHours={selectedEvent ? settings?.workingHours[format(selectedEvent.start, 'EEEE')] : undefined}
       />
 
       <CancelDialog

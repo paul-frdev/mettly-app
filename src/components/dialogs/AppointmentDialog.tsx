@@ -5,13 +5,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface Client {
   id: string;
@@ -34,8 +33,10 @@ interface AppointmentDialogProps {
   onSubmit: () => void;
   onCancel: () => void;
   onDelete: () => void;
-  timeLabel?: string;
-  dateLabel?: string;
+  manualTime?: string | null;
+  onManualTimeChange?: (val: string) => void;
+  showTimeSelect?: boolean;
+  workingHours?: { start: string; end: string };
 }
 
 export function AppointmentDialog({
@@ -53,30 +54,68 @@ export function AppointmentDialog({
   maxAvailableDuration,
   onSubmit,
   onCancel,
-  timeLabel,
-  dateLabel,
+  manualTime,
+  onManualTimeChange,
+  showTimeSelect = false,
+  workingHours,
 }: AppointmentDialogProps) {
+  const timeOptions: string[] = (() => {
+    if (showTimeSelect && workingHours) {
+      const [startHour, startMinute] = workingHours.start.split(":").map(Number);
+      const [endHour, endMinute] = workingHours.end.split(":").map(Number);
+      let d = new Date();
+      d.setHours(startHour, startMinute, 0, 0);
+      const end = new Date();
+      end.setHours(endHour, endMinute, 0, 0);
+      const arr: string[] = [];
+      while (d <= end) {
+        arr.push(d.toTimeString().slice(0, 5));
+        d = new Date(d.getTime() + 15 * 60000);
+      }
+      return arr;
+    }
+    return [];
+  })();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#2d2e48] border border-[#35365a] shadow-2xl rounded-xl text-white px-8 py-6">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white">Create New Appointment</DialogTitle>
-          <DialogDescription className="text-base text-[#b0b3c6]">
-            {dateLabel} at {timeLabel}
-          </DialogDescription>
+      <DialogContent
+        className={cn(
+          "max-w-md w-full p-0 rounded-xl border-none shadow-2xl bg-white animate-in fade-in-0 zoom-in-95",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out"
+        )}
+      >
+        <DialogHeader className="bg-yellow-50 rounded-t-xl flex items-center px-6 h-12 border-b border-gray-100">
+          <DialogTitle className="font-semibold text-gray-700 text-lg">Edit</DialogTitle>
+
         </DialogHeader>
-        <div className="space-y-5 py-4">
-          {!isClient && (
+        <form
+          className="px-6 pt-4 pb-6 space-y-4"
+          onSubmit={e => {
+            e.preventDefault();
+            onSubmit();
+          }}
+        >
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Name</label>
+            <input
+              className="w-full border border-gray-200 rounded px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-white"
+              value={notes}
+              onChange={e => onNotesChange(e.target.value)}
+              placeholder="Event name or notes"
+            />
+          </div>
+          {showTimeSelect && workingHours && (
             <div>
-              <Label htmlFor="client" className="text-[#b0b3c6] mb-1 block">Select Client</Label>
-              <Select value={selectedClientId} onValueChange={onClientChange}>
-                <SelectTrigger className="bg-[#23243a] border border-[#35365a] text-white focus:ring-2 focus:ring-[#10b981]">
-                  <SelectValue placeholder="Select a client" />
+              <label className="block text-xs text-gray-500 mb-1">Time</label>
+              <Select value={manualTime || ""} onValueChange={onManualTimeChange}>
+                <SelectTrigger className="w-full border border-gray-200 rounded px-3 py-2 text-gray-800 bg-white">
+                  <SelectValue placeholder="Select time" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#23243a] border-[#35365a] text-white">
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id} className="hover:bg-[#10b981]/10">
-                      {client.name}
+                <SelectContent>
+                  {timeOptions.map(t => (
+                    <SelectItem key={t} value={t}>
+                      {t}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -84,27 +123,16 @@ export function AppointmentDialog({
             </div>
           )}
           <div>
-            <Label htmlFor="description" className="text-[#b0b3c6] mb-1 block">Notes</Label>
-            <Textarea
-              id="description"
-              value={notes}
-              onChange={(e) => onNotesChange(e.target.value)}
-              className="bg-[#23243a] border border-[#35365a] text-white focus:ring-2 focus:ring-[#10b981] resize-none"
-              rows={3}
-              placeholder="Add any notes about the appointment"
-            />
-          </div>
-          <div>
-            <Label htmlFor="duration" className="text-[#b0b3c6] mb-1 block">Duration</Label>
+            <label className="block text-xs text-gray-500 mb-1">Duration</label>
             <Select
               value={duration.toString()}
-              onValueChange={(value) => onDurationChange(Number(value))}
+              onValueChange={val => onDurationChange(Number(val))}
             >
-              <SelectTrigger className="bg-[#23243a] border border-[#35365a] text-white focus:ring-2 focus:ring-[#10b981]">
+              <SelectTrigger className="w-full border border-gray-200 rounded px-3 py-2 text-gray-800 bg-white">
                 <SelectValue placeholder="Select duration" />
               </SelectTrigger>
-              <SelectContent className="bg-[#23243a] border-[#35365a] text-white">
-                {availableDurations.map((d) => (
+              <SelectContent>
+                {availableDurations.map(d => (
                   <SelectItem key={d} value={d.toString()} disabled={d > maxAvailableDuration}>
                     {d} мин
                   </SelectItem>
@@ -112,11 +140,40 @@ export function AppointmentDialog({
               </SelectContent>
             </Select>
           </div>
-        </div>
-        <DialogFooter className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={onCancel} className="border border-[#35365a] text-[#b0b3c6] hover:bg-[#23243a]/80 hover:text-white">Cancel</Button>
-          <Button onClick={onSubmit} className="bg-[#10b981] text-white hover:bg-[#0e9e6e]">Save</Button>
-        </DialogFooter>
+          {!isClient && (
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Client</label>
+              <Select
+                value={selectedClientId}
+                onValueChange={onClientChange}
+              >
+                <SelectTrigger className="w-full border border-gray-200 rounded px-3 py-2 text-gray-800 bg-white">
+                  <SelectValue placeholder="Select client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map(client => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <DialogFooter className="flex gap-2 justify-end pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="bg-gray-100 text-gray-500 hover:bg-gray-200"
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" className="bg-blue-600 text-white font-semibold hover:bg-blue-700">
+              Save
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
