@@ -11,45 +11,31 @@ import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 import { toast } from 'sonner';
-import { CancelDialog } from '@/components/dialogs/CancelDialog';
-import { AppointmentDialog } from '@/components/dialogs/AppointmentDialog';
 import { showError } from '@/lib/utils/notifications';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
-
-interface Client {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-}
-
-interface Appointment {
-  id: string;
-  date: Date;
-  duration: number;
-  client?: Client;
-  clientId?: string;
-  status: string;
-  description?: string;
-  notes?: string;
-}
+import { AppointmentDialog } from '../dialogs/AppointmentDialog';
+import { Appointment, Client } from '@/types/appointment';
 
 interface ScheduleProps {
   appointments: Appointment[];
   onAppointmentCreated: () => void;
+  onAppointmentCancelled: (appointment: Appointment) => void;
   isClient?: boolean;
-  selectedDate?: Date;
-  onDateChange?: (date: Date) => void;
+  selectedDate: Date;
+  onDateChange: (date: Date) => void;
+  triggerCalendarUpdate?: () => void;
 }
 
 export function Schedule({
   appointments,
   onAppointmentCreated,
+  onAppointmentCancelled,
   isClient,
   selectedDate: propSelectedDate,
-  onDateChange
+  onDateChange,
+  triggerCalendarUpdate,
 }: ScheduleProps) {
-  const [selectedDate, setSelectedDate] = useState<Date>(propSelectedDate || new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(propSelectedDate);
 
   // Sync with parent component's selected date
   useEffect(() => {
@@ -75,10 +61,8 @@ export function Schedule({
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const { settings, isHoliday } = useBusinessSettings();
   const [isLoading, setIsLoading] = useState(true);
-  const [isCancellationDialogOpen, setIsCancellationDialogOpen] = useState(false);
-  const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  const { triggerCalendarUpdate } = useCalendarSync();
+  const { triggerCalendarUpdate: calendarUpdate } = useCalendarSync();
 
   let dayEnd: Date | null = null;
   let endHour = 23, endMinute = 59;
@@ -193,57 +177,12 @@ export function Schedule({
   };
 
   const handleDeleteAppointment = (appointment: Appointment) => {
-    setAppointmentToCancel(appointment);
-    setIsCancellationDialogOpen(true);
+    onAppointmentCancelled(appointment);
   };
 
   const handleCancelAppointment = async (reason: string) => {
-    if (!appointmentToCancel) return;
-
-    try {
-      const response = await fetch(`/api/appointments/${appointmentToCancel.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cancellationReason: reason,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to cancel appointment');
-      }
-
-      // Save the current date before triggering the update
-      const currentSelectedDate = new Date(selectedDate);
-
-      // Call the callback to refresh appointments
-      onAppointmentCreated();
-
-      // Trigger calendar update to refresh the dots
-      if (triggerCalendarUpdate) {
-        triggerCalendarUpdate();
-      }
-
-      // Close the dialog
-      setAppointmentToCancel(null);
-      setIsCancellationDialogOpen(false);
-
-      // Restore the selected date after the update
-      setSelectedDate(currentSelectedDate);
-      if (onDateChange) {
-        onDateChange(currentSelectedDate);
-      }
-
-      // Force a refresh of the parent component's data
-      if (onAppointmentCreated) {
-        onAppointmentCreated();
-      }
-
-    } catch (error) {
-      showError(error);
-    }
+    // Removed local state for cancellation dialog and appointment to cancel
+    // Now handled by parent component
   };
 
   const handleCreateAppointment = async () => {
@@ -288,7 +227,7 @@ export function Schedule({
 
       // Call the callback to refresh appointments
       onAppointmentCreated();
-      triggerCalendarUpdate();
+      calendarUpdate?.();
 
       // Restore the selected date after the update
       setSelectedDate(currentSelectedDate);
@@ -618,12 +557,6 @@ export function Schedule({
             onDelete={() => { }}
             timeLabel={selectedTimeSlot}
             dateLabel={format(selectedDate, 'PPP')}
-          />
-
-          <CancelDialog
-            isOpen={isCancellationDialogOpen}
-            onOpenChange={setIsCancellationDialogOpen}
-            onCancel={handleCancelAppointment}
           />
         </>
       )}

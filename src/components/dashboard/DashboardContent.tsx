@@ -1,129 +1,36 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Schedule } from '@/components/dashboard/Schedule';
-import { showError } from '@/lib/utils/notifications';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAppointments } from '@/hooks/useAppointments';
+import { Appointment, Client } from '@/types/appointment';
+import { showError, showSuccess } from '@/lib/utils/notifications';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ClientFormDialog } from '@/components/dashboard/ClientFormDialog';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useSession, signOut } from 'next-auth/react';
 import { Loader } from '../Loader';
-
-interface Client {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  notes?: string;
-}
-
-interface ApiAppointment {
-  id: string;
-  date: string;
-  duration: number;
-  client: Client;
-  status: string;
-  notes?: string;
-  cancelledAt?: string;
-  cancellationReason?: string;
-  attendance?: {
-    status: 'confirmed' | 'declined' | null;
-  };
-}
-
-interface Appointment {
-  id: string;
-  date: Date;
-  duration: number;
-  client: Client;
-  status: string;
-  notes?: string;
-  cancelledAt?: Date;
-  cancellationReason?: string;
-  attendance?: {
-    status: 'confirmed' | 'declined' | null;
-  };
-}
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { CancelDialog } from '../dialogs/CancelDialog';
 
 export function DashboardContent() {
   const { data: session, status } = useSession();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const { appointments, isLoading, fetchAppointments } = useAppointments();
   const [calendarAppointments, setCalendarAppointments] = useState<Appointment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isClientFormOpen, setIsClientFormOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
+  const [isCancellationDialogOpen, setIsCancellationDialogOpen] = useState(false);
 
   const isClient = session?.user?.isClient;
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       signOut({ callbackUrl: '/en' });
-    }
-  }, [status]);
-
-  const fetchAppointments = useCallback(async () => {
-    if (status !== 'authenticated') {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/appointments', {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Error response:', errorData);
-        throw new Error(errorData.error || 'Failed to fetch appointments');
-      }
-
-      const data = await response.json();
-
-      // Handle both client and trainer response formats
-      let transformedAppointments: Appointment[];
-      let transformedCalendarAppointments: Appointment[];
-
-      if (Array.isArray(data)) {
-        // Trainer response format - direct array
-        transformedAppointments = data.map((apt: ApiAppointment) => ({
-          ...apt,
-          date: new Date(apt.date),
-          cancelledAt: apt.cancelledAt ? new Date(apt.cancelledAt) : undefined
-        }));
-        transformedCalendarAppointments = transformedAppointments;
-      } else {
-        // Client response format - object with list and calendar
-        transformedAppointments = data.list.map((apt: ApiAppointment) => ({
-          ...apt,
-          date: new Date(apt.date),
-          cancelledAt: apt.cancelledAt ? new Date(apt.cancelledAt) : undefined
-        }));
-        transformedCalendarAppointments = data.calendar.map((apt: ApiAppointment) => ({
-          ...apt,
-          date: new Date(apt.date),
-          cancelledAt: apt.cancelledAt ? new Date(apt.cancelledAt) : undefined
-        }));
-      }
-
-      // Sort appointments by date
-      transformedAppointments.sort((a, b) => a.date.getTime() - b.date.getTime());
-      transformedCalendarAppointments.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-      setAppointments(transformedAppointments);
-      setCalendarAppointments(transformedCalendarAppointments);
-    } catch (error) {
-      console.error('Error in fetchAppointments:', error);
-      showError(error);
-    } finally {
-      setIsLoading(false);
     }
   }, [status]);
 
@@ -176,6 +83,69 @@ export function DashboardContent() {
     return aptDate >= today && aptDate < tomorrow && apt.status === 'cancelled';
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  const handleCancelAppointment = useCallback(async (reason: string) => {
+    if (!appointmentToCancel) return;
+
+    try {
+      const response = await fetch(`/api/appointments/${appointmentToCancel.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cancellationReason: reason }),
+      });
+
+      if (!response.ok) throw new Error('Failed to cancel appointment');
+
+      // Refresh appointments
+      await fetchAppointments();
+
+      // Close dialog and reset state
+      setIsCancellationDialogOpen(false);
+      setAppointmentToCancel(null);
+
+      showSuccess('Appointment cancelled successfully');
+    } catch (error) {
+      showError(error);
+    }
+  }, [appointmentToCancel, fetchAppointments]);
+
+  const handleCreateAppointment = async (appointmentData: any) => {
+    try {
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appointmentData),
+      });
+
+      if (!response.ok) throw new Error('Failed to create appointment');
+
+      await fetchAppointments();
+      showSuccess('Appointment created successfully');
+      return true;
+    } catch (error) {
+      showError(error);
+      return false;
+    }
+  };
+
+  const handleUpdateAppointment = async (id: string, updateData: any) => {
+    try {
+      const response = await fetch(`/api/appointments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) throw new Error('Failed to update appointment');
+
+      await fetchAppointments();
+      showSuccess('Appointment updated successfully');
+      return true;
+    } catch (error) {
+      showError(error);
+      return false;
+    }
+  };
+
   if (isLoading) {
     return <Loader />;
   }
@@ -194,7 +164,9 @@ export function DashboardContent() {
 
   // Filter appointments for selected date
   const selectedDateAppointments = appointments.filter(apt => {
-    return isSameDay(new Date(apt.date), selectedDate);
+    return isSameDay(new Date(apt.date), selectedDate) &&
+      apt.status !== 'cancelled' &&
+      apt.attendance?.status !== 'declined';
   });
 
   return (
@@ -226,8 +198,11 @@ export function DashboardContent() {
           <div className="grid grid-cols-7 gap-1">
             {daysInMonth.map((day, i) => {
               const dayAppointments = appointments.filter(apt =>
-                isSameDay(new Date(apt.date), day)
+                isSameDay(new Date(apt.date), day) &&
+                apt.status !== 'cancelled' &&
+                apt.attendance?.status !== 'declined'
               );
+              const hasAppointments = dayAppointments.length > 0;
               const isSelected = isSameDay(day, selectedDate);
               const isCurrentMonth = isSameMonth(day, currentDate);
               const isToday = isSameDay(day, new Date());
@@ -237,16 +212,19 @@ export function DashboardContent() {
                   key={day.toString()}
                   onClick={() => onDateClick(day)}
                   className={`
-                    h-10 w-10 mx-auto flex items-center justify-center rounded-full cursor-pointer
-                    ${isSelected ? 'bg-blue-100 text-blue-700' : ''}
-                    ${isToday && !isSelected ? 'bg-gray-100' : ''}
-                    ${!isCurrentMonth ? 'text-gray-300' : 'hover:bg-gray-50'}
-                    relative
+                    h-10 w-10 mx-auto flex items-center justify-center rounded-full cursor-pointer relative
+                    ${isSelected
+                      ? 'bg-blue-600 text-white font-medium'
+                      : isToday
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'hover:bg-gray-50'}
+                    ${!isCurrentMonth ? 'text-gray-300' : ''}
                   `}
                 >
                   {format(day, 'd')}
-                  {dayAppointments.length > 0 && (
-                    <span className="absolute bottom-0 w-1 h-1 rounded-full bg-blue-500"></span>
+                  {hasAppointments && (
+                    <span className={`absolute -bottom-1 w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-blue-500'
+                      }`}></span>
                   )}
                 </div>
               );
@@ -277,7 +255,7 @@ export function DashboardContent() {
                   <div key={apt.id} className="p-2 text-sm border rounded-md hover:bg-gray-50">
                     <div className="font-medium">
                       {format(new Date(apt.date), 'h:mm a')}
-                      {apt.client.name && ` • ${apt.client.name}`}
+                      {apt?.client?.name && ` • ${apt.client.name}`}
                     </div>
                     {apt.notes && (
                       <div className="text-gray-500 text-xs truncate">{apt.notes}</div>
@@ -298,6 +276,10 @@ export function DashboardContent() {
             <Schedule
               appointments={calendarAppointments}
               onAppointmentCreated={fetchAppointments}
+              onAppointmentCancelled={(appointment) => {
+                setAppointmentToCancel(appointment);
+                setIsCancellationDialogOpen(true);
+              }}
               isClient={isClient}
               selectedDate={selectedDate}
               onDateChange={onDateClick}
@@ -321,6 +303,12 @@ export function DashboardContent() {
           }}
         />
       )}
+
+      <CancelDialog
+        isOpen={isCancellationDialogOpen}
+        onOpenChange={setIsCancellationDialogOpen}
+        onCancel={(reason) => handleCancelAppointment(reason)}
+      />
     </div>
   );
-} 
+}
