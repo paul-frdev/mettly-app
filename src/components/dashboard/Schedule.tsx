@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { format, addDays, subDays, startOfDay, isBefore, isEqual, parse, isSameDay } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { stringToColor, getContrastTextColor } from '@/lib/utils/colors';
 import { ChevronLeft, ChevronRight, CalendarIcon, MoreVertical, Plus } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -455,11 +456,16 @@ export function Schedule({
                       className={cn(
                         "p-2 rounded text-sm flex justify-end items-center w-full max-w-[calc(100%-72px)] h-[48px]",
                         isBooked
-                          ? "bg-[#e42627]/20 text-[#e42627]"
+                          ? "" // Remove default background color for booked slots
                           : isPast
                             ? "bg-gray-500/10 text-gray-300"
                             : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer"
                       )}
+                      style={isBooked && appointment?.clientId ? {
+                        backgroundColor: `${stringToColor(appointment.clientId)}33`, // Add transparency
+                        color: getContrastTextColor(stringToColor(appointment.clientId)),
+                        borderLeft: `4px solid ${stringToColor(appointment.clientId)}`,
+                      } : {}}
                       onClick={() => {
                         if (isBooked && !isPast && appointment) {
                           if (!isClient || (isClient && isOwnAppointment)) {
@@ -470,9 +476,7 @@ export function Schedule({
                           setIsCreateDialogOpen(true);
                         }
                       }}
-
                     >
-
                       <div className="flex items-center gap-2">
                         {appointment && !isPast && (
                           <>
@@ -559,4 +563,4 @@ export function Schedule({
       )}
     </div>
   );
-} 
+}
