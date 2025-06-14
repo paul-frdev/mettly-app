@@ -10,6 +10,7 @@ import { showError, showSuccess } from '@/lib/utils/notifications';
 import { Calendar } from '@/components/ui/calendar';
 import { Switch } from '@/components/ui/switch';
 import { triggerSettingsUpdate } from '@/hooks/useBusinessSettings';
+import { Loader } from '../Loader';
 
 interface DaySchedule {
   enabled: boolean;
@@ -149,7 +150,7 @@ export function BusinessSettings() {
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <Loader />;
   }
 
   return (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format, addDays, subDays, startOfDay, isBefore, isEqual, parse } from 'date-fns';
+import { format, addDays, subDays, startOfDay, isBefore, isEqual, parse, isSameDay } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, CalendarIcon, MoreVertical, Plus } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -35,10 +35,35 @@ interface ScheduleProps {
   appointments: Appointment[];
   onAppointmentCreated: () => void;
   isClient?: boolean;
+  selectedDate?: Date;
+  onDateChange?: (date: Date) => void;
 }
 
-export function Schedule({ appointments, onAppointmentCreated, isClient }: ScheduleProps) {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+export function Schedule({
+  appointments,
+  onAppointmentCreated,
+  isClient,
+  selectedDate: propSelectedDate,
+  onDateChange
+}: ScheduleProps) {
+  const [selectedDate, setSelectedDate] = useState<Date>(propSelectedDate || new Date());
+
+  // Sync with parent component's selected date
+  useEffect(() => {
+    if (propSelectedDate && !isSameDay(propSelectedDate, selectedDate)) {
+      setSelectedDate(propSelectedDate);
+    }
+  }, [propSelectedDate]);
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+      if (onDateChange) {
+        onDateChange(date);
+      }
+    }
+  };
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [duration, setDuration] = useState<number>(60);
@@ -313,24 +338,26 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-[280px] justify-start text-left font-normal bg-black/70 border-white/20 text-white hover:bg-white/20 hover:text-black hover:border-black/40"
+                  className={cn(
+                    'w-[260px] justify-start text-left font-normal',
+                    !selectedDate && 'text-muted-foreground'
+                  )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {format(selectedDate, 'PPP')} • {format(selectedDate, 'EEEE')}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-[#1a1a2e] border-white/20" align="center">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
+                  onSelect={handleDateSelect}
                   disabled={(date) => {
                     const today = startOfDay(new Date());
                     const checkDate = startOfDay(date);
                     return isBefore(checkDate, today);
                   }}
                   initialFocus
-                  className="bg-[#1a1a2e] text-white"
                 />
               </PopoverContent>
             </Popover>

@@ -202,7 +202,7 @@ export function DashboardContent() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="grid md:grid-cols-3 gap-8">
+      <div className="grid md:grid-cols-3 gap-8" key="dashboard-layout">
         <Card className="p-6 bg-white border border-gray-100 shadow-xl">
           <div className="mb-6 flex justify-between items-center">
             <h2 className="text-xl font-semibold text-blue-700">
@@ -302,6 +302,8 @@ export function DashboardContent() {
               appointments={calendarAppointments}
               onAppointmentCreated={fetchAppointments}
               isClient={isClient}
+              selectedDate={selectedDate}
+              onDateChange={onDateClick}
             />
           </Card>
         </div>
