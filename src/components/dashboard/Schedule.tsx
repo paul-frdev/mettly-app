@@ -120,15 +120,30 @@ export function Schedule({
     return () => clearInterval(timer);
   }, []);
 
+  const [currentMonth, setCurrentMonth] = useState<Date>(selectedDate);
+
+  // Update current month when selected date changes
+  useEffect(() => {
+    setCurrentMonth(selectedDate);
+  }, [selectedDate]);
+
   const handlePreviousDay = () => {
     const newDate = subDays(selectedDate, 1);
-    if (!isBefore(startOfDay(newDate), startOfDay(new Date()))) {
+    if (!isBefore(startOfDay(newDate), startOfDay(new Date())) ||
+      isEqual(startOfDay(newDate), startOfDay(new Date()))) {
       setSelectedDate(newDate);
+      if (onDateChange) {
+        onDateChange(newDate);
+      }
     }
   };
 
   const handleNextDay = () => {
-    setSelectedDate(addDays(selectedDate, 1));
+    const newDate = addDays(selectedDate, 1);
+    setSelectedDate(newDate);
+    if (onDateChange) {
+      onDateChange(newDate);
+    }
   };
 
   const generateTimeSlots = () => {
@@ -200,9 +215,32 @@ export function Schedule({
         throw new Error('Failed to cancel appointment');
       }
 
+      // Save the current date before triggering the update
+      const currentSelectedDate = new Date(selectedDate);
+
+      // Call the callback to refresh appointments
       onAppointmentCreated();
-      triggerCalendarUpdate();
+
+      // Trigger calendar update to refresh the dots
+      if (triggerCalendarUpdate) {
+        triggerCalendarUpdate();
+      }
+
+      // Close the dialog
       setAppointmentToCancel(null);
+      setIsCancellationDialogOpen(false);
+
+      // Restore the selected date after the update
+      setSelectedDate(currentSelectedDate);
+      if (onDateChange) {
+        onDateChange(currentSelectedDate);
+      }
+
+      // Force a refresh of the parent component's data
+      if (onAppointmentCreated) {
+        onAppointmentCreated();
+      }
+
     } catch (error) {
       showError(error);
     }
@@ -263,18 +301,30 @@ export function Schedule({
   };
 
   const isTimeSlotBooked = (timeSlot: string) => {
+    const slotTime = parse(timeSlot, 'h:mm a', selectedDate);
+    const slotEndTime = new Date(slotTime.getTime() + (settings?.slotDuration || 30) * 60000);
+
     return filteredAppointments.some(appointment => {
       // Skip cancelled appointments
       if (appointment.status === 'cancelled') {
         return false;
       }
 
-      const appointmentTime = format(new Date(appointment.date), 'h:mm a');
-      const appointmentEndTime = format(
-        new Date(new Date(appointment.date).getTime() + appointment.duration * 60000),
-        'h:mm a'
+      const appointmentStart = new Date(appointment.date);
+      const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration * 60000);
+
+      // Convert all times to timestamps for comparison
+      const slotStartTime = slotTime.getTime();
+      const slotEndTimeMs = slotEndTime.getTime();
+      const appointmentStartTime = appointmentStart.getTime();
+      const appointmentEndTime = appointmentEnd.getTime();
+
+      // Check for overlap
+      return (
+        (slotStartTime >= appointmentStartTime && slotStartTime < appointmentEndTime) || // Slot starts during appointment
+        (slotEndTimeMs > appointmentStartTime && slotEndTimeMs <= appointmentEndTime) || // Slot ends during appointment
+        (slotStartTime <= appointmentStartTime && slotEndTimeMs >= appointmentEndTime) // Slot completely contains appointment
       );
-      return timeSlot >= appointmentTime && timeSlot < appointmentEndTime;
     });
   };
 
@@ -326,6 +376,18 @@ export function Schedule({
     ? getAvailableDurationsForTimeSlot(selectedTimeSlot)
     : [30, 45, 60, 90, 120];
 
+  // Helper function to format time with leading zeros
+  const formatTimeWithLeadingZero = (timeStr: string) => {
+    const [time, period] = timeStr.split(' ');
+    const [hours, minutes] = time.split(':');
+
+    // Format hours and minutes to have leading zeros
+    const formattedHours = hours.padStart(2, '0');
+    const formattedMinutes = minutes.padStart(2, '0');
+
+    return `${formattedHours}:${formattedMinutes} ${period}`;
+  };
+
   return (
     <div className="space-y-6">
       {isLoading ? (
@@ -366,6 +428,8 @@ export function Schedule({
                 <Calendar
                   mode="single"
                   selected={selectedDate}
+                  month={currentMonth}
+                  onMonthChange={setCurrentMonth}
                   onSelect={handleDateSelect}
                   disabled={(date) => {
                     const today = startOfDay(new Date());
@@ -453,7 +517,7 @@ export function Schedule({
 
                 return (
                   <div key={timeSlot} className='relative flex justify-end items-start gap-x-2' style={{ marginTop: '2px' }}>
-                    <div className={cn(isBooked ? " text-[#e42627] line-through" : 'text-slate-500', 'absolute left-0 top-0 whitespace-nowrap text-[14px] ')}>{timeSlot}</div>
+                    <div className={cn(isBooked ? " text-[#e42627] line-through" : 'text-slate-500', 'absolute left-0 -top-2 whitespace-nowrap text-[14px] ')}>{formatTimeWithLeadingZero(timeSlot)}</div>
                     <div
                       className={cn(
                         "p-2 rounded text-sm flex justify-end items-center w-full max-w-[calc(100%-72px)] h-[48px]",
