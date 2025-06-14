@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Schedule } from '@/components/dashboard/Schedule';
 import { showError } from '@/lib/utils/notifications';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ClientFormDialog } from '@/components/dashboard/ClientFormDialog';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useSession, signOut } from 'next-auth/react';
 
@@ -53,6 +53,9 @@ export function DashboardContent() {
   const [calendarAppointments, setCalendarAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isClientFormOpen, setIsClientFormOpen] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
   const isClient = session?.user?.isClient;
 
   useEffect(() => {
@@ -180,195 +183,128 @@ export function DashboardContent() {
     );
   }
 
+  // Calendar calculations
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(currentDate);
+  const daysInMonth = eachDayOfInterval({
+    start: monthStart,
+    end: monthEnd,
+  });
+
+  const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
+  const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
+  const onDateClick = (day: Date) => setSelectedDate(day);
+
+  // Filter appointments for selected date
+  const selectedDateAppointments = appointments.filter(apt => {
+    return isSameDay(new Date(apt.date), selectedDate);
+  });
+
   return (
     <div className="container mx-auto py-8">
-      {!isClient && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 mb-8">
-          <Card className="bg-blue-50 border-none shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-blue-700">Upcoming</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-700">{upcomingAppointments.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-sky-50 border-none shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-sky-700">Today&apos;s Appointments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-sky-700">{todayAppointments.length}</div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid md:grid-cols-3 gap-8">
         <Card className="p-6 bg-white border border-gray-100 shadow-xl">
-          <div className="flex justify-between items-center mb-6">
+          <div className="mb-6 flex justify-between items-center">
             <h2 className="text-xl font-semibold text-blue-700">
-              {isClient ? 'My Appointments' : 'Today\'s Appointments'}
+              {format(currentDate, 'MMMM yyyy')}
             </h2>
-            {!isClient && (
-              <Button
-                onClick={() => setIsClientFormOpen(true)}
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Client
+            <div className="flex space-x-2">
+              <Button variant="outline" size="icon" onClick={prevMonth}>
+                <ChevronLeft className="h-4 w-4" />
               </Button>
-            )}
-          </div>
-
-          <div className="h-[calc(100vh-300px)] overflow-y-auto pr-2">
-            <div className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-sky-700">Today&apos;s Appointments</h2>
-                  {todayAppointments.length === 0 ? (
-                    <p className="text-gray-500">No appointments scheduled for today.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {todayAppointments.map((appointment) => (
-                        <div
-                          key={appointment.id}
-                          className="p-4 rounded-lg bg-sky-50 border border-sky-100"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-medium text-blue-800">
-                                {appointment.client?.name || 'No client name'}
-                              </h3>
-                              <p className="text-sm text-gray-500">
-                                {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
-                              </p>
-                            </div>
-                            <Badge variant={appointment.status === 'cancelled' ? 'destructive' : 'default'}>
-                              {appointment.status === 'cancelled' ? 'Cancelled' : 'Scheduled'}
-                            </Badge>
-                          </div>
-                          {appointment.status === 'cancelled' && appointment.cancellationReason && (
-                            <p className="mt-2 text-sm text-red-500">
-                              Cancellation reason: {appointment.cancellationReason}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-blue-700">Upcoming Appointments</h2>
-                  {upcomingAppointments.length === 0 ? (
-                    <p className="text-gray-500">No upcoming appointments.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {upcomingAppointments.map((appointment) => (
-                        <div
-                          key={appointment.id}
-                          className="p-4 rounded-lg bg-blue-50 border border-blue-100"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-medium text-blue-800">
-                                {appointment.client?.name || 'No client name'}
-                              </h3>
-                              <p className="text-sm text-gray-500">
-                                {format(new Date(appointment.date), 'PPP')} • {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
-                              </p>
-                            </div>
-                            <Badge variant={appointment.status === 'cancelled' ? 'destructive' : 'default'}>
-                              {appointment.status === 'cancelled' ? 'Cancelled' : 'Scheduled'}
-                            </Badge>
-                          </div>
-                          {appointment.status === 'cancelled' && appointment.cancellationReason && (
-                            <p className="mt-2 text-sm text-red-500">
-                              Cancellation reason: {appointment.cancellationReason}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {completedAppointments.length > 0 && (
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-green-700">Completed Appointments</h2>
-                  <div className="space-y-2">
-                    {completedAppointments.map((appointment) => (
-                      <div
-                        key={appointment.id}
-                        className="p-4 rounded-lg bg-green-50 border border-green-100"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-medium text-green-800">
-                              {appointment.client?.name || 'No client name'}
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                              {format(new Date(appointment.date), 'PPP')} • {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
-                            </p>
-                          </div>
-                          <Badge variant="secondary">Completed</Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {cancelledAppointments.length > 0 && (
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-red-700">Cancelled Appointments</h2>
-                  <div className="space-y-2">
-                    {cancelledAppointments.map((appointment) => (
-                      <div
-                        key={appointment.id}
-                        className="p-4 rounded-lg bg-red-50 border border-red-100"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-medium text-red-800">
-                              {appointment.client?.name || 'No client name'}
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                              {format(new Date(appointment.date), 'h:mm a')} • {appointment.duration} min
-                            </p>
-                          </div>
-                          <Badge variant="destructive">Cancelled</Badge>
-                        </div>
-                        {appointment.cancellationReason && (
-                          <p className="mt-2 text-sm text-red-500">
-                            Cancellation reason: {appointment.cancellationReason}
-                          </p>
-                        )}
-                        {appointment.cancelledAt && (
-                          <p className="mt-1 text-sm text-gray-500">
-                            Cancelled on: {format(new Date(appointment.cancelledAt), 'PPP h:mm a')}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <Button variant="outline" size="icon" onClick={nextMonth}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-        </Card>
 
-        <Card className="p-6 bg-sky-50 border border-sky-100 shadow-xl">
-          <h2 className="text-xl font-semibold mb-6 text-blue-700">Schedule</h2>
-          <Schedule
-            appointments={calendarAppointments}
-            onAppointmentCreated={fetchAppointments}
-            isClient={isClient}
-          />
+          <div className="grid grid-cols-7 gap-1 mb-4">
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+              <div key={day} className="text-center text-sm font-medium text-gray-500">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-1">
+            {daysInMonth.map((day, i) => {
+              const dayAppointments = appointments.filter(apt =>
+                isSameDay(new Date(apt.date), day)
+              );
+              const isSelected = isSameDay(day, selectedDate);
+              const isCurrentMonth = isSameMonth(day, currentDate);
+              const isToday = isSameDay(day, new Date());
+
+              return (
+                <div
+                  key={day.toString()}
+                  onClick={() => onDateClick(day)}
+                  className={`
+                    h-10 w-10 mx-auto flex items-center justify-center rounded-full cursor-pointer
+                    ${isSelected ? 'bg-blue-100 text-blue-700' : ''}
+                    ${isToday && !isSelected ? 'bg-gray-100' : ''}
+                    ${!isCurrentMonth ? 'text-gray-300' : 'hover:bg-gray-50'}
+                    relative
+                  `}
+                >
+                  {format(day, 'd')}
+                  {dayAppointments.length > 0 && (
+                    <span className="absolute bottom-0 w-1 h-1 rounded-full bg-blue-500"></span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-medium">
+                {format(selectedDate, 'EEEE, MMMM d')}
+              </h3>
+              {!isClient && (
+                <Button
+                  onClick={() => setIsClientFormOpen(true)}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add
+                </Button>
+              )}
+            </div>
+
+            {selectedDateAppointments.length > 0 ? (
+              <div className="space-y-2">
+                {selectedDateAppointments.map(apt => (
+                  <div key={apt.id} className="p-2 text-sm border rounded-md hover:bg-gray-50">
+                    <div className="font-medium">
+                      {format(new Date(apt.date), 'h:mm a')}
+                      {apt.client.name && ` • ${apt.client.name}`}
+                    </div>
+                    {apt.notes && (
+                      <div className="text-gray-500 text-xs truncate">{apt.notes}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 text-center py-4">
+                No appointments for this day
+              </div>
+            )}
+          </div>
         </Card>
+        <div className="md:col-span-2">
+          <Card className="p-6 bg-sky-50 border border-sky-100 shadow-xl h-full">
+            <h2 className="text-xl font-semibold mb-6 text-blue-700">Schedule</h2>
+            <Schedule
+              appointments={calendarAppointments}
+              onAppointmentCreated={fetchAppointments}
+              isClient={isClient}
+            />
+          </Card>
+        </div>
       </div>
 
       {!isClient && (
