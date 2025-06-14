@@ -30,6 +30,8 @@ interface Appointment {
   client?: Client;
   clientId?: string;
   status: string;
+  description?: string;
+  notes?: string;
 }
 
 interface ScheduleProps {
@@ -480,26 +482,26 @@ export function Schedule({
                       <div className="flex items-center gap-2">
                         {appointment && !isPast && (
                           <>
-                            <span className="text-xs text-white">
-                              {appointment.client?.name || 'No client name'}
+                            <span className="text-sm text-black">
+                              {appointment.notes || (appointment.client?.name || 'No description')}
                               {appointment.duration > 60 && ` (${appointment.duration}min)`}
                             </span>
                             {(!isClient || (isClient && isOwnAppointment)) && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white hover:bg-white/10">
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black">
                                     <MoreVertical className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/20">
                                   <DropdownMenuItem
                                     onClick={() => handleEditAppointment(appointment)}
-                                    className="text-white hover:bg-white/10"
+                                    className="text-white hover:bg-white/10 cursor-pointer"
                                   >
                                     Edit time
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    className="text-red-400 hover:bg-red-500/20"
+                                    className="text-red-400 hover:bg-red-500/20 cursor-pointer"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleDeleteAppointment(appointment);
@@ -516,7 +518,7 @@ export function Schedule({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-white hover:bg-white/10"
+                            className="h-8 w-8 p-0 text-black hover:bg-white/10"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedTimeSlot(timeSlot);
