@@ -108,7 +108,10 @@ const CustomEvent: React.FC<CustomEventProps> = ({
       onMouseLeave={handleMouseLeave}
     >
       <PopoverInfo
-        event={event}
+        event={{
+          ...event,
+          color: event.color || (event.clientId ? stringToColor(event.clientId) : undefined)
+        }}
         onEdit={() => !isEventInPastOrOngoing && onRequestEdit(event)}
         onDelete={() => !isEventInPastOrOngoing && onRequestDelete(event)}
         open={open}
