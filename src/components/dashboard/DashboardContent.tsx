@@ -10,6 +10,7 @@ import { ClientFormDialog } from '@/components/dashboard/ClientFormDialog';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useSession, signOut } from 'next-auth/react';
+import { Loader } from '../Loader';
 
 interface Client {
   id: string;
@@ -176,11 +177,7 @@ export function DashboardContent() {
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#e42627]"></div>
-      </div>
-    );
+    return <Loader />;
   }
 
   // Calendar calculations
