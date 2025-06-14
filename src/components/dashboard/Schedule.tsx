@@ -236,12 +236,24 @@ export function Schedule({
         throw new Error('Failed to create appointment');
       }
 
+      // Save the current date before triggering the update
+      const currentSelectedDate = new Date(selectedDate);
+
+      // Reset form state
       setIsCreateDialogOpen(false);
       setNotes('');
       setSelectedClientId('');
       setDuration(60);
+
+      // Call the callback to refresh appointments
       onAppointmentCreated();
       triggerCalendarUpdate();
+
+      // Restore the selected date after the update
+      setSelectedDate(currentSelectedDate);
+      if (onDateChange) {
+        onDateChange(currentSelectedDate);
+      }
     } catch (error) {
       showError(error);
     }
