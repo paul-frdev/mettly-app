@@ -33,9 +33,28 @@ export function Schedule({
   isClient,
   selectedDate: propSelectedDate,
   onDateChange,
-  triggerCalendarUpdate,
 }: ScheduleProps) {
+  const { settings, isHoliday } = useBusinessSettings();
+  const { triggerCalendarUpdate: calendarUpdate } = useCalendarSync();
+
   const [selectedDate, setSelectedDate] = useState<Date>(propSelectedDate);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [duration, setDuration] = useState<number>(60);
+  const [notes, setNotes] = useState<string>('');
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+
+  let dayEnd: Date | null = null;
+  let endHour = 23, endMinute = 59;
+
+  if (settings) {
+    dayEnd = new Date(selectedDate);
+    [endHour, endMinute] = settings.workingHours[format(selectedDate, 'EEEE')]?.end.split(':').map(Number) || [23, 59];
+    dayEnd.setHours(endHour, endMinute, 0, 0);
+  }
 
   // Sync with parent component's selected date
   useEffect(() => {
@@ -52,25 +71,6 @@ export function Schedule({
       }
     }
   };
-
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
-  const [duration, setDuration] = useState<number>(60);
-  const [notes, setNotes] = useState<string>('');
-  const [clients, setClients] = useState<Client[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState<string>('');
-  const { settings, isHoliday } = useBusinessSettings();
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  const { triggerCalendarUpdate: calendarUpdate } = useCalendarSync();
-
-  let dayEnd: Date | null = null;
-  let endHour = 23, endMinute = 59;
-  if (settings) {
-    dayEnd = new Date(selectedDate);
-    [endHour, endMinute] = settings.workingHours[format(selectedDate, 'EEEE')]?.end.split(':').map(Number) || [23, 59];
-    dayEnd.setHours(endHour, endMinute, 0, 0);
-  }
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -180,11 +180,6 @@ export function Schedule({
     onAppointmentCancelled(appointment);
   };
 
-  const handleCancelAppointment = async (reason: string) => {
-    // Removed local state for cancellation dialog and appointment to cancel
-    // Now handled by parent component
-  };
-
   const handleCreateAppointment = async () => {
     if (!selectedTimeSlot) {
       showError('Please select a time slot');
@@ -268,14 +263,21 @@ export function Schedule({
   };
 
   const getAppointmentForTimeSlot = (timeSlot: string) => {
-    return filteredAppointments.find(appointment => {
-      // Skip cancelled appointments
-      if (appointment.status === 'cancelled') {
-        return false;
-      }
+    const slotTime = parse(timeSlot, 'h:mm a', selectedDate);
+    const slotEndTime = new Date(slotTime.getTime() + (settings?.slotDuration || 30) * 60000);
 
-      const appointmentTime = format(new Date(appointment.date), 'h:mm a');
-      return timeSlot === appointmentTime;
+    return filteredAppointments.find(appointment => {
+      if (appointment.status === 'cancelled') return false;
+
+      const appointmentStart = new Date(appointment.date);
+      const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration * 60000);
+
+      // Проверка на пересечение слота и встречи
+      return (
+        (slotTime >= appointmentStart && slotTime < appointmentEnd) ||
+        (slotEndTime > appointmentStart && slotEndTime <= appointmentEnd) ||
+        (slotTime <= appointmentStart && slotEndTime >= appointmentEnd)
+      );
     });
   };
 

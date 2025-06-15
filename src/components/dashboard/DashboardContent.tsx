@@ -10,16 +10,13 @@ import { showError, showSuccess } from '@/lib/utils/notifications';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ClientFormDialog } from '@/components/dashboard/ClientFormDialog';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
 import { useSession, signOut } from 'next-auth/react';
 import { Loader } from '../Loader';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { CancelDialog } from '../dialogs/CancelDialog';
 
 export function DashboardContent() {
   const { data: session, status } = useSession();
   const { appointments, isLoading, fetchAppointments } = useAppointments();
-  const [calendarAppointments, setCalendarAppointments] = useState<Appointment[]>([]);
   const [isClientFormOpen, setIsClientFormOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -146,9 +143,6 @@ export function DashboardContent() {
     }
   };
 
-  if (isLoading) {
-    return <Loader />;
-  }
 
   // Calendar calculations
   const monthStart = startOfMonth(currentDate);
@@ -168,6 +162,10 @@ export function DashboardContent() {
       apt.status !== 'cancelled' &&
       apt.attendance?.status !== 'declined';
   });
+
+  if (isLoading) {
+    return <Loader />;
+  }
 
   return (
     <div className="container mx-auto py-8">
@@ -274,7 +272,7 @@ export function DashboardContent() {
           <Card className="p-6 bg-sky-50 border border-sky-100 shadow-xl h-full">
             <h2 className="text-xl font-semibold mb-6 text-blue-700">Schedule</h2>
             <Schedule
-              appointments={calendarAppointments}
+              appointments={appointments}
               onAppointmentCreated={fetchAppointments}
               onAppointmentCancelled={(appointment) => {
                 setAppointmentToCancel(appointment);
