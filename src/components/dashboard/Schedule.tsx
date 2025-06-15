@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format, addDays, subDays, startOfDay, isBefore, isEqual, parse } from 'date-fns';
+import { format, addDays, subDays, startOfDay, isBefore, isEqual, parse, isSameDay } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { stringToColor, getContrastTextColor } from '@/lib/utils/colors';
 import { ChevronLeft, ChevronRight, CalendarIcon, MoreVertical, Plus } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -10,55 +11,66 @@ import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 import { toast } from 'sonner';
-import { CancelDialog } from '@/components/dialogs/CancelDialog';
-import { AppointmentDialog } from '@/components/dialogs/AppointmentDialog';
 import { showError } from '@/lib/utils/notifications';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
-
-interface Client {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-}
-
-interface Appointment {
-  id: string;
-  date: Date;
-  duration: number;
-  client?: Client;
-  clientId?: string;
-  status: string;
-}
+import { AppointmentDialog } from '../dialogs/AppointmentDialog';
+import { Appointment, Client } from '@/types/appointment';
 
 interface ScheduleProps {
   appointments: Appointment[];
   onAppointmentCreated: () => void;
+  onAppointmentCancelled: (appointment: Appointment) => void;
   isClient?: boolean;
+  selectedDate: Date;
+  onDateChange: (date: Date) => void;
+  triggerCalendarUpdate?: () => void;
 }
 
-export function Schedule({ appointments, onAppointmentCreated, isClient }: ScheduleProps) {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+export function Schedule({
+  appointments,
+  onAppointmentCreated,
+  onAppointmentCancelled,
+  isClient,
+  selectedDate: propSelectedDate,
+  onDateChange,
+}: ScheduleProps) {
+  const { settings, isHoliday } = useBusinessSettings();
+  const { triggerCalendarUpdate: calendarUpdate } = useCalendarSync();
+
+  const [selectedDate, setSelectedDate] = useState<Date>(propSelectedDate);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [duration, setDuration] = useState<number>(60);
   const [notes, setNotes] = useState<string>('');
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
-  const { settings, isHoliday } = useBusinessSettings();
   const [isLoading, setIsLoading] = useState(true);
-  const [isCancellationDialogOpen, setIsCancellationDialogOpen] = useState(false);
-  const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  const { triggerCalendarUpdate } = useCalendarSync();
 
   let dayEnd: Date | null = null;
   let endHour = 23, endMinute = 59;
+
   if (settings) {
     dayEnd = new Date(selectedDate);
     [endHour, endMinute] = settings.workingHours[format(selectedDate, 'EEEE')]?.end.split(':').map(Number) || [23, 59];
     dayEnd.setHours(endHour, endMinute, 0, 0);
   }
+
+  // Sync with parent component's selected date
+  useEffect(() => {
+    if (propSelectedDate && !isSameDay(propSelectedDate, selectedDate)) {
+      setSelectedDate(propSelectedDate);
+    }
+  }, [propSelectedDate]);
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+      if (onDateChange) {
+        onDateChange(date);
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -92,15 +104,30 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
     return () => clearInterval(timer);
   }, []);
 
+  const [currentMonth, setCurrentMonth] = useState<Date>(selectedDate);
+
+  // Update current month when selected date changes
+  useEffect(() => {
+    setCurrentMonth(selectedDate);
+  }, [selectedDate]);
+
   const handlePreviousDay = () => {
     const newDate = subDays(selectedDate, 1);
-    if (!isBefore(startOfDay(newDate), startOfDay(new Date()))) {
+    if (!isBefore(startOfDay(newDate), startOfDay(new Date())) ||
+      isEqual(startOfDay(newDate), startOfDay(new Date()))) {
       setSelectedDate(newDate);
+      if (onDateChange) {
+        onDateChange(newDate);
+      }
     }
   };
 
   const handleNextDay = () => {
-    setSelectedDate(addDays(selectedDate, 1));
+    const newDate = addDays(selectedDate, 1);
+    setSelectedDate(newDate);
+    if (onDateChange) {
+      onDateChange(newDate);
+    }
   };
 
   const generateTimeSlots = () => {
@@ -150,34 +177,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
   };
 
   const handleDeleteAppointment = (appointment: Appointment) => {
-    setAppointmentToCancel(appointment);
-    setIsCancellationDialogOpen(true);
-  };
-
-  const handleCancelAppointment = async (reason: string) => {
-    if (!appointmentToCancel) return;
-
-    try {
-      const response = await fetch(`/api/appointments/${appointmentToCancel.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cancellationReason: reason,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to cancel appointment');
-      }
-
-      onAppointmentCreated();
-      triggerCalendarUpdate();
-      setAppointmentToCancel(null);
-    } catch (error) {
-      showError(error);
-    }
+    onAppointmentCancelled(appointment);
   };
 
   const handleCreateAppointment = async () => {
@@ -211,42 +211,73 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
         throw new Error('Failed to create appointment');
       }
 
+      // Save the current date before triggering the update
+      const currentSelectedDate = new Date(selectedDate);
+
+      // Reset form state
       setIsCreateDialogOpen(false);
       setNotes('');
       setSelectedClientId('');
       setDuration(60);
+
+      // Call the callback to refresh appointments
       onAppointmentCreated();
-      triggerCalendarUpdate();
+      calendarUpdate?.();
+
+      // Restore the selected date after the update
+      setSelectedDate(currentSelectedDate);
+      if (onDateChange) {
+        onDateChange(currentSelectedDate);
+      }
     } catch (error) {
       showError(error);
     }
   };
 
   const isTimeSlotBooked = (timeSlot: string) => {
+    const slotTime = parse(timeSlot, 'h:mm a', selectedDate);
+    const slotEndTime = new Date(slotTime.getTime() + (settings?.slotDuration || 30) * 60000);
+
     return filteredAppointments.some(appointment => {
       // Skip cancelled appointments
       if (appointment.status === 'cancelled') {
         return false;
       }
 
-      const appointmentTime = format(new Date(appointment.date), 'h:mm a');
-      const appointmentEndTime = format(
-        new Date(new Date(appointment.date).getTime() + appointment.duration * 60000),
-        'h:mm a'
+      const appointmentStart = new Date(appointment.date);
+      const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration * 60000);
+
+      // Convert all times to timestamps for comparison
+      const slotStartTime = slotTime.getTime();
+      const slotEndTimeMs = slotEndTime.getTime();
+      const appointmentStartTime = appointmentStart.getTime();
+      const appointmentEndTime = appointmentEnd.getTime();
+
+      // Check for overlap
+      return (
+        (slotStartTime >= appointmentStartTime && slotStartTime < appointmentEndTime) || // Slot starts during appointment
+        (slotEndTimeMs > appointmentStartTime && slotEndTimeMs <= appointmentEndTime) || // Slot ends during appointment
+        (slotStartTime <= appointmentStartTime && slotEndTimeMs >= appointmentEndTime) // Slot completely contains appointment
       );
-      return timeSlot >= appointmentTime && timeSlot < appointmentEndTime;
     });
   };
 
   const getAppointmentForTimeSlot = (timeSlot: string) => {
-    return filteredAppointments.find(appointment => {
-      // Skip cancelled appointments
-      if (appointment.status === 'cancelled') {
-        return false;
-      }
+    const slotTime = parse(timeSlot, 'h:mm a', selectedDate);
+    const slotEndTime = new Date(slotTime.getTime() + (settings?.slotDuration || 30) * 60000);
 
-      const appointmentTime = format(new Date(appointment.date), 'h:mm a');
-      return timeSlot === appointmentTime;
+    return filteredAppointments.find(appointment => {
+      if (appointment.status === 'cancelled') return false;
+
+      const appointmentStart = new Date(appointment.date);
+      const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration * 60000);
+
+      // Проверка на пересечение слота и встречи
+      return (
+        (slotTime >= appointmentStart && slotTime < appointmentEnd) ||
+        (slotEndTime > appointmentStart && slotEndTime <= appointmentEnd) ||
+        (slotTime <= appointmentStart && slotEndTime >= appointmentEnd)
+      );
     });
   };
 
@@ -286,6 +317,18 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
     ? getAvailableDurationsForTimeSlot(selectedTimeSlot)
     : [30, 45, 60, 90, 120];
 
+  // Helper function to format time with leading zeros
+  const formatTimeWithLeadingZero = (timeStr: string) => {
+    const [time, period] = timeStr.split(' ');
+    const [hours, minutes] = time.split(':');
+
+    // Format hours and minutes to have leading zeros
+    const formattedHours = hours.padStart(2, '0');
+    const formattedMinutes = minutes.padStart(2, '0');
+
+    return `${formattedHours}:${formattedMinutes} ${period}`;
+  };
+
   return (
     <div className="space-y-6">
       {isLoading ? (
@@ -313,24 +356,28 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-[280px] justify-start text-left font-normal bg-black/70 border-white/20 text-white hover:bg-white/20 hover:text-black hover:border-black/40"
+                  className={cn(
+                    'w-[260px] justify-start text-left font-normal',
+                    !selectedDate && 'text-muted-foreground'
+                  )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {format(selectedDate, 'PPP')} • {format(selectedDate, 'EEEE')}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-[#1a1a2e] border-white/20" align="center">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
+                  month={currentMonth}
+                  onMonthChange={setCurrentMonth}
+                  onSelect={handleDateSelect}
                   disabled={(date) => {
                     const today = startOfDay(new Date());
                     const checkDate = startOfDay(date);
                     return isBefore(checkDate, today);
                   }}
                   initialFocus
-                  className="bg-[#1a1a2e] text-white"
                 />
               </PopoverContent>
             </Popover>
@@ -411,16 +458,21 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
 
                 return (
                   <div key={timeSlot} className='relative flex justify-end items-start gap-x-2' style={{ marginTop: '2px' }}>
-                    <div className={cn(isBooked ? " text-[#e42627] line-through" : 'text-slate-500', 'absolute left-0 top-0 whitespace-nowrap text-[14px] ')}>{timeSlot}</div>
+                    <div className={cn(isBooked ? " text-[#e42627] line-through" : 'text-slate-500', 'absolute left-0 -top-2 whitespace-nowrap text-[14px] ')}>{formatTimeWithLeadingZero(timeSlot)}</div>
                     <div
                       className={cn(
                         "p-2 rounded text-sm flex justify-end items-center w-full max-w-[calc(100%-72px)] h-[48px]",
                         isBooked
-                          ? "bg-[#e42627]/20 text-[#e42627]"
+                          ? "" // Remove default background color for booked slots
                           : isPast
                             ? "bg-gray-500/10 text-gray-300"
                             : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer"
                       )}
+                      style={isBooked && appointment?.clientId ? {
+                        backgroundColor: `${stringToColor(appointment.clientId)}33`, // Add transparency
+                        color: getContrastTextColor(stringToColor(appointment.clientId)),
+                        borderLeft: `4px solid ${stringToColor(appointment.clientId)}`,
+                      } : {}}
                       onClick={() => {
                         if (isBooked && !isPast && appointment) {
                           if (!isClient || (isClient && isOwnAppointment)) {
@@ -431,32 +483,30 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                           setIsCreateDialogOpen(true);
                         }
                       }}
-
                     >
-
                       <div className="flex items-center gap-2">
                         {appointment && !isPast && (
                           <>
-                            <span className="text-xs text-white">
-                              {appointment.client?.name || 'No client name'}
+                            <span className="text-sm text-black">
+                              {appointment.notes || (appointment.client?.name || 'No description')}
                               {appointment.duration > 60 && ` (${appointment.duration}min)`}
                             </span>
                             {(!isClient || (isClient && isOwnAppointment)) && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white hover:bg-white/10">
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black">
                                     <MoreVertical className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/20">
                                   <DropdownMenuItem
                                     onClick={() => handleEditAppointment(appointment)}
-                                    className="text-white hover:bg-white/10"
+                                    className="text-white hover:bg-white/10 cursor-pointer"
                                   >
                                     Edit time
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    className="text-red-400 hover:bg-red-500/20"
+                                    className="text-red-400 hover:bg-red-500/20 cursor-pointer"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleDeleteAppointment(appointment);
@@ -473,7 +523,7 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-white hover:bg-white/10"
+                            className="h-8 w-8 p-0 text-black hover:bg-white/10"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedTimeSlot(timeSlot);
@@ -510,14 +560,8 @@ export function Schedule({ appointments, onAppointmentCreated, isClient }: Sched
             timeLabel={selectedTimeSlot}
             dateLabel={format(selectedDate, 'PPP')}
           />
-
-          <CancelDialog
-            isOpen={isCancellationDialogOpen}
-            onOpenChange={setIsCancellationDialogOpen}
-            onCancel={handleCancelAppointment}
-          />
         </>
       )}
     </div>
   );
-} 
+}

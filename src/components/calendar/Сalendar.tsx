@@ -3,8 +3,8 @@
 import '../../styles/calendar.css';
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, setHours, setMinutes } from 'date-fns';
-import { enUS } from 'date-fns/locale';
+import { format, parse, startOfWeek, getDay, addMinutes, setHours, setMinutes } from 'date-fns';
+import { enUS, ru } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSession } from 'next-auth/react';
 import { PopoverInfo } from "@/components/PopoverInfo";
@@ -17,11 +17,12 @@ import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { CancelDialog } from '@/components/dialogs/CancelDialog';
 import { cn } from '@/lib/utils';
-import { getClientColor } from '@/lib/colorUtils';
+import { stringToColor, getContrastTextColor } from '@/lib/utils/colors';
 import { Loader } from '../Loader';
 
 const locales = {
   'en-US': enUS,
+  'ru': ru,
 };
 
 const localizer = dateFnsLocalizer({
@@ -50,7 +51,7 @@ const CustomEvent: React.FC<CustomEventProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const color = event.clientId ? getClientColor(event.clientId) : (event.color || "#3b82f6");
+  const color = event.clientId ? stringToColor(event.clientId) : (event.color || "#3b82f6");
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);
 
@@ -107,7 +108,10 @@ const CustomEvent: React.FC<CustomEventProps> = ({
       onMouseLeave={handleMouseLeave}
     >
       <PopoverInfo
-        event={event}
+        event={{
+          ...event,
+          color: event.color || (event.clientId ? stringToColor(event.clientId) : undefined)
+        }}
         onEdit={() => !isEventInPastOrOngoing && onRequestEdit(event)}
         onDelete={() => !isEventInPastOrOngoing && onRequestDelete(event)}
         open={open}
@@ -426,17 +430,24 @@ export function Calendar() {
           selectable={true}
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
-          eventPropGetter={(event) => ({
-            style: {
-              backgroundColor: event.status === 'pending' || event.status === 'confirmed'
-                ? '#d1fae5'
-                : '#ef4444',
-              borderColor: event.status === 'pending' || event.status === 'confirmed'
-                ? '#10b981'
-                : '#dc2626',
-              color: 'black',
-            },
-          })}
+          eventPropGetter={(event) => {
+            // Use client ID to generate a consistent color for each client
+            const bgColor = event.clientId ? stringToColor(event.clientId) : '#d1fae5';
+            const isConfirmed = event.status === 'pending' || event.status === 'confirmed';
+            const opacity = isConfirmed ? '33' : '66'; // More transparent for cancelled events
+
+            return {
+              style: {
+                backgroundColor: `${bgColor}${opacity}`,
+                borderLeft: `4px solid ${bgColor}`,
+                color: getContrastTextColor(bgColor),
+                borderRadius: '4px',
+                padding: '2px 4px',
+                fontSize: '0.875rem',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              },
+            };
+          }}
           slotPropGetter={(date) => ({
             className: "calendar-slot",
             onMouseEnter: (e) => {

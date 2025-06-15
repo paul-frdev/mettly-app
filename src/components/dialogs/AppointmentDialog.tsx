@@ -19,24 +19,26 @@ interface Client {
 
 interface AppointmentDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
   clients?: Client[];
   isClient?: boolean;
   selectedClientId?: string;
-  onClientChange?: (id: string) => void;
   notes: string;
-  onNotesChange: (val: string) => void;
   duration: number;
-  onDurationChange: (val: number) => void;
   availableDurations: number[];
   maxAvailableDuration: number;
+  manualTime?: string | null;
+  showTimeSelect?: boolean;
+  workingHours?: { start: string; end: string };
+  timeLabel?: string;
+  dateLabel?: string;
+  onOpenChange: (open: boolean) => void;
+  onClientChange?: (id: string) => void;
+  onNotesChange: (val: string) => void;
+  onDurationChange: (val: number) => void;
   onSubmit: () => void;
   onCancel: () => void;
   onDelete: () => void;
-  manualTime?: string | null;
   onManualTimeChange?: (val: string) => void;
-  showTimeSelect?: boolean;
-  workingHours?: { start: string; end: string };
 }
 
 export function AppointmentDialog({
