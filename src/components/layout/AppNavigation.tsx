@@ -5,7 +5,6 @@ import { useEffect, useState, useRef } from 'react';
 import { LogOut, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { signOut } from 'next-auth/react';
-import Logo from '@/components/Logo';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
@@ -14,7 +13,6 @@ import { cn } from '@/lib/utils';
 export function AppNavigation() {
   const [isScrolled, setIsScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const t = useTranslations('navigation');
   const tAuth = useTranslations('auth');
 
@@ -22,9 +20,9 @@ export function AppNavigation() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
+
     const container = containerRef.current?.parentElement?.parentElement; // Get the scrollable container
-    
+
     if (!container) return;
 
     const handleScroll = () => {
@@ -39,8 +37,6 @@ export function AppNavigation() {
   const handleLogout = async () => {
     await signOut({ redirect: true, callbackUrl: '/en' });
   };
-
-  console.log('isScrolled', isScrolled);
 
   return (
     <motion.nav

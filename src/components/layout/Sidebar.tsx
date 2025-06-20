@@ -34,7 +34,7 @@ const sidebarVariants = {
 
 const itemVariants = {
   open: { opacity: 1, x: 0 },
-  closed: { opacity: 0, x: -20 },
+  closed: { opacity: 1, x: 0 }, // Changed from opacity: 0 to 1 to keep icons visible
 };
 
 export function Sidebar() {
@@ -70,7 +70,7 @@ export function Sidebar() {
     >
       <div className="flex flex-col h-full">
         {/* Logo */}
-        <div className="flex h-20 items-center px-4 border-b border-blue-100">
+        <div className="flex h-20 items-center px-4">
           <Link href="/dashboard" className="flex items-center w-full">
             <motion.div
               variants={itemVariants}
@@ -87,8 +87,8 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <ScrollArea className="flex-1 px-2 py-4">
-          <div className="space-y-1">
+        <ScrollArea className="flex-1 px-2 pt-6 pb-4">
+          <div className="space-y-2">
             {navigation.map((item) => {
               const isActive = pathname.includes(item.href);
 
@@ -104,19 +104,21 @@ export function Sidebar() {
                         <Link
                           href={item.href}
                           className={cn(
-                            'flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all',
+                            'flex items-center px-4 py-3 text-base font-medium rounded-lg transition-all',
                             'hover:bg-blue-50 hover:text-blue-600',
                             isActive
                               ? 'bg-blue-50 text-blue-600 font-semibold'
                               : 'text-gray-700',
                             isCollapsed ? 'justify-center' : 'justify-start',
-                            'group'
+                            'group',
+                            'overflow-visible' // Ensure tooltips are not cut off
                           )}
                         >
                           <span className={cn(
                             'flex items-center justify-center',
                             isCollapsed ? 'mr-0' : 'mr-4',
-                            isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-blue-600'
+                            isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-blue-600',
+                            'transition-colors duration-200' // Smooth color transitions
                           )}>
                             {item.icon}
                           </span>
@@ -146,7 +148,7 @@ export function Sidebar() {
         </ScrollArea>
 
         {/* Collapse button */}
-        <div className="p-3 border-t border-blue-100">
+        <div className="p-4 border-t border-blue-100 mt-2 ml-auto">
           <Button
             variant="ghost"
             size="icon"
