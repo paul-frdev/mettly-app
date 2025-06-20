@@ -39,7 +39,7 @@ model User {
   businessSettings        BusinessSettings?
   notificationSettings    NotificationSettings?
 
-  @@map("users")
+  @@map("user")
 }
 
 model Account {
@@ -78,22 +78,24 @@ model VerificationToken {
 
 model Client {
   id                       String        @id @default(cuid())
-  userId                   String
+  userId                   String        @map("user_id")
   name                     String
   phone                    String
   notes                    String?
-  createdAt                DateTime      @default(now())
-  updatedAt                DateTime      @updatedAt
+  createdAt                DateTime      @default(now()) @map("created_at")
+  updatedAt                DateTime      @updatedAt @map("updated_at")
   email                    String        @unique
   status                   String        @default("active")
-  telegramId               String?       @unique
-  telegramUsername         String?
-  reminderTimeHours        Int           @default(2)
-  telegramRemindersEnabled Boolean       @default(true)
+  telegramId               String?       @unique @map("telegram_id")
+  telegramUsername         String?       @map("telegram_username")
+  reminderTimeHours        Int           @default(2) @map("reminder_time_hours")
+  telegramRemindersEnabled Boolean       @default(true) @map("telegram_reminders_enabled")
   password                 String
   user                     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments                 Payment[]
   appointments             Appointment[]
+
+  @@map("client")
 }
 
 model Appointment {
@@ -102,19 +104,19 @@ model Appointment {
   duration           Int         @default(30)
   notes              String?
   status             String      @default("scheduled")
-  userId             String
-  clientId           String
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-  cancellationReason String?
-  cancelledAt        DateTime?
+  userId             String      @map("user_id")
+  clientId           String      @map("client_id")
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
+  cancellationReason String?     @map("cancellation_reason")
+  cancelledAt        DateTime?   @map("cancelled_at")
   attendance         Attendance?
   payments           Payment[]
   reminders          Reminder[]
   client             Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("appointments")
+  @@map("appointment")
 }
 
 model Payment {
