@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { LogOut, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { signOut } from 'next-auth/react';
@@ -18,44 +18,46 @@ export function AppNavigation() {
   const t = useTranslations('navigation');
   const tAuth = useTranslations('auth');
 
+  // Use a ref to track the scrollable container
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setMounted(true);
+    const container = containerRef.current?.parentElement?.parentElement; // Get the scrollable container
+    
+    if (!container) return;
+
     const handleScroll = () => {
-      const scrollPosition = window.scrollY;
+      const scrollPosition = container.scrollTop;
       setIsScrolled(scrollPosition > 10);
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
   const handleLogout = async () => {
     await signOut({ redirect: true, callbackUrl: '/en' });
   };
 
+  console.log('isScrolled', isScrolled);
 
   return (
     <motion.nav
+      ref={containerRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out border-b border-blue-100 shadow-sm",
+        "sticky top-0 z-50 transition-all duration-300 ease-in-out border-b border-blue-100 shadow-sm",
         isScrolled
           ? "bg-white/70 backdrop-blur-md"
           : "bg-gradient-to-br from-gray-50 via-sky-50 to-blue-100"
       )}
     >
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 h-full">
-        <div className="flex justify-between items-center h-full">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Link href="/dashboard">
-                <Logo className="h-8 w-auto text-black" />
-              </Link>
-            </div>
-          </div>
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 h-16">
+        <div className="flex justify-end items-center h-full">
 
           <div className="flex items-center space-x-4">
             <div className="text-white">

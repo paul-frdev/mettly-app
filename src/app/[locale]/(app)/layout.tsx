@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { AppNavigation } from '@/components/layout/AppNavigation';
+import { Sidebar } from '@/components/layout/Sidebar';
 import { Toaster } from '@/components/ui/toaster';
 
 export default function AppLayout({
@@ -29,10 +30,22 @@ export default function AppLayout({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-sky-50 to-blue-100">
-      <AppNavigation />
-      <main className="pt-20">
-        {children}
-      </main>
+      <div className="flex h-screen">
+        {/* Sidebar - full height */}
+        <div className="h-screen flex-shrink-0">
+          <Sidebar />
+        </div>
+        
+        {/* Main content area */}
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          <div className="w-full sticky top-0 z-50">
+            <AppNavigation />
+          </div>
+          <main className="flex-1 p-6">
+            {children}
+          </main>
+        </div>
+      </div>
       <Toaster />
     </div>
   );
