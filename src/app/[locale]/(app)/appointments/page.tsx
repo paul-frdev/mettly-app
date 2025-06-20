@@ -21,6 +21,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Loader } from '@/components/Loader';
+import { ExternalToast, toast } from 'sonner';
 
 interface Appointment {
   id: string;
@@ -54,10 +56,73 @@ export default function AppointmentsPage() {
   const fetchAppointments = async () => {
     try {
       const response = await fetch('/api/appointments');
-      const data = await response.json();
-      setAppointments(data);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch appointments');
+      }
+
+      const responseData = await response.json();
+
+      // Handle both client and trainer response formats
+      let appointmentsData = [];
+
+      if (responseData.list && Array.isArray(responseData.list)) {
+        // Client response format - use the list array directly
+        appointmentsData = responseData.list;
+      } else if (responseData.calendar && Array.isArray(responseData.calendar)) {
+        // Calendar format - used in some client views
+        appointmentsData = responseData.calendar;
+      } else if (Array.isArray(responseData)) {
+        // Trainer response format - array of appointments
+        appointmentsData = responseData;
+      } else if (responseData?.data && Array.isArray(responseData.data)) {
+        // Fallback for other possible formats with data array
+        appointmentsData = responseData.data;
+      } else {
+        toast.error('Unexpected API response format:', responseData);
+        throw new Error('Invalid data format received from server');
+      }
+
+      // Ensure dates are properly parsed and filter out any invalid appointments
+      const processedAppointments = appointmentsData
+        .filter((appt: any) => {
+          // Filter out null/undefined and invalid appointments
+          if (!appt) return false;
+
+          // Check if the appointment has a valid date or start time
+          const hasStartTime = appt.start && !isNaN(new Date(appt.start).getTime());
+          const hasDate = appt.date && !isNaN(new Date(appt.date).getTime());
+
+          if (!hasStartTime && !hasDate) {
+            toast.error('Skipping appointment with invalid date:', appt);
+            return false;
+          }
+
+          return true;
+        })
+        .map((appt: any) => {
+          // Use start date if available (from calendar format), otherwise use date
+          const startDate = appt.start ? new Date(appt.start) : new Date(appt.date);
+          const endDate = appt.end ? new Date(appt.end) : null;
+
+          return {
+            ...appt,
+            date: startDate,
+            end: endDate,
+            // Ensure clientId is set correctly
+            clientId: appt.clientId || (appt.client ? appt.client.id : null),
+            // Include client info if available
+            client: appt.client || null,
+            createdAt: appt.createdAt ? new Date(appt.createdAt) : null,
+            updatedAt: appt.updatedAt ? new Date(appt.updatedAt) : null
+          };
+        });
+      setAppointments(processedAppointments);
     } catch (error) {
-      console.error('Error fetching appointments:', error);
+      toast.error('Error fetching appointments:', error as ExternalToast);
+      // Set empty array to prevent filter errors
+      setAppointments([]);
     } finally {
       setIsLoading(false);
     }
@@ -98,13 +163,7 @@ export default function AppointmentsPage() {
     .sort((a, b) => a.name.localeCompare(b.name));
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen pt-16">
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        </div>
-      </div>
-    );
+    return <Loader />;
   }
 
   return (

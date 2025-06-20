@@ -52,7 +52,7 @@ export function Sidebar() {
   ];
 
   const clientNavigation = [
-    { name: 'home', href: '/', icon: <Home className="h-6 w-6" /> },
+    { name: 'dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-6 w-6" /> },
     { name: 'appointments', href: '/appointments', icon: <CalendarDays className="h-6 w-6" /> },
     { name: 'settings', href: '/settings/client', icon: <Settings className="h-6 w-6" /> },
   ];

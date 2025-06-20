@@ -60,8 +60,6 @@ export async function GET() {
         },
       });
 
-      console.log('Updated appointments:', updatedAppointments);
-
       // Получаем все встречи тренера
       const appointments = await prisma.appointment.findMany({
         where: {

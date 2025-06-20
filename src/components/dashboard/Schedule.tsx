@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 import { format, addDays, subDays, startOfDay, isBefore, isEqual, parse, isSameDay } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { stringToColor, getContrastTextColor } from '@/lib/utils/colors';
@@ -10,11 +11,25 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
-import { toast } from 'sonner';
+import { ExternalToast, toast } from 'sonner';
 import { showError } from '@/lib/utils/notifications';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { AppointmentDialog } from '../dialogs/AppointmentDialog';
-import { Appointment, Client } from '@/types/appointment';
+import { User } from 'next-auth';
+import { Client } from '@/types/appointment';
+
+interface Appointment {
+  id: string;
+  date: Date | string;
+  end?: Date | string;
+  clientId?: string | null;
+  client?: Client | null;
+  status: string;
+  duration?: number;
+  notes?: string | null;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+}
 
 interface ScheduleProps {
   appointments: Appointment[];
@@ -167,13 +182,69 @@ export function Schedule({
 
   const timeSlots = generateTimeSlots();
 
-  const filteredAppointments = appointments.filter(
-    (apt) => format(new Date(apt.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-  );
+  // Get the current user's client ID from the session
+  const { data: session } = useSession();
+  const [currentClientId, setCurrentClientId] = useState<string | null>(null);
+
+  // Set the client ID from the session
+  useEffect(() => {
+
+    if (session?.user) {
+      // Get client ID from different possible locations in the session
+      const clientId =
+        (session.user as any)?.clientId ||  // Try clientId on user
+        (session.user as any)?.id ||       // Fall back to user id
+        session.user?.email;               // Last resort: use email as identifier
+
+      if (clientId) {
+        setCurrentClientId(clientId);
+      } else {
+        toast.error('No client ID found in session:', session.user);
+      }
+    } else {
+      setCurrentClientId(null);
+    }
+  }, [session]);
+
+  const filteredAppointments = useMemo(() => {
+
+    return appointments.filter((apt: any) => {
+      if (!apt || !apt.date) {
+        return false;
+      }
+
+      try {
+        // For clients, only show their own appointments
+        if (isClient && currentClientId) {
+          // Check both apt.clientId and apt.client?.id
+          const aptClientId = apt.clientId || (apt.client ? apt.client.id : null);
+          const clientEmail = apt.client?.email || '';
+          const currentUserEmail = (session?.user as any)?.email || '';
+
+          if (aptClientId !== currentClientId && clientEmail !== currentUserEmail) {
+            return false;
+          }
+        }
+
+        const appointmentDate = new Date(apt.date);
+        if (isNaN(appointmentDate.getTime())) {
+          toast.error('Skipping appointment with invalid date:', apt);
+          return false;
+        }
+
+        const isSameDay = format(appointmentDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+
+        return isSameDay;
+      } catch (error) {
+        toast.error(`Error processing appointment: ${JSON.stringify({ apt, error })}`);
+        return false;
+      }
+    });
+  }, [appointments, currentClientId, isClient, selectedDate, session?.user]);
+
 
   const handleEditAppointment = (appointment: Appointment) => {
     // TODO: Implement edit functionality
-    console.log('Edit appointment:', appointment);
   };
 
   const handleDeleteAppointment = (appointment: Appointment) => {
@@ -192,6 +263,12 @@ export function Schedule({
     }
 
     const appointmentDate = parse(selectedTimeSlot, 'h:mm a', selectedDate);
+    const requestData = {
+      date: appointmentDate.toISOString(),
+      duration,
+      clientId: isClient ? 'self' : selectedClientId,
+      notes,
+    };
 
     try {
       const response = await fetch('/api/appointments', {
@@ -199,16 +276,14 @@ export function Schedule({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          date: appointmentDate.toISOString(),
-          duration,
-          clientId: isClient ? 'self' : selectedClientId,
-          notes,
-        }),
+        body: JSON.stringify(requestData),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to create appointment');
+        const errorMessage = responseData?.message || 'Failed to create appointment';
+        throw new Error(errorMessage);
       }
 
       // Save the current date before triggering the update
@@ -219,10 +294,19 @@ export function Schedule({
       setNotes('');
       setSelectedClientId('');
       setDuration(60);
+      setSelectedTimeSlot('');
 
       // Call the callback to refresh appointments
-      onAppointmentCreated();
-      calendarUpdate?.();
+      if (onAppointmentCreated) {
+        onAppointmentCreated();
+      }
+
+      if (calendarUpdate) {
+        calendarUpdate();
+      }
+
+      // Show success message
+      toast.success('Appointment created successfully');
 
       // Restore the selected date after the update
       setSelectedDate(currentSelectedDate);
@@ -230,7 +314,7 @@ export function Schedule({
         onDateChange(currentSelectedDate);
       }
     } catch (error) {
-      showError(error);
+      showError(error instanceof Error ? error.message : 'Failed to create appointment');
     }
   };
 
@@ -245,7 +329,7 @@ export function Schedule({
       }
 
       const appointmentStart = new Date(appointment.date);
-      const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration * 60000);
+      const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration! * 60000);
 
       // Convert all times to timestamps for comparison
       const slotStartTime = slotTime.getTime();
@@ -270,7 +354,7 @@ export function Schedule({
       if (appointment.status === 'cancelled') return false;
 
       const appointmentStart = new Date(appointment.date);
-      const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration * 60000);
+      const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration! * 60000);
 
       // Проверка на пересечение слота и встречи
       return (
@@ -295,7 +379,7 @@ export function Schedule({
       .filter(a => a.status !== 'cancelled')
       .map(a => ({
         start: new Date(a.date),
-        end: new Date(new Date(a.date).getTime() + a.duration * 60000)
+        end: new Date(new Date(a.date).getTime() + a.duration! * 60000)
       }))
       .filter(a => a.start > start)
       .sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -489,7 +573,7 @@ export function Schedule({
                           <>
                             <span className="text-sm text-black">
                               {appointment.notes || (appointment.client?.name || 'No description')}
-                              {appointment.duration > 60 && ` (${appointment.duration}min)`}
+                              {appointment.duration! > 60 && ` (${appointment.duration}min)`}
                             </span>
                             {(!isClient || (isClient && isOwnAppointment)) && (
                               <DropdownMenu>
