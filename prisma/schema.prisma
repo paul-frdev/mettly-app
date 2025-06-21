@@ -36,6 +36,7 @@ model User {
   clients                  Client[]
   subscriptions           Subscription[]
   appointments            Appointment[]
+  cancelledAppointments    Appointment[] @relation("CancelledByUser")
   businessSettings        BusinessSettings?
   notificationSettings    NotificationSettings?
 
@@ -106,6 +107,7 @@ model Appointment {
   status             String      @default("scheduled")
   userId             String      @map("user_id")
   clientId           String      @map("client_id")
+  cancelledById      String?     @map("cancelled_by_id")
   createdAt          DateTime    @default(now()) @map("created_at")
   updatedAt          DateTime    @updatedAt @map("updated_at")
   cancellationReason String?     @map("cancellation_reason")
@@ -115,6 +117,7 @@ model Appointment {
   reminders          Reminder[]
   client             Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cancelledBy        User?       @relation("CancelledByUser", fields: [cancelledById], references: [id])
 
   @@map("appointment")
 }

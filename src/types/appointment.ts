@@ -28,6 +28,7 @@ export interface Appointment {
   description?: string;
   cancelledAt?: Date;
   cancellationReason?: string;
+  cancelledById?: string; // ID of the user who cancelled the appointment
   attendance?: {
     status: AppointmentStatus;
   };
@@ -39,6 +40,7 @@ export interface Appointment {
 export interface ApiAppointment extends Omit<Appointment, 'date' | 'cancelledAt'> {
   date: string; // ISO date string
   cancelledAt?: string; // ISO date string
+  // Note: cancelledById is inherited from Appointment
 }
 
 /**

@@ -63,6 +63,7 @@ export async function POST(request: Request) {
           status: 'cancelled',
           cancelledAt: new Date(),
           cancellationReason: 'Client declined via Telegram',
+          cancelledById: client.id, // Add the ID of the client who cancelled the appointment
         },
       });
     }

@@ -57,6 +57,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         status: 'cancelled',
         cancelledAt: new Date(),
         cancellationReason: cancellationReason || 'No reason provided',
+        cancelledById: session.user.id, // Add the ID of the user who cancelled the appointment
       },
     });
 
@@ -72,6 +73,7 @@ interface AppointmentUpdateData {
   status?: string;
   cancelledAt?: Date;
   cancellationReason?: string;
+  cancelledById?: string;
 }
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
@@ -95,6 +97,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       updateData.status = 'cancelled';
       updateData.cancelledAt = new Date();
       updateData.cancellationReason = cancellationReason;
+      updateData.cancelledById = session.user.id; // Add the ID of the user who cancelled the appointment
     }
 
     const appointment = await prisma.appointment.update({
