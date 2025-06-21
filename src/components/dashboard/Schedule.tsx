@@ -11,11 +11,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
-import { ExternalToast, toast } from 'sonner';
-import { showError } from '@/lib/utils/notifications';
+import { showError, showInfo, showSuccess } from '@/lib/utils/notifications';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { AppointmentDialog } from '../dialogs/AppointmentDialog';
-import { User } from 'next-auth';
 import { Client } from '@/types/appointment';
 
 interface Appointment {
@@ -160,7 +158,7 @@ export function Schedule({
     }
 
     if (isHoliday(selectedDate)) {
-      toast.info('Selected date is a holiday');
+      showInfo('Selected date is a holiday');
       return [];
     }
 
@@ -192,14 +190,15 @@ export function Schedule({
     if (session?.user) {
       // Get client ID from different possible locations in the session
       const clientId =
-        (session.user as any)?.clientId ||  // Try clientId on user
-        (session.user as any)?.id ||       // Fall back to user id
+        (session.user as { clientId?: string })?.clientId ||  // Try clientId on user
+        (session.user as { id?: string })?.id ||       // Fall back to user id
         session.user?.email;               // Last resort: use email as identifier
 
       if (clientId) {
         setCurrentClientId(clientId);
       } else {
-        toast.error('No client ID found in session:', session.user);
+        showError('No client ID found in session');
+        console.error('Session user:', session.user);
       }
     } else {
       setCurrentClientId(null);
@@ -208,7 +207,7 @@ export function Schedule({
 
   const filteredAppointments = useMemo(() => {
 
-    return appointments.filter((apt: any) => {
+    return appointments.filter((apt) => {
       if (!apt || !apt.date) {
         return false;
       }
@@ -219,7 +218,7 @@ export function Schedule({
           // Check both apt.clientId and apt.client?.id
           const aptClientId = apt.clientId || (apt.client ? apt.client.id : null);
           const clientEmail = apt.client?.email || '';
-          const currentUserEmail = (session?.user as any)?.email || '';
+          const currentUserEmail = (session?.user as { email?: string })?.email || '';
 
           if (aptClientId !== currentClientId && clientEmail !== currentUserEmail) {
             return false;
@@ -228,7 +227,8 @@ export function Schedule({
 
         const appointmentDate = new Date(apt.date);
         if (isNaN(appointmentDate.getTime())) {
-          toast.error('Skipping appointment with invalid date:', apt);
+          showError('Skipping appointment with invalid date');
+          console.error('Invalid appointment:', apt);
           return false;
         }
 
@@ -236,15 +236,18 @@ export function Schedule({
 
         return isSameDay;
       } catch (error) {
-        toast.error(`Error processing appointment: ${JSON.stringify({ apt, error })}`);
+        showError(`Error processing appointment`);
+        console.error('Appointment error:', { apt, error });
         return false;
       }
     });
   }, [appointments, currentClientId, isClient, selectedDate, session?.user]);
 
 
+  // Function to handle editing an appointment
   const handleEditAppointment = (appointment: Appointment) => {
     // TODO: Implement edit functionality
+    console.log('Edit appointment:', appointment.id);
   };
 
   const handleDeleteAppointment = (appointment: Appointment) => {
@@ -306,7 +309,7 @@ export function Schedule({
       }
 
       // Show success message
-      toast.success('Appointment created successfully');
+      showSuccess('Appointment created successfully');
 
       // Restore the selected date after the update
       setSelectedDate(currentSelectedDate);
@@ -538,7 +541,8 @@ export function Schedule({
                   new Date()
                 );
 
-                const isOwnAppointment = isClient && appointment?.clientId === 'self';
+                // For clients, consider all their appointments as "own" since we've already filtered them
+                const isOwnAppointment = isClient;
 
                 return (
                   <div key={timeSlot} className='relative flex justify-end items-start gap-x-2' style={{ marginTop: '2px' }}>

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { AppNavigation } from '@/components/layout/AppNavigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Toaster } from '@/components/ui/toaster';
+import { Loader } from '@/components/Loader';
 
 export default function AppLayout({
   children
@@ -21,11 +22,7 @@ export default function AppLayout({
   }, [status]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <Loader />
   }
 
   return (
@@ -35,7 +32,7 @@ export default function AppLayout({
         <div className="h-screen flex-shrink-0">
           <Sidebar />
         </div>
-        
+
         {/* Main content area */}
         <div className="flex-1 flex flex-col overflow-y-auto">
           <div className="w-full sticky top-0 z-50">
