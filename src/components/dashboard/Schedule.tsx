@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 import { format, addDays, subDays, startOfDay, isBefore, isEqual, parse, isSameDay } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { stringToColor, getContrastTextColor } from '@/lib/utils/colors';
@@ -10,11 +11,23 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
-import { toast } from 'sonner';
-import { showError } from '@/lib/utils/notifications';
+import { showError, showInfo, showSuccess } from '@/lib/utils/notifications';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { AppointmentDialog } from '../dialogs/AppointmentDialog';
-import { Appointment, Client } from '@/types/appointment';
+import { Client } from '@/types/appointment';
+
+interface Appointment {
+  id: string;
+  date: Date | string;
+  end?: Date | string;
+  clientId?: string | null;
+  client?: Client | null;
+  status: string;
+  duration?: number;
+  notes?: string | null;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+}
 
 interface ScheduleProps {
   appointments: Appointment[];
@@ -145,7 +158,7 @@ export function Schedule({
     }
 
     if (isHoliday(selectedDate)) {
-      toast.info('Selected date is a holiday');
+      showInfo('Selected date is a holiday');
       return [];
     }
 
@@ -167,13 +180,95 @@ export function Schedule({
 
   const timeSlots = generateTimeSlots();
 
-  const filteredAppointments = appointments.filter(
-    (apt) => format(new Date(apt.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-  );
+  // Get the current user's client ID from the session
+  const { data: session } = useSession();
+  const [currentClientId, setCurrentClientId] = useState<string | null>(null);
 
+  // Set the client ID from the session
+  useEffect(() => {
+    console.log('Setting client ID from session:', session?.user);
+
+    if (session?.user) {
+      // Get client ID from different possible locations in the session
+      const clientId =
+        (session.user as { clientId?: string })?.clientId ||  // Try clientId on user
+        (session.user as { id?: string })?.id ||       // Fall back to user id
+        session.user?.email;               // Last resort: use email as identifier
+
+      console.log('Derived client ID:', clientId);
+
+      // Fetch the actual client ID from the database
+      const fetchClientId = async () => {
+        try {
+          const response = await fetch('/api/clients/by-email?email=' + encodeURIComponent(session.user.email || ''));
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Client data from API:', data);
+            if (data && data.id) {
+              console.log('Setting client ID from API:', data.id);
+              setCurrentClientId(data.id);
+            } else if (clientId) {
+              setCurrentClientId(clientId);
+            }
+          } else if (clientId) {
+            setCurrentClientId(clientId);
+          }
+        } catch (error) {
+          console.error('Error fetching client ID:', error);
+          if (clientId) {
+            setCurrentClientId(clientId);
+          }
+        }
+      };
+
+      if (session.user.email) {
+        fetchClientId();
+      } else if (clientId) {
+        setCurrentClientId(clientId);
+      } else {
+        showError('No client ID found in session');
+        console.error('Session user:', session.user);
+      }
+    } else {
+      setCurrentClientId(null);
+    }
+  }, [session]);
+
+  const filteredAppointments = useMemo(() => {
+
+    return appointments.filter((apt) => {
+      if (!apt || !apt.date) {
+        return false;
+      }
+
+      try {
+        // Note: We no longer filter out appointments for clients
+        // The useAppointments hook now returns the calendar data which already includes
+        // all appointments (including busy slots) for clients
+
+        const appointmentDate = new Date(apt.date);
+        if (isNaN(appointmentDate.getTime())) {
+          showError('Skipping appointment with invalid date');
+          console.error('Invalid appointment:', apt);
+          return false;
+        }
+
+        const isSameDay = format(appointmentDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+
+        return isSameDay;
+      } catch (error) {
+        showError(`Error processing appointment`);
+        console.error('Appointment error:', { apt, error });
+        return false;
+      }
+    });
+  }, [appointments, currentClientId, isClient, selectedDate, session?.user]);
+
+
+  // Function to handle editing an appointment
   const handleEditAppointment = (appointment: Appointment) => {
     // TODO: Implement edit functionality
-    console.log('Edit appointment:', appointment);
+    console.log('Edit appointment:', appointment.id);
   };
 
   const handleDeleteAppointment = (appointment: Appointment) => {
@@ -192,6 +287,12 @@ export function Schedule({
     }
 
     const appointmentDate = parse(selectedTimeSlot, 'h:mm a', selectedDate);
+    const requestData = {
+      date: appointmentDate.toISOString(),
+      duration,
+      clientId: isClient ? 'self' : selectedClientId,
+      notes,
+    };
 
     try {
       const response = await fetch('/api/appointments', {
@@ -199,16 +300,14 @@ export function Schedule({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          date: appointmentDate.toISOString(),
-          duration,
-          clientId: isClient ? 'self' : selectedClientId,
-          notes,
-        }),
+        body: JSON.stringify(requestData),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to create appointment');
+        const errorMessage = responseData?.message || 'Failed to create appointment';
+        throw new Error(errorMessage);
       }
 
       // Save the current date before triggering the update
@@ -219,10 +318,19 @@ export function Schedule({
       setNotes('');
       setSelectedClientId('');
       setDuration(60);
+      setSelectedTimeSlot('');
 
       // Call the callback to refresh appointments
-      onAppointmentCreated();
-      calendarUpdate?.();
+      if (onAppointmentCreated) {
+        onAppointmentCreated();
+      }
+
+      if (calendarUpdate) {
+        calendarUpdate();
+      }
+
+      // Show success message
+      showSuccess('Appointment created successfully');
 
       // Restore the selected date after the update
       setSelectedDate(currentSelectedDate);
@@ -230,7 +338,7 @@ export function Schedule({
         onDateChange(currentSelectedDate);
       }
     } catch (error) {
-      showError(error);
+      showError(error instanceof Error ? error.message : 'Failed to create appointment');
     }
   };
 
@@ -245,7 +353,7 @@ export function Schedule({
       }
 
       const appointmentStart = new Date(appointment.date);
-      const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration * 60000);
+      const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration! * 60000);
 
       // Convert all times to timestamps for comparison
       const slotStartTime = slotTime.getTime();
@@ -270,7 +378,7 @@ export function Schedule({
       if (appointment.status === 'cancelled') return false;
 
       const appointmentStart = new Date(appointment.date);
-      const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration * 60000);
+      const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration! * 60000);
 
       // Проверка на пересечение слота и встречи
       return (
@@ -281,12 +389,10 @@ export function Schedule({
     });
   };
 
-  function getAvailableDurationsForTimeSlot(timeSlot: string) {
-    const MIN = 30;
-    const MAX = 120;
-    const step = 15;
-    let maxDuration = MAX;
+  // Standard duration options
+  const standardDurations = [30, 45, 60, 90, 120];
 
+  function getAvailableDurationsForTimeSlot(timeSlot: string) {
     // Найти дату и время начала выбранного слота
     const start = parse(timeSlot, 'h:mm a', selectedDate);
 
@@ -295,27 +401,27 @@ export function Schedule({
       .filter(a => a.status !== 'cancelled')
       .map(a => ({
         start: new Date(a.date),
-        end: new Date(new Date(a.date).getTime() + a.duration * 60000)
+        end: new Date(new Date(a.date).getTime() + a.duration! * 60000)
       }))
       .filter(a => a.start > start)
       .sort((a, b) => a.start.getTime() - b.start.getTime());
 
-    if (sorted.length > 0) {
-      const next = sorted[0].start;
-      maxDuration = Math.floor((next.getTime() - start.getTime()) / 60000);
-      if (maxDuration > MAX) maxDuration = MAX;
+    if (sorted.length === 0) {
+      // If there are no appointments after this time slot, return all standard durations
+      return standardDurations;
     }
-    if (maxDuration < MIN) maxDuration = 0;
-    const durations = [];
-    for (let d = MIN; d <= maxDuration; d += step) {
-      durations.push(d);
-    }
-    return durations;
+
+    // Calculate maximum available duration in minutes
+    const next = sorted[0].start;
+    const maxDuration = Math.floor((next.getTime() - start.getTime()) / 60000);
+
+    // Filter standard durations to only include those that fit before the next appointment
+    return standardDurations.filter(duration => duration <= maxDuration);
   }
 
   const availableDurations = selectedTimeSlot
     ? getAvailableDurationsForTimeSlot(selectedTimeSlot)
-    : [30, 45, 60, 90, 120];
+    : standardDurations;
 
   // Helper function to format time with leading zeros
   const formatTimeWithLeadingZero = (timeStr: string) => {
@@ -454,7 +560,17 @@ export function Schedule({
                   new Date()
                 );
 
-                const isOwnAppointment = isClient && appointment?.clientId === 'self';
+                // Check if this appointment belongs to the current client
+                // Add debugging to see the values
+                console.log('Appointment clientId:', appointment?.clientId);
+                console.log('Current clientId:', currentClientId);
+
+                // Consider appointments with clientId "self" as the client's own appointments
+                // Also check for direct match between appointment clientId and current clientId
+                const isOwnAppointment = isClient && (
+                  appointment?.clientId === currentClientId ||
+                  appointment?.clientId === 'self'
+                );
 
                 return (
                   <div key={timeSlot} className='relative flex justify-end items-start gap-x-2' style={{ marginTop: '2px' }}>
@@ -475,6 +591,7 @@ export function Schedule({
                       } : {}}
                       onClick={() => {
                         if (isBooked && !isPast && appointment) {
+                          // Only allow deletion of own appointments
                           if (!isClient || (isClient && isOwnAppointment)) {
                             handleDeleteAppointment(appointment);
                           }
@@ -487,35 +604,45 @@ export function Schedule({
                       <div className="flex items-center gap-2">
                         {appointment && !isPast && (
                           <>
-                            <span className="text-sm text-black">
-                              {appointment.notes || (appointment.client?.name || 'No description')}
-                              {appointment.duration > 60 && ` (${appointment.duration}min)`}
-                            </span>
-                            {(!isClient || (isClient && isOwnAppointment)) && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/20">
-                                  <DropdownMenuItem
-                                    onClick={() => handleEditAppointment(appointment)}
-                                    className="text-white hover:bg-white/10 cursor-pointer"
-                                  >
-                                    Edit time
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-red-400 hover:bg-red-500/20 cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteAppointment(appointment);
-                                    }}
-                                  >
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                            {/* For clients, only show details of their own appointments */}
+                            {(!isClient || (isClient && isOwnAppointment)) ? (
+                              // Show full details for own appointments or for trainers
+                              <>
+                                <span className="text-sm text-black">
+                                  {appointment.notes || (appointment.client?.name || 'No description')}
+                                  {appointment.duration! > 60 && ` (${Math.floor(appointment.duration! / 60)}h ${appointment.duration! % 60 > 0 ? `${appointment.duration! % 60}min` : ''})`}
+                                  {appointment.duration! <= 60 && appointment.duration! > 0 && ` (${appointment.duration}min)`}
+                                </span>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/20">
+                                    <DropdownMenuItem
+                                      onClick={() => handleEditAppointment(appointment)}
+                                      className="text-white hover:bg-white/10 cursor-pointer"
+                                    >
+                                      Edit time
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-red-400 hover:bg-red-500/20 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteAppointment(appointment);
+                                      }}
+                                    >
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </>
+                            ) : (
+                              // For other clients' appointments, only show that the slot is booked without details
+                              <span className="text-sm text-black opacity-50">
+                                Booked
+                              </span>
                             )}
                           </>
                         )}
@@ -559,6 +686,7 @@ export function Schedule({
             onDelete={() => { }}
             timeLabel={selectedTimeSlot}
             dateLabel={format(selectedDate, 'PPP')}
+            isEditing={false} // This is always for creating new appointments
           />
         </>
       )}

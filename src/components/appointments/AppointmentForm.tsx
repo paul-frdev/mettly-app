@@ -72,7 +72,6 @@ interface AppointmentFormProps {
 }
 
 export function AppointmentForm(props: AppointmentFormProps) {
-  console.log('AppointmentForm props', props);
   const [isLoading, setIsLoading] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const router = useRouter();
@@ -158,18 +157,9 @@ export function AppointmentForm(props: AppointmentFormProps) {
     for (let d = MIN; d <= maxDuration; d += step) {
       durations.push(d);
     }
-    console.log('selectedTime', props.selectedTime);
-    console.log('appointments', props.appointments);
-    console.log('availableDurations', durations);
     return durations;
   }
   const availableDurations = getAvailableDurations();
-
-  console.log('availableDurations', availableDurations);
-
-  if (props.selectedTime) {
-    console.log('selectedTime for form', props.selectedTime);
-  }
 
   async function onSubmit(data: AppointmentFormData) {
     setIsLoading(true);
@@ -195,7 +185,6 @@ export function AppointmentForm(props: AppointmentFormProps) {
       }
 
       const responseData = await response.json();
-      console.log('Success response:', responseData);
 
       showSuccess('Appointment created successfully');
       form.reset();
