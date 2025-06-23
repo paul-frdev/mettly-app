@@ -31,6 +31,7 @@ interface AppointmentDialogProps {
   workingHours?: { start: string; end: string };
   timeLabel?: string;
   dateLabel?: string;
+  isEditing?: boolean; // Whether we're editing an existing appointment or creating a new one
   onOpenChange: (open: boolean) => void;
   onClientChange?: (id: string) => void;
   onNotesChange: (val: string) => void;
@@ -60,6 +61,7 @@ export function AppointmentDialog({
   onManualTimeChange,
   showTimeSelect = false,
   workingHours,
+  isEditing = false,
 }: AppointmentDialogProps) {
   const timeOptions: string[] = (() => {
     if (showTimeSelect && workingHours) {
@@ -87,9 +89,10 @@ export function AppointmentDialog({
           "data-[state=open]:animate-in data-[state=closed]:animate-out"
         )}
       >
-        <DialogHeader className="bg-yellow-50 rounded-t-xl flex items-center px-6 h-12 border-b border-gray-100">
-          <DialogTitle className="font-semibold text-gray-700 text-lg">Edit</DialogTitle>
-
+        <DialogHeader className="bg-yellow-50 rounded-t-xl flex items-center px-6 h-12 border-b border-gray-100 py-3">
+          <DialogTitle className="font-semibold text-gray-700 text-lg">
+            {isEditing ? "Edit" : "Create"}
+          </DialogTitle>
         </DialogHeader>
         <form
           className="px-6 pt-4 pb-6 space-y-4"
@@ -136,7 +139,10 @@ export function AppointmentDialog({
               <SelectContent>
                 {availableDurations.map(d => (
                   <SelectItem key={d} value={d.toString()} disabled={d > maxAvailableDuration}>
-                    {d} мин
+                    {d > 60
+                      ? `${Math.floor(d / 60)}h ${d % 60 > 0 ? `${d % 60}min` : ''}`
+                      : `${d}min`
+                    }
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -179,4 +185,4 @@ export function AppointmentDialog({
       </DialogContent>
     </Dialog>
   );
-} 
+}

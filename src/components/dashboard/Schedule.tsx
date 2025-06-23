@@ -389,12 +389,10 @@ export function Schedule({
     });
   };
 
-  function getAvailableDurationsForTimeSlot(timeSlot: string) {
-    const MIN = 30;
-    const MAX = 120;
-    const step = 15;
-    let maxDuration = MAX;
+  // Standard duration options
+  const standardDurations = [30, 45, 60, 90, 120];
 
+  function getAvailableDurationsForTimeSlot(timeSlot: string) {
     // Найти дату и время начала выбранного слота
     const start = parse(timeSlot, 'h:mm a', selectedDate);
 
@@ -408,22 +406,22 @@ export function Schedule({
       .filter(a => a.start > start)
       .sort((a, b) => a.start.getTime() - b.start.getTime());
 
-    if (sorted.length > 0) {
-      const next = sorted[0].start;
-      maxDuration = Math.floor((next.getTime() - start.getTime()) / 60000);
-      if (maxDuration > MAX) maxDuration = MAX;
+    if (sorted.length === 0) {
+      // If there are no appointments after this time slot, return all standard durations
+      return standardDurations;
     }
-    if (maxDuration < MIN) maxDuration = 0;
-    const durations = [];
-    for (let d = MIN; d <= maxDuration; d += step) {
-      durations.push(d);
-    }
-    return durations;
+
+    // Calculate maximum available duration in minutes
+    const next = sorted[0].start;
+    const maxDuration = Math.floor((next.getTime() - start.getTime()) / 60000);
+
+    // Filter standard durations to only include those that fit before the next appointment
+    return standardDurations.filter(duration => duration <= maxDuration);
   }
 
   const availableDurations = selectedTimeSlot
     ? getAvailableDurationsForTimeSlot(selectedTimeSlot)
-    : [30, 45, 60, 90, 120];
+    : standardDurations;
 
   // Helper function to format time with leading zeros
   const formatTimeWithLeadingZero = (timeStr: string) => {
@@ -612,7 +610,8 @@ export function Schedule({
                               <>
                                 <span className="text-sm text-black">
                                   {appointment.notes || (appointment.client?.name || 'No description')}
-                                  {appointment.duration! > 60 && ` (${appointment.duration}min)`}
+                                  {appointment.duration! > 60 && ` (${Math.floor(appointment.duration! / 60)}h ${appointment.duration! % 60 > 0 ? `${appointment.duration! % 60}min` : ''})`}
+                                  {appointment.duration! <= 60 && appointment.duration! > 0 && ` (${appointment.duration}min)`}
                                 </span>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -687,6 +686,7 @@ export function Schedule({
             onDelete={() => { }}
             timeLabel={selectedTimeSlot}
             dateLabel={format(selectedDate, 'PPP')}
+            isEditing={false} // This is always for creating new appointments
           />
         </>
       )}

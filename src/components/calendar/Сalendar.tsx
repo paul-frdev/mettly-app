@@ -3,7 +3,7 @@
 import '../../styles/calendar.css';
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, addMinutes, setHours, setMinutes } from 'date-fns';
+import { format, parse, startOfWeek, getDay, setHours, setMinutes } from 'date-fns';
 import { enUS, ru } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSession } from 'next-auth/react';
@@ -19,6 +19,9 @@ import { CancelDialog } from '@/components/dialogs/CancelDialog';
 import { cn } from '@/lib/utils';
 import { stringToColor, getContrastTextColor } from '@/lib/utils/colors';
 import { Loader } from '../Loader';
+
+// Standard duration options
+const standardDurations = [30, 45, 60, 90, 120];
 
 const locales = {
   'en-US': enUS,
@@ -138,7 +141,7 @@ const CustomEvent: React.FC<CustomEventProps> = ({
           } as React.CSSProperties}
         >
           <span className="event-dot" />
-          <span className="truncate">{event.description || 'Новое событие'}</span>
+          <span className="truncate">{event.description || 'New Event'}</span>
         </div>
       </PopoverInfo>
     </div>
@@ -221,39 +224,7 @@ export function Calendar() {
     return slotMinutes >= startMinutes && slotMinutes < endMinutes;
   };
 
-  const isSlotAvailable = useCallback((date: Date) => {
-    // Проверяем, не в прошлом ли время
-    const now = new Date();
-    if (date < now) return false;
-
-    // Проверяем, рабочий ли это слот
-    if (!isBusinessSlot(date)) return false;
-
-    // Получаем рабочие часы для текущего дня
-    const dayName = format(date, 'EEEE');
-    const daySchedule = settings?.workingHours[dayName];
-    if (!daySchedule?.enabled) return false;
-
-    // Находим ближайшее событие после выбранного времени
-    const nextEvent = events
-      .filter(event => event.status !== 'cancelled' && event.start > date)
-      .sort((a, b) => a.start.getTime() - b.start.getTime())[0];
-
-    // Проверяем доступное время до следующего события
-    if (nextEvent) {
-      const availableMinutes = (nextEvent.start.getTime() - date.getTime()) / (1000 * 60);
-      if (availableMinutes < 30) return false; // Минимальная длительность встречи
-    }
-
-    // Проверяем, достаточно ли времени до конца рабочего дня
-    const [endHour, endMinute] = daySchedule.end.split(':').map(Number);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(endHour, endMinute, 0, 0);
-    const minutesUntilEndOfDay = (endOfDay.getTime() - date.getTime()) / (1000 * 60);
-    if (minutesUntilEndOfDay < 30) return false; // Минимальная длительность встречи
-
-    return true;
-  }, [events, settings, isBusinessSlot]);
+  // Function to check if a slot is available has been removed as it was unused
 
   const handleSelectSlot = useCallback((slotInfo: { start: Date; end: Date; slots?: Date[]; action?: string }) => {
     if (!session?.user) return;
@@ -476,7 +447,7 @@ export function Calendar() {
             event: (props) => (
               <CustomEvent
                 {...props}
-                isSelected={props.isSelected}
+                isSelected={false} // Default to false since isSelected is not available in EventProps
                 onRequestEdit={(event) => {
                   setSelectedEvent(event);
                   setIsDialogOpen(true);
@@ -504,7 +475,7 @@ export function Calendar() {
         onNotesChange={setEventDescription}
         duration={eventDuration}
         onDurationChange={setEventDuration}
-        availableDurations={[30, 45, 60, 90, 120]}
+        availableDurations={standardDurations}
         maxAvailableDuration={maxAvailableDuration}
         onSubmit={handleSaveEvent}
         onDelete={handleDeleteEvent}
@@ -513,6 +484,7 @@ export function Calendar() {
         onManualTimeChange={setManualTime}
         showTimeSelect={!!manualTime}
         workingHours={selectedEvent ? settings?.workingHours[format(selectedEvent.start, 'EEEE')] : undefined}
+        isEditing={!!selectedEvent?.id} // If the event has an ID, it's an existing event being edited
       />
 
       <CancelDialog
@@ -532,4 +504,4 @@ export function Calendar() {
       />
     </>
   );
-} 
+}
