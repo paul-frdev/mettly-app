@@ -186,6 +186,7 @@ export function Schedule({
 
   // Set the client ID from the session
   useEffect(() => {
+    console.log('Setting client ID from session:', session?.user);
 
     if (session?.user) {
       // Get client ID from different possible locations in the session
@@ -194,7 +195,35 @@ export function Schedule({
         (session.user as { id?: string })?.id ||       // Fall back to user id
         session.user?.email;               // Last resort: use email as identifier
 
-      if (clientId) {
+      console.log('Derived client ID:', clientId);
+
+      // Fetch the actual client ID from the database
+      const fetchClientId = async () => {
+        try {
+          const response = await fetch('/api/clients/by-email?email=' + encodeURIComponent(session.user.email || ''));
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Client data from API:', data);
+            if (data && data.id) {
+              console.log('Setting client ID from API:', data.id);
+              setCurrentClientId(data.id);
+            } else if (clientId) {
+              setCurrentClientId(clientId);
+            }
+          } else if (clientId) {
+            setCurrentClientId(clientId);
+          }
+        } catch (error) {
+          console.error('Error fetching client ID:', error);
+          if (clientId) {
+            setCurrentClientId(clientId);
+          }
+        }
+      };
+
+      if (session.user.email) {
+        fetchClientId();
+      } else if (clientId) {
         setCurrentClientId(clientId);
       } else {
         showError('No client ID found in session');
@@ -213,17 +242,9 @@ export function Schedule({
       }
 
       try {
-        // For clients, only show their own appointments
-        if (isClient && currentClientId) {
-          // Check both apt.clientId and apt.client?.id
-          const aptClientId = apt.clientId || (apt.client ? apt.client.id : null);
-          const clientEmail = apt.client?.email || '';
-          const currentUserEmail = (session?.user as { email?: string })?.email || '';
-
-          if (aptClientId !== currentClientId && clientEmail !== currentUserEmail) {
-            return false;
-          }
-        }
+        // Note: We no longer filter out appointments for clients
+        // The useAppointments hook now returns the calendar data which already includes
+        // all appointments (including busy slots) for clients
 
         const appointmentDate = new Date(apt.date);
         if (isNaN(appointmentDate.getTime())) {
@@ -541,8 +562,17 @@ export function Schedule({
                   new Date()
                 );
 
-                // For clients, consider all their appointments as "own" since we've already filtered them
-                const isOwnAppointment = isClient;
+                // Check if this appointment belongs to the current client
+                // Add debugging to see the values
+                console.log('Appointment clientId:', appointment?.clientId);
+                console.log('Current clientId:', currentClientId);
+
+                // Consider appointments with clientId "self" as the client's own appointments
+                // Also check for direct match between appointment clientId and current clientId
+                const isOwnAppointment = isClient && (
+                  appointment?.clientId === currentClientId ||
+                  appointment?.clientId === 'self'
+                );
 
                 return (
                   <div key={timeSlot} className='relative flex justify-end items-start gap-x-2' style={{ marginTop: '2px' }}>
@@ -563,6 +593,7 @@ export function Schedule({
                       } : {}}
                       onClick={() => {
                         if (isBooked && !isPast && appointment) {
+                          // Only allow deletion of own appointments
                           if (!isClient || (isClient && isOwnAppointment)) {
                             handleDeleteAppointment(appointment);
                           }
@@ -575,35 +606,44 @@ export function Schedule({
                       <div className="flex items-center gap-2">
                         {appointment && !isPast && (
                           <>
-                            <span className="text-sm text-black">
-                              {appointment.notes || (appointment.client?.name || 'No description')}
-                              {appointment.duration! > 60 && ` (${appointment.duration}min)`}
-                            </span>
-                            {(!isClient || (isClient && isOwnAppointment)) && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/20">
-                                  <DropdownMenuItem
-                                    onClick={() => handleEditAppointment(appointment)}
-                                    className="text-white hover:bg-white/10 cursor-pointer"
-                                  >
-                                    Edit time
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-red-400 hover:bg-red-500/20 cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteAppointment(appointment);
-                                    }}
-                                  >
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                            {/* For clients, only show details of their own appointments */}
+                            {(!isClient || (isClient && isOwnAppointment)) ? (
+                              // Show full details for own appointments or for trainers
+                              <>
+                                <span className="text-sm text-black">
+                                  {appointment.notes || (appointment.client?.name || 'No description')}
+                                  {appointment.duration! > 60 && ` (${appointment.duration}min)`}
+                                </span>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/20">
+                                    <DropdownMenuItem
+                                      onClick={() => handleEditAppointment(appointment)}
+                                      className="text-white hover:bg-white/10 cursor-pointer"
+                                    >
+                                      Edit time
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-red-400 hover:bg-red-500/20 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteAppointment(appointment);
+                                      }}
+                                    >
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </>
+                            ) : (
+                              // For other clients' appointments, only show that the slot is booked without details
+                              <span className="text-sm text-black opacity-50">
+                                Booked
+                              </span>
                             )}
                           </>
                         )}

@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Schedule } from '@/components/dashboard/Schedule';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { useAppointments } from '@/hooks/useAppointments';
-import { Appointment, Client } from '@/types/appointment';
+import { Appointment } from '@/types/appointment';
 import { showError, showSuccess } from '@/lib/utils/notifications';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ClientFormDialog } from '@/components/dashboard/ClientFormDialog';
@@ -61,36 +61,25 @@ export function DashboardContent() {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const todayAppointments = appointments.filter(apt => {
-    const aptDate = new Date(apt.date);
-    return aptDate >= today && aptDate < tomorrow && apt.status !== 'completed';
-  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  const upcomingAppointments = appointments.filter(apt => {
-    const aptDate = new Date(apt.date);
-    return aptDate >= tomorrow && apt.status !== 'completed';
-  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  const completedAppointments = appointments.filter(apt => {
-    return apt.status === 'completed';
-  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  const cancelledAppointments = appointments.filter(apt => {
-    const aptDate = new Date(apt.date);
-    return aptDate >= today && aptDate < tomorrow && apt.status === 'cancelled';
-  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const handleCancelAppointment = useCallback(async (reason: string) => {
     if (!appointmentToCancel) return;
 
     try {
+      console.log('Cancelling appointment:', appointmentToCancel);
+      console.log('Session:', session);
+
       const response = await fetch(`/api/appointments/${appointmentToCancel.id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cancellationReason: reason }),
       });
 
-      if (!response.ok) throw new Error('Failed to cancel appointment');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to cancel appointment:', response.status, errorData);
+        throw new Error(errorData.error || 'Failed to cancel appointment');
+      }
 
       // Refresh appointments
       await fetchAppointments();
@@ -101,47 +90,10 @@ export function DashboardContent() {
 
       showSuccess('Appointment cancelled successfully');
     } catch (error) {
+      console.error('Error in handleCancelAppointment:', error);
       showError(error);
     }
-  }, [appointmentToCancel, fetchAppointments]);
-
-  const handleCreateAppointment = async (appointmentData: any) => {
-    try {
-      const response = await fetch('/api/appointments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(appointmentData),
-      });
-
-      if (!response.ok) throw new Error('Failed to create appointment');
-
-      await fetchAppointments();
-      showSuccess('Appointment created successfully');
-      return true;
-    } catch (error) {
-      showError(error);
-      return false;
-    }
-  };
-
-  const handleUpdateAppointment = async (id: string, updateData: any) => {
-    try {
-      const response = await fetch(`/api/appointments/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      });
-
-      if (!response.ok) throw new Error('Failed to update appointment');
-
-      await fetchAppointments();
-      showSuccess('Appointment updated successfully');
-      return true;
-    } catch (error) {
-      showError(error);
-      return false;
-    }
-  };
+  }, [appointmentToCancel, fetchAppointments, session]);
 
 
   // Calendar calculations
@@ -194,7 +146,7 @@ export function DashboardContent() {
           </div>
 
           <div className="grid grid-cols-7 gap-1">
-            {daysInMonth.map((day, i) => {
+            {daysInMonth.map((day) => {
               const dayAppointments = appointments.filter(apt =>
                 isSameDay(new Date(apt.date), day) &&
                 apt.status !== 'cancelled' &&
