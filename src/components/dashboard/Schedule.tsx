@@ -59,6 +59,10 @@ export function Schedule({
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [appointmentType, setAppointmentType] = useState<'individual' | 'group'>('individual');
+  const [groupCapacity, setGroupCapacity] = useState(2);
+  const [isPaid, setIsPaid] = useState(false);
+  const [price, setPrice] = useState(0);
 
   let dayEnd: Date | null = null;
   let endHour = 23, endMinute = 59;
@@ -290,8 +294,12 @@ export function Schedule({
     const requestData = {
       date: appointmentDate.toISOString(),
       duration,
-      clientId: isClient ? 'self' : selectedClientId,
       notes,
+      type: appointmentType,
+      isPaid,
+      price: isPaid ? price : undefined,
+      maxClients: appointmentType === 'group' ? groupCapacity : undefined,
+      clientId: appointmentType === 'individual' ? (isClient ? 'self' : selectedClientId) : undefined,
     };
 
     try {
@@ -687,6 +695,14 @@ export function Schedule({
             timeLabel={selectedTimeSlot}
             dateLabel={format(selectedDate, 'PPP')}
             isEditing={false} // This is always for creating new appointments
+            appointmentType={appointmentType}
+            onAppointmentTypeChange={setAppointmentType}
+            groupCapacity={groupCapacity}
+            onGroupCapacityChange={setGroupCapacity}
+            isPaid={isPaid}
+            onIsPaidChange={setIsPaid}
+            price={price}
+            onPriceChange={setPrice}
           />
         </>
       )}

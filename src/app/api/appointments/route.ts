@@ -34,7 +34,7 @@ export async function GET() {
       const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
 
       // Обновляем статус прошедших встреч
-      const updatedAppointments = await prisma.appointment.updateMany({
+      await prisma.appointment.updateMany({
         where: {
           clientId: client.id,
           AND: [
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { date, clientId, duration, notes } = body;
+    const { date, clientId, duration, notes, type, isPaid, price, maxClients } = body;
 
     // Validate required fields
     if (!date) {
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!clientId) {
-      return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Client ID is required for individual appointments' }, { status: 400 });
     }
 
     let client;
@@ -302,24 +302,53 @@ export async function POST(req: NextRequest) {
     }
 
     // Create the appointment
-    const appointment = await prisma.appointment.create({
-      data: {
-        date: appointmentDate,
-        duration: duration || 30,
-        notes: notes,
-        userId: trainer.id,
-        clientId: client.id,
-      },
-      include: {
-        client: {
-          select: {
-            name: true,
+    if (type === 'group') {
+      const appointment = await prisma.appointment.create({
+        data: {
+          date: appointmentDate,
+          duration: duration || 30,
+          notes: notes,
+          userId: trainer.id,
+          type: 'group',
+          isPaid: isPaid || false,
+          price: isPaid ? price : null,
+          maxClients: maxClients || null,
+        },
+      });
+
+      if (client) {
+        await prisma.clientOnAppointment.create({
+          data: {
+            appointmentId: appointment.id,
+            clientId: client.id,
+            status: 'confirmed',
+          },
+        });
+      }
+
+      return NextResponse.json(appointment);
+    } else {
+      const appointment = await prisma.appointment.create({
+        data: {
+          date: appointmentDate,
+          duration: duration || 30,
+          notes: notes,
+          userId: trainer.id,
+          clientId: client.id,
+          type: 'individual',
+          isPaid: isPaid || false,
+          price: isPaid ? price : null,
+        },
+        include: {
+          client: {
+            select: {
+              name: true,
+            },
           },
         },
-      },
-    });
-
-    return NextResponse.json(appointment);
+      });
+      return NextResponse.json(appointment);
+    }
   } catch (error) {
     console.error('Error creating appointment:', error);
     return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });

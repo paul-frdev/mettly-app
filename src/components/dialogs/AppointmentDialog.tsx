@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 interface Client {
@@ -32,10 +35,18 @@ interface AppointmentDialogProps {
   timeLabel?: string;
   dateLabel?: string;
   isEditing?: boolean; // Whether we're editing an existing appointment or creating a new one
+  appointmentType: "individual" | "group";
+  groupCapacity: number;
+  isPaid: boolean;
+  price: number;
   onOpenChange: (open: boolean) => void;
   onClientChange?: (id: string) => void;
   onNotesChange: (val: string) => void;
   onDurationChange: (val: number) => void;
+  onAppointmentTypeChange: (type: "individual" | "group") => void;
+  onGroupCapacityChange: (capacity: number) => void;
+  onIsPaidChange: (isPaid: boolean) => void;
+  onPriceChange: (price: number) => void;
   onSubmit: () => void;
   onCancel: () => void;
   onDelete: () => void;
@@ -62,6 +73,14 @@ export function AppointmentDialog({
   showTimeSelect = false,
   workingHours,
   isEditing = false,
+  appointmentType,
+  groupCapacity,
+  isPaid,
+  price,
+  onAppointmentTypeChange,
+  onGroupCapacityChange,
+  onIsPaidChange,
+  onPriceChange,
 }: AppointmentDialogProps) {
   const timeOptions: string[] = (() => {
     if (showTimeSelect && workingHours) {
@@ -149,24 +168,69 @@ export function AppointmentDialog({
             </Select>
           </div>
           {!isClient && (
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Client</label>
-              <Select
-                value={selectedClientId}
-                onValueChange={onClientChange}
-              >
-                <SelectTrigger className="w-full border border-gray-200 rounded px-3 py-2 text-gray-800 bg-white">
-                  <SelectValue placeholder="Select client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map(client => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="appointment-type"
+                  checked={appointmentType === 'group'}
+                  onCheckedChange={(checked) => onAppointmentTypeChange(checked ? 'group' : 'individual')}
+                />
+                <Label htmlFor="appointment-type">Group Session</Label>
+              </div>
+
+              {appointmentType === 'group' && (
+                <div>
+                  <Label htmlFor="capacity" className="block text-xs text-gray-500 mb-1">Group Capacity</Label>
+                  <Input
+                    id="capacity"
+                    type="number"
+                    min="2"
+                    max="50"
+                    value={groupCapacity}
+                    onChange={(e) => onGroupCapacityChange(Number(e.target.value))}
+                    className="w-full border border-gray-200 rounded px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-white"
+                  />
+                </div>
+              )}
+
+              <div>
+                <Label className="block text-xs text-gray-500 mb-1">Client</Label>
+                <Select
+                  value={selectedClientId}
+                  onValueChange={onClientChange}
+                >
+                  <SelectTrigger className="w-full border border-gray-200 rounded px-3 py-2 text-gray-800 bg-white">
+                    <SelectValue placeholder="Select client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map(client => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch id="payment-toggle" checked={isPaid} onCheckedChange={onIsPaidChange} />
+                <Label htmlFor="payment-toggle">Paid Session</Label>
+              </div>
+
+              {isPaid && (
+                <div>
+                  <Label htmlFor="price" className="block text-xs text-gray-500 mb-1">Price</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    value={price}
+                    onChange={(e) => onPriceChange(Number(e.target.value))}
+                    className="w-full border border-gray-200 rounded px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-white"
+                    placeholder="Enter price"
+                  />
+                </div>
+              )}
+            </>
           )}
           <DialogFooter className="flex gap-2 justify-end pt-2">
             <Button

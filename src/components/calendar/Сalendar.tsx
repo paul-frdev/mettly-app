@@ -171,6 +171,10 @@ export function Calendar() {
   const [appointmentToCancel, setAppointmentToCancel] = useState<CalendarEvent | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [manualTime, setManualTime] = useState<string | null>(null);
+  const [appointmentType, setAppointmentType] = useState<'individual' | 'group'>('individual');
+  const [groupCapacity, setGroupCapacity] = useState(2);
+  const [isPaid, setIsPaid] = useState(false);
+  const [price, setPrice] = useState(0);
   const [, setHoveredSlot] = useState<Date | null>(null);
   const [, setPopoverPosition] = useState<{ x: number; y: number } | null>(null);
 
@@ -316,16 +320,21 @@ export function Calendar() {
       toast.error('Этот слот уже занят');
       return;
     }
+    const appointmentData = {
+      date: appointmentDate.toISOString(),
+      duration: durationMinutes,
+      notes: eventDescription,
+      type: appointmentType,
+      isPaid,
+      price: isPaid ? price : undefined,
+      maxClients: appointmentType === 'group' ? groupCapacity : undefined,
+      clientId: appointmentType === 'individual' ? (isClient ? 'self' : selectedClientId) : undefined,
+    };
     try {
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: appointmentDate.toISOString(),
-          duration: durationMinutes,
-          clientId: isClient ? 'self' : selectedClientId,
-          notes: eventDescription,
-        }),
+        body: JSON.stringify(appointmentData),
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -485,6 +494,14 @@ export function Calendar() {
         showTimeSelect={!!manualTime}
         workingHours={selectedEvent ? settings?.workingHours[format(selectedEvent.start, 'EEEE')] : undefined}
         isEditing={!!selectedEvent?.id} // If the event has an ID, it's an existing event being edited
+        appointmentType={appointmentType}
+        onAppointmentTypeChange={setAppointmentType}
+        groupCapacity={groupCapacity}
+        onGroupCapacityChange={setGroupCapacity}
+        isPaid={isPaid}
+        onIsPaidChange={setIsPaid}
+        price={price}
+        onPriceChange={setPrice}
       />
 
       <CancelDialog
