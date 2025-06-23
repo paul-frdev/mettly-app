@@ -227,7 +227,15 @@ export function DashboardContent() {
               appointments={appointments}
               onAppointmentCreated={fetchAppointments}
               onAppointmentCancelled={(appointment) => {
-                setAppointmentToCancel(appointment);
+                // Use type assertion to tell TypeScript that the appointment is compatible with the expected type
+                // Convert the date to a Date object if it's a string
+                const appointmentWithProperTypes = {
+                  ...appointment,
+                  date: appointment.date instanceof Date ? appointment.date : new Date(appointment.date),
+                  // Ensure duration is a number (not undefined)
+                  duration: appointment.duration || 30
+                } as Appointment;
+                setAppointmentToCancel(appointmentWithProperTypes);
                 setIsCancellationDialogOpen(true);
               }}
               isClient={isClient}
