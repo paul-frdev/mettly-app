@@ -53,8 +53,13 @@ export async function GET(request: Request) {
       where,
       include: {
         appointments: {
+          include: {
+            appointment: true,
+          },
           orderBy: {
-            date: 'desc',
+            appointment: {
+              date: 'desc',
+            },
           },
           take: 1,
         },
@@ -71,7 +76,7 @@ export async function GET(request: Request) {
       (
         client: Client & {
           _count: { appointments: number };
-          appointments: { date: Date }[];
+          appointments: { appointment: { date: Date } }[];
         }
       ) => ({
         id: client.id,
@@ -81,7 +86,7 @@ export async function GET(request: Request) {
         notes: client.notes || '',
         status: client.status || 'active',
         appointmentsCount: client._count?.appointments || 0,
-        lastAppointment: client.appointments[0]?.date || null,
+        lastAppointment: client.appointments[0]?.appointment?.date || null,
       })
     );
 
@@ -156,11 +161,21 @@ export async function POST(request: Request) {
         telegramUsername: telegramUsername || null,
         userId: session.user.id,
         status: 'active',
+        password: Math.random().toString(36).slice(-8), // Generate random password
       },
+    });
+
+    const clientWithIncludes = await prisma.client.findUnique({
+      where: { id: client.id },
       include: {
         appointments: {
+          include: {
+            appointment: true,
+          },
           orderBy: {
-            date: 'desc',
+            appointment: {
+              date: 'desc',
+            },
           },
           take: 1,
         },
@@ -171,14 +186,14 @@ export async function POST(request: Request) {
     });
 
     const formattedClient = {
-      id: client.id,
-      name: client.name,
-      email: client.email,
-      phone: client.phone,
-      notes: client.notes || '',
-      status: client.status || 'active',
-      appointmentsCount: client._count?.appointments || 0,
-      lastAppointment: client.appointments[0]?.date || null,
+      id: clientWithIncludes!.id,
+      name: clientWithIncludes!.name,
+      email: clientWithIncludes!.email,
+      phone: clientWithIncludes!.phone,
+      notes: clientWithIncludes!.notes || '',
+      status: clientWithIncludes!.status || 'active',
+      appointmentsCount: clientWithIncludes!._count?.appointments || 0,
+      lastAppointment: clientWithIncludes!.appointments[0]?.appointment?.date || null,
     };
 
     return NextResponse.json(formattedClient, { status: 201 });
