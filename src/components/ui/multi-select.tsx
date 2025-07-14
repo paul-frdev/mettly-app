@@ -85,7 +85,7 @@ export const MultiSelect = React.forwardRef<
       const handleClickOutside = (event: MouseEvent) => {
         const target = event.target as Node;
         const commandElement = inputRef.current?.closest('[data-command-root]');
-        
+
         if (commandElement && !commandElement.contains(target)) {
           setIsPopoverOpen(false);
         }

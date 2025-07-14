@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { showError } from "@/lib/utils/notifications";
 
 interface Client {
   id: string;
@@ -87,6 +88,14 @@ export function AppointmentDialog({
   onIsPaidChange,
   onPriceChange,
 }: AppointmentDialogProps) {
+
+  // Check if form is valid
+  const isFormValid = () => {
+    if (appointmentType === 'group') {
+      return selectedClients && selectedClients.length > 0;
+    }
+    return true; // For individual appointments, validation is handled elsewhere
+  };
   const timeOptions: string[] = (() => {
     if (showTimeSelect && workingHours) {
       const [startHour, startMinute] = workingHours.start.split(":").map(Number);
@@ -122,6 +131,13 @@ export function AppointmentDialog({
           className="px-6 pt-4 pb-6 space-y-4"
           onSubmit={e => {
             e.preventDefault();
+
+            // Validate group appointment has at least one client selected
+            if (appointmentType === 'group' && (!selectedClients || selectedClients.length === 0)) {
+              showError('Please select at least one client for group session');
+              return;
+            }
+
             onSubmit();
           }}
         >
@@ -259,7 +275,11 @@ export function AppointmentDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" className="bg-blue-600 text-white font-semibold hover:bg-blue-700">
+            <Button
+              type="submit"
+              className="bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              disabled={!isFormValid()}
+            >
               Save
             </Button>
           </DialogFooter>
