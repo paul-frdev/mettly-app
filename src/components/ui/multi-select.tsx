@@ -72,6 +72,7 @@ export const MultiSelect = React.forwardRef<
     const [selectedValues, setSelectedValues] =
       React.useState<string[]>(defaultValue);
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
+    const inputRef = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
       if (JSON.stringify(selectedValues) !== JSON.stringify(defaultValue)) {
@@ -79,11 +80,43 @@ export const MultiSelect = React.forwardRef<
       }
     }, [defaultValue, selectedValues]);
 
+    // Close popover when clicking outside
+    React.useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        const target = event.target as Node;
+        const commandElement = inputRef.current?.closest('[data-command-root]');
+        
+        if (commandElement && !commandElement.contains(target)) {
+          setIsPopoverOpen(false);
+        }
+      };
+
+      const handleEscapeKey = (event: KeyboardEvent) => {
+        if (event.key === "Escape") {
+          setIsPopoverOpen(false);
+          inputRef.current?.blur();
+        }
+      };
+
+      if (isPopoverOpen) {
+        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("keydown", handleEscapeKey);
+      }
+
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+        document.removeEventListener("keydown", handleEscapeKey);
+      };
+    }, [isPopoverOpen]);
+
     const handleInputKeyDown = (
       event: React.KeyboardEvent<HTMLInputElement>
     ) => {
       if (event.key === "Enter") {
         setIsPopoverOpen(true);
+      } else if (event.key === "Escape") {
+        setIsPopoverOpen(false);
+        event.currentTarget.blur();
       } else if (event.key === "Backspace" && !event.currentTarget.value) {
         const newSelectedValues = [...selectedValues];
         newSelectedValues.pop();
@@ -106,6 +139,7 @@ export const MultiSelect = React.forwardRef<
       <Command
         ref={ref}
         {...props}
+        data-command-root="true"
         className={cn(
           "overflow-visible bg-transparent flex flex-col space-y-2",
           className
@@ -132,6 +166,7 @@ export const MultiSelect = React.forwardRef<
               );
             })}
             <CommandPrimitive.Input
+              ref={inputRef}
               placeholder={placeholder}
               className="ml-2 bg-transparent outline-none placeholder:text-muted-foreground flex-1"
               onKeyDown={handleInputKeyDown}
