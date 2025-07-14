@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -25,6 +26,7 @@ interface AppointmentDialogProps {
   clients?: Client[];
   isClient?: boolean;
   selectedClientId?: string;
+  selectedClients?: string[];
   notes: string;
   duration: number;
   availableDurations: number[];
@@ -41,6 +43,7 @@ interface AppointmentDialogProps {
   price: number;
   onOpenChange: (open: boolean) => void;
   onClientChange?: (id: string) => void;
+  onSelectedClientsChange?: (ids: string[]) => void;
   onNotesChange: (val: string) => void;
   onDurationChange: (val: number) => void;
   onAppointmentTypeChange: (type: "individual" | "group") => void;
@@ -59,7 +62,9 @@ export function AppointmentDialog({
   clients = [],
   isClient = false,
   selectedClientId,
+  selectedClients = [],
   onClientChange,
+  onSelectedClientsChange,
   notes,
   onNotesChange,
   duration,
@@ -193,24 +198,37 @@ export function AppointmentDialog({
                 </div>
               )}
 
-              <div>
-                <Label className="block text-xs text-gray-500 mb-1">Client</Label>
-                <Select
-                  value={selectedClientId}
-                  onValueChange={onClientChange}
-                >
-                  <SelectTrigger className="w-full border border-gray-200 rounded px-3 py-2 text-gray-800 bg-white">
-                    <SelectValue placeholder="Select client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map(client => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {appointmentType === 'individual' ? (
+                <div>
+                  <Label className="block text-xs text-gray-500 mb-1">Client</Label>
+                  <Select
+                    value={selectedClientId}
+                    onValueChange={onClientChange}
+                  >
+                    <SelectTrigger className="w-full border border-gray-200 rounded px-3 py-2 text-gray-800 bg-white">
+                      <SelectValue placeholder="Select client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map(client => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div>
+                  <Label className="block text-xs text-gray-500 mb-1">Clients</Label>
+                  <MultiSelect
+                    options={clients.map(c => ({ label: c.name, value: c.id }))}
+                    onValueChange={onSelectedClientsChange!}
+                    defaultValue={selectedClients}
+                    placeholder="Select clients"
+                    maxCount={groupCapacity}
+                  />
+                </div>
+              )}
 
               <div className="flex items-center space-x-2">
                 <Switch id="payment-toggle" checked={isPaid} onCheckedChange={onIsPaidChange} />

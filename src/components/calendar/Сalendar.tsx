@@ -167,6 +167,7 @@ export function Calendar() {
   const [eventDuration, setEventDuration] = useState(60);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [maxAvailableDuration, setMaxAvailableDuration] = useState(120);
   const [appointmentToCancel, setAppointmentToCancel] = useState<CalendarEvent | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
@@ -329,6 +330,7 @@ export function Calendar() {
       price: isPaid ? price : undefined,
       maxClients: appointmentType === 'group' ? groupCapacity : undefined,
       clientId: appointmentType === 'individual' ? (isClient ? 'self' : selectedClientId) : undefined,
+      clientIds: appointmentType === 'group' ? selectedClients : undefined,
     };
     try {
       const response = await fetch('/api/appointments', {
@@ -496,6 +498,8 @@ export function Calendar() {
         isEditing={!!selectedEvent?.id} // If the event has an ID, it's an existing event being edited
         appointmentType={appointmentType}
         onAppointmentTypeChange={setAppointmentType}
+        selectedClients={selectedClients}
+        onSelectedClientsChange={setSelectedClients}
         groupCapacity={groupCapacity}
         onGroupCapacityChange={setGroupCapacity}
         isPaid={isPaid}

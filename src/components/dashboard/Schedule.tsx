@@ -57,6 +57,7 @@ export function Schedule({
   const [notes, setNotes] = useState<string>('');
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [appointmentType, setAppointmentType] = useState<'individual' | 'group'>('individual');
@@ -300,6 +301,7 @@ export function Schedule({
       price: isPaid ? price : undefined,
       maxClients: appointmentType === 'group' ? groupCapacity : undefined,
       clientId: appointmentType === 'individual' ? (isClient ? 'self' : selectedClientId) : undefined,
+      clientIds: appointmentType === 'group' ? selectedClients : undefined,
     };
 
     try {
@@ -697,6 +699,8 @@ export function Schedule({
             isEditing={false} // This is always for creating new appointments
             appointmentType={appointmentType}
             onAppointmentTypeChange={setAppointmentType}
+            selectedClients={selectedClients}
+            onSelectedClientsChange={setSelectedClients}
             groupCapacity={groupCapacity}
             onGroupCapacityChange={setGroupCapacity}
             isPaid={isPaid}

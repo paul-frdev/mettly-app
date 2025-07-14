@@ -26,7 +26,7 @@ async function main() {
   // Keep only the first client for each email
   for (const [, clients] of Object.entries(emailGroups)) {
     if (clients.length > 1) {
-      const [keep, ...remove] = clients;
+      const [, ...remove] = clients;
       await prisma.client.deleteMany({
         where: {
           id: {
@@ -66,7 +66,7 @@ async function main() {
   // Keep only the first user for each refCode
   for (const [, users] of Object.entries(refCodeGroups)) {
     if (users.length > 1) {
-      const [keep, ...remove] = users;
+      const [, ...remove] = users;
       await prisma.user.updateMany({
         where: {
           id: {

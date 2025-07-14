@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Date and time are required' }, { status: 400 });
     }
 
-    if (!clientId) {
+    if (type !== 'group' && !clientId) {
       return NextResponse.json({ error: 'Client ID is required for individual appointments' }, { status: 400 });
     }
 
@@ -212,21 +212,23 @@ export async function POST(req: NextRequest) {
       });
     } else {
       // For trainer booking, find the client and trainer as before
-      client = await prisma.client.findUnique({
-        where: {
-          id: clientId,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
+      if (clientId) {
+        client = await prisma.client.findUnique({
+          where: {
+            id: clientId,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      if (!client) {
-        return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+        if (!client) {
+          return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+        }
       }
 
       trainer = await prisma.user.findUnique({
@@ -245,23 +247,25 @@ export async function POST(req: NextRequest) {
     const appointmentEnd = new Date(appointmentDate.getTime() + (duration || 30) * 60000);
 
     // First check if client already has an appointment at this time
-    const existingClientAppointment = await prisma.appointment.findFirst({
-      where: {
-        clientId: client.id,
-        date: appointmentDate,
-        status: {
-          not: 'cancelled',
-        },
-        attendance: {
+    if (client && type === 'individual') {
+      const existingClientAppointment = await prisma.appointment.findFirst({
+        where: {
+          clientId: client.id,
+          date: appointmentDate,
           status: {
-            not: 'declined',
+            not: 'cancelled',
+          },
+          attendance: {
+            status: {
+              not: 'declined',
+            },
           },
         },
-      },
-    });
+      });
 
-    if (existingClientAppointment) {
-      return NextResponse.json({ error: 'Client already has an appointment at this time' }, { status: 400 });
+      if (existingClientAppointment) {
+        return NextResponse.json({ error: 'Client already has an appointment at this time' }, { status: 400 });
+      }
     }
 
     // Then check for overlapping appointments with other clients
@@ -327,7 +331,7 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json(appointment);
-    } else {
+    } else if (client) {
       const appointment = await prisma.appointment.create({
         data: {
           date: appointmentDate,
