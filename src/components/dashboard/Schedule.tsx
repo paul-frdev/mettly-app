@@ -43,7 +43,7 @@ export function Schedule({
   appointments,
   onAppointmentCreated,
   onAppointmentCancelled,
-  isClient,
+  isClient = false,
   selectedDate: propSelectedDate,
   onDateChange,
 }: ScheduleProps) {
@@ -194,50 +194,56 @@ export function Schedule({
     console.log('Setting client ID from session:', session?.user);
 
     if (session?.user) {
-      // Get client ID from different possible locations in the session
-      const clientId =
-        (session.user as { clientId?: string })?.clientId ||  // Try clientId on user
-        (session.user as { id?: string })?.id ||       // Fall back to user id
-        session.user?.email;               // Last resort: use email as identifier
+      // Only fetch client ID if this user is actually a client
+      if (isClient) {
+        // Get client ID from different possible locations in the session
+        const clientId =
+          (session.user as { clientId?: string })?.clientId ||  // Try clientId on user
+          (session.user as { id?: string })?.id ||       // Fall back to user id
+          session.user?.email;               // Last resort: use email as identifier
 
-      console.log('Derived client ID:', clientId);
+        console.log('Derived client ID:', clientId);
 
-      // Fetch the actual client ID from the database
-      const fetchClientId = async () => {
-        try {
-          const response = await fetch('/api/clients/by-email?email=' + encodeURIComponent(session.user.email || ''));
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Client data from API:', data);
-            if (data && data.id) {
-              console.log('Setting client ID from API:', data.id);
-              setCurrentClientId(data.id);
+        // Fetch the actual client ID from the database
+        const fetchClientId = async () => {
+          try {
+            const response = await fetch('/api/clients/by-email?email=' + encodeURIComponent(session.user.email || ''));
+            if (response.ok) {
+              const data = await response.json();
+              console.log('Client data from API:', data);
+              if (data && data.id) {
+                console.log('Setting client ID from API:', data.id);
+                setCurrentClientId(data.id);
+              } else if (clientId) {
+                setCurrentClientId(clientId);
+              }
             } else if (clientId) {
               setCurrentClientId(clientId);
             }
-          } else if (clientId) {
-            setCurrentClientId(clientId);
+          } catch (error) {
+            console.error('Error fetching client ID:', error);
+            if (clientId) {
+              setCurrentClientId(clientId);
+            }
           }
-        } catch (error) {
-          console.error('Error fetching client ID:', error);
-          if (clientId) {
-            setCurrentClientId(clientId);
-          }
-        }
-      };
+        };
 
-      if (session.user.email) {
-        fetchClientId();
-      } else if (clientId) {
-        setCurrentClientId(clientId);
+        if (session.user.email) {
+          fetchClientId();
+        } else if (clientId) {
+          setCurrentClientId(clientId);
+        } else {
+          showError('No client ID found in session');
+          console.error('Session user:', session.user);
+        }
       } else {
-        showError('No client ID found in session');
-        console.error('Session user:', session.user);
+        // If user is not a client (i.e., is a trainer), don't set currentClientId
+        setCurrentClientId(null);
       }
     } else {
       setCurrentClientId(null);
     }
-  }, [session]);
+  }, [session, isClient]);
 
   const filteredAppointments = useMemo(() => {
 
