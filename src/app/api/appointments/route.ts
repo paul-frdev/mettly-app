@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { date, clientId, duration, notes, type, isPaid, price, maxClients } = body;
+    const { date, clientId, duration, notes, type, isPaid, price, maxClients, clientIds } = body;
 
     // Validate required fields
     if (!date) {
@@ -176,6 +176,19 @@ export async function POST(req: NextRequest) {
 
     if (type !== 'group' && !clientId) {
       return NextResponse.json({ error: 'Client ID is required for individual appointments' }, { status: 400 });
+    }
+
+    if (type === 'group' && (!clientIds || !Array.isArray(clientIds) || clientIds.length === 0)) {
+      return NextResponse.json({ error: 'At least one client ID is required for group appointments' }, { status: 400 });
+    }
+
+    // Check if the current user is a client trying to create a group appointment
+    const isClientUser = await prisma.client.findUnique({
+      where: { email: session.user.email || '' },
+    });
+
+    if (type === 'group' && isClientUser) {
+      return NextResponse.json({ error: 'Only trainers can create group appointments' }, { status: 403 });
     }
 
     let client;
@@ -320,13 +333,16 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      if (client) {
-        await prisma.clientOnAppointment.create({
-          data: {
-            appointmentId: appointment.id,
-            clientId: client.id,
-            status: 'confirmed',
-          },
+      // Add all selected clients to the group appointment
+      if (clientIds && Array.isArray(clientIds) && clientIds.length > 0) {
+        const clientAppointments = clientIds.map((clientId) => ({
+          appointmentId: appointment.id,
+          clientId: clientId,
+          status: 'confirmed',
+        }));
+
+        await prisma.clientOnAppointment.createMany({
+          data: clientAppointments,
         });
       }
 

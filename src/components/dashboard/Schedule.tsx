@@ -286,8 +286,13 @@ export function Schedule({
       return;
     }
 
-    if (!isClient && !selectedClientId) {
+    if (!isClient && appointmentType === 'individual' && !selectedClientId) {
       showError('Please select a client');
+      return;
+    }
+
+    if (!isClient && appointmentType === 'group' && (!selectedClients || selectedClients.length === 0)) {
+      showError('Please select at least one client for group session');
       return;
     }
 
