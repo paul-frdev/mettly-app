@@ -55,7 +55,9 @@ export async function POST(req: Request) {
         </div>
       `,
     });
-    console.log('Email sent successfully:', mailResult);
+    if (!mailResult) {
+      return NextResponse.json({ error: 'Failed to send reset email' }, { status: 500 });
+    }
 
     return NextResponse.json({ message: 'Password reset email sent' }, { status: 200 });
   } catch (error) {

@@ -101,16 +101,8 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         })
       : null;
 
-    // Add debugging
-    console.log('Session user:', session.user);
-    console.log('Appointment to cancel:', appointmentToCancel);
-    console.log('Client from DB:', client);
-
     // Check if the client ID matches the appointment client ID
     let isAppointmentClient = client && appointmentToCancel.clientId === client.id;
-    console.log('Is appointment client (by ID):', isAppointmentClient);
-    console.log('Client ID from DB:', client?.id);
-    console.log('Appointment client ID:', appointmentToCancel.clientId);
 
     // Try to get the full appointment details to see if there's any issue with the client ID
     const fullAppointment = await prisma.appointment.findUnique({
@@ -119,27 +111,21 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         client: true,
       },
     });
-    console.log('Full appointment:', fullAppointment);
 
     // If the client ID doesn't match, check if the appointment has a special "self" clientId
     if (!isAppointmentClient && fullAppointment?.clientId === 'self') {
-      console.log('Appointment has special "self" clientId');
       isAppointmentClient = true;
     }
 
     // If the client ID doesn't match, check if the client email matches the appointment client email
     if (!isAppointmentClient && client && fullAppointment?.client?.email === session.user.email) {
-      console.log('Client email matches appointment client email');
       isAppointmentClient = true;
     }
 
     // If the client ID and email don't match, check if the client user ID matches the appointment client user ID
     if (!isAppointmentClient && client && fullAppointment?.client?.userId === session.user.id) {
-      console.log('Client user ID matches appointment client user ID');
       isAppointmentClient = true;
     }
-
-    console.log('Final is appointment client:', isAppointmentClient);
 
     // Allow trainers to delete any appointment, but clients can only delete their own
     if (!isTrainer && !isAppointmentClient) {

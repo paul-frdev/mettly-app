@@ -191,7 +191,6 @@ export function Schedule({
 
   // Set the client ID from the session
   useEffect(() => {
-    console.log('Setting client ID from session:', session?.user);
 
     if (session?.user) {
       // Only fetch client ID if this user is actually a client
@@ -202,17 +201,13 @@ export function Schedule({
           (session.user as { id?: string })?.id ||       // Fall back to user id
           session.user?.email;               // Last resort: use email as identifier
 
-        console.log('Derived client ID:', clientId);
-
         // Fetch the actual client ID from the database
         const fetchClientId = async () => {
           try {
             const response = await fetch('/api/clients/by-email?email=' + encodeURIComponent(session.user.email || ''));
             if (response.ok) {
               const data = await response.json();
-              console.log('Client data from API:', data);
               if (data && data.id) {
-                console.log('Setting client ID from API:', data.id);
                 setCurrentClientId(data.id);
               } else if (clientId) {
                 setCurrentClientId(clientId);
@@ -580,11 +575,6 @@ export function Schedule({
                   parse(timeSlot, 'h:mm a', selectedDate),
                   new Date()
                 );
-
-                // Check if this appointment belongs to the current client
-                // Add debugging to see the values
-                console.log('Appointment clientId:', appointment?.clientId);
-                console.log('Current clientId:', currentClientId);
 
                 // Consider appointments with clientId "self" as the client's own appointments
                 // Also check for direct match between appointment clientId and current clientId

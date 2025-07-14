@@ -23,17 +23,22 @@ export async function POST(request: Request) {
           include: {
             appointments: {
               where: {
-                date: {
-                  gt: new Date(),
-                },
-                status: {
-                  not: 'cancelled',
-                },
-                attendance: {
+                appointment: {
+                  date: {
+                    gt: new Date(),
+                  },
                   status: {
-                    not: 'declined',
+                    not: 'cancelled',
+                  },
+                  attendance: {
+                    status: {
+                      not: 'declined',
+                    },
                   },
                 },
+              },
+              include: {
+                appointment: true,
               },
             },
           },
@@ -48,13 +53,13 @@ export async function POST(request: Request) {
         const appointmentsByTime = new Map();
 
         for (const appointment of client.appointments) {
-          const timeKey = appointment.date.toISOString();
+          const timeKey = appointment.appointment.date.toISOString();
           if (!appointmentsByTime.has(timeKey)) {
             appointmentsByTime.set(timeKey, appointment);
           } else {
             // If we have duplicate appointments, keep the most recent one
             const existingAppointment = appointmentsByTime.get(timeKey);
-            if (appointment.createdAt > existingAppointment.createdAt) {
+            if (appointment.appointment.createdAt > existingAppointment.appointment.createdAt) {
               appointmentsByTime.set(timeKey, appointment);
             }
           }
@@ -74,7 +79,7 @@ export async function POST(request: Request) {
 
       for (const client of user.clients) {
         for (const appointment of client.appointments) {
-          const appointmentTime = appointment.date.getTime();
+          const appointmentTime = appointment.appointment.date.getTime();
           const now = Date.now();
           const timeUntilReminder = appointmentTime - now;
 
@@ -82,7 +87,7 @@ export async function POST(request: Request) {
           if (timeUntilReminder <= reminderTimeMs && timeUntilReminder > 0) {
             if (client.telegramId) {
               try {
-                await sendAppointmentReminder(client.telegramId, appointment.date.toTimeString().split(' ')[0], appointment.id);
+                await sendAppointmentReminder(client.telegramId, appointment.appointment.date.toTimeString().split(' ')[0], appointment.id);
 
                 // Create a reminder record
                 await prisma.reminder.create({
@@ -96,7 +101,7 @@ export async function POST(request: Request) {
                 sentReminders.push({
                   clientId: client.id,
                   appointmentId: appointment.id,
-                  time: appointment.date,
+                  time: appointment.appointment.date,
                 });
               } catch (error) {
                 console.error(`Failed to send reminder for appointment ${appointment.id}:`, error);
