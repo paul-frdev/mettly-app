@@ -10,7 +10,6 @@ import {
   CalendarDays,
   Calendar,
   Settings,
-  Home
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
