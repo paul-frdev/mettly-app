@@ -63,6 +63,7 @@ export const MultiSelect = React.forwardRef<
       defaultValue = [],
       placeholder = "Select options",
       animation,
+      maxCount,
       className,
       ...props
     },
@@ -94,7 +95,9 @@ export const MultiSelect = React.forwardRef<
     const toggleOption = (value: string) => {
       const newSelectedValues = selectedValues.includes(value)
         ? selectedValues.filter((v) => v !== value)
-        : [...selectedValues, value];
+        : maxCount && selectedValues.length >= maxCount
+          ? selectedValues
+          : [...selectedValues, value];
       setSelectedValues(newSelectedValues);
       onValueChange(newSelectedValues);
     };
@@ -142,15 +145,16 @@ export const MultiSelect = React.forwardRef<
               <CommandGroup>
                 {options.map((option) => {
                   const isSelected = selectedValues.includes(option.value);
+                  const isDisabled = !isSelected && maxCount && selectedValues.length >= maxCount;
                   return (
                     <CommandItem
                       key={option.value}
                       onSelect={() => toggleOption(option.value)}
                       style={{
                         pointerEvents: "auto",
-                        opacity: 1,
+                        opacity: isDisabled ? 0.5 : 1,
                       }}
-                      className="cursor-pointer"
+                      className={cn("cursor-pointer", isDisabled && "cursor-not-allowed")}
                     >
                       <div
                         className={cn(
