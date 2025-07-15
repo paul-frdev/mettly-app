@@ -70,11 +70,20 @@ export function TimeSlot({
               ? "bg-gray-500/10 text-gray-300"
               : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer"
         )}
-        style={isBooked && appointment?.clientId ? {
-          backgroundColor: `${stringToColor(appointment.clientId)}33`, // Add transparency
-          color: getContrastTextColor(stringToColor(appointment.clientId)),
-          borderLeft: `4px solid ${stringToColor(appointment.clientId)}`,
-        } : {}}
+        style={isBooked && appointment ? (() => {
+          // Для групповых записей используем первого клиента или тип записи для цвета
+          const colorKey = appointment.type === 'group'
+            ? (appointment.clientIds?.[0] || appointment.id || 'group')
+            : (appointment.clientId || appointment.id);
+
+          const baseColor = stringToColor(colorKey);
+
+          return {
+            backgroundColor: `${baseColor}33`, // Add transparency
+            color: getContrastTextColor(baseColor),
+            borderLeft: `4px solid ${baseColor}`,
+          };
+        })() : {}}
         onClick={handleSlotClick}
       >
         <div className="flex items-center gap-2">

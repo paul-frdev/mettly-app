@@ -156,7 +156,7 @@ export function useSchedule({ appointments, onAppointmentCreated, isClient = fal
   }, [session, isClient]);
 
   const filteredAppointments = useMemo(() => {
-    return appointments.filter((apt) => {
+    const filtered = appointments.filter((apt) => {
       if (!apt || !apt.date) {
         return false;
       }
@@ -182,8 +182,9 @@ export function useSchedule({ appointments, onAppointmentCreated, isClient = fal
         const now = new Date().getTime();
 
         if (appointmentDateTime > now) {
-          // Будущие записи: показываем все кроме completed (если они ошибочно помечены)
-          return isSameDay && apt.status !== 'completed';
+          // Будущие записи: показываем все, кроме отмененных
+          // Не фильтруем "completed" для будущих записей, так как это может быть ошибка в данных
+          return isSameDay;
         } else {
           // Прошедшие записи: показываем все для истории
           return isSameDay;
@@ -194,6 +195,8 @@ export function useSchedule({ appointments, onAppointmentCreated, isClient = fal
         return false;
       }
     });
+
+    return filtered;
   }, [appointments, selectedDate]);
 
   const generateTimeSlots = () => {

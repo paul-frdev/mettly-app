@@ -22,6 +22,12 @@ type RawAppointmentData = {
   status?: string;
   client?: Client;
   clientId?: string;
+  clientIds?: string[]; // For group appointments
+  clients?: Array<{ client: Client }>; // From Prisma ClientOnAppointment relation
+  type?: 'individual' | 'group'; // Type of appointment
+  isPaid?: boolean; // Whether the appointment is paid
+  price?: number; // Price for the appointment
+  maxClients?: number; // Maximum clients for group appointments
   notes?: string;
   description?: string;
   createdAt?: string | Date;
@@ -93,6 +99,12 @@ export function useAppointments() {
             status: appt.status || 'pending', // Default status
             clientId: appt.clientId || (appt.client ? appt.client.id : undefined),
             client: appt.client,
+            clientIds: appt.clientIds, // Group appointment client IDs
+            clients: appt.clients, // Group appointment client objects
+            type: appt.type || 'individual', // Default to individual
+            isPaid: appt.isPaid,
+            price: appt.price,
+            maxClients: appt.maxClients,
             notes: appt.notes,
             description: appt.description,
             cancelledAt: appt.cancelledAt ? new Date(appt.cancelledAt as string | Date) : undefined,
