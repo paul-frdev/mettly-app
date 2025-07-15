@@ -24,6 +24,7 @@ export interface Appointment {
   client?: Client; // Optional client reference
   clientId?: string; // Alternative to client object, just the ID
   clientIds?: string[]; // For group appointments
+  clients?: Array<{ client: Client }>; // Full client objects for group appointments from Prisma
   status: string;
   notes?: string;
   description?: string;

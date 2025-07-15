@@ -30,8 +30,6 @@ export async function GET() {
     if (client) {
       // Если это клиент, обновляем статусы его встреч
       const now = new Date();
-      // Получаем текущее время в локальной временной зоне
-      const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
 
       // Обновляем статус прошедших встреч
       await prisma.appointment.updateMany({
@@ -40,7 +38,7 @@ export async function GET() {
           AND: [
             {
               date: {
-                lt: localNow,
+                lt: now, // Используем текущее время сервера
               },
             },
             {

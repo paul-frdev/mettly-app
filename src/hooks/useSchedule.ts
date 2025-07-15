@@ -160,6 +160,12 @@ export function useSchedule({ appointments, onAppointmentCreated, isClient = fal
       if (!apt || !apt.date) {
         return false;
       }
+
+      // Исключаем отмененные записи
+      if (apt.status === 'cancelled') {
+        return false;
+      }
+
       try {
         const appointmentDate = new Date(apt.date);
         if (isNaN(appointmentDate.getTime())) {
@@ -167,7 +173,21 @@ export function useSchedule({ appointments, onAppointmentCreated, isClient = fal
           console.error('Invalid appointment:', apt);
           return false;
         }
-        return format(appointmentDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+
+        const isSameDay = format(appointmentDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+
+        // Для будущих дат показываем все записи кроме отмененных
+        // Для прошедших дат показываем только если статус completed (для истории)
+        const appointmentDateTime = appointmentDate.getTime();
+        const now = new Date().getTime();
+
+        if (appointmentDateTime > now) {
+          // Будущие записи: показываем все кроме completed (если они ошибочно помечены)
+          return isSameDay && apt.status !== 'completed';
+        } else {
+          // Прошедшие записи: показываем все для истории
+          return isSameDay;
+        }
       } catch (error) {
         showError(`Error processing appointment`);
         console.error('Appointment error:', { apt, error });

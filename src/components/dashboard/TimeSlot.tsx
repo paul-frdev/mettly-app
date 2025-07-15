@@ -46,9 +46,7 @@ export function TimeSlot({
   const isOwnAppointment = isClient && appointment && (
     appointment.clientId === currentClientId ||
     appointment.clientId === 'self'
-  );
-
-  const canInteract = !isPast && (!isClient || (isClient && isOwnAppointment));
+  ); const canInteract = !isPast && (!isClient || (isClient && isOwnAppointment));
 
   const handleSlotClick = () => {
     if (isBooked && canInteract && appointment) {
@@ -89,9 +87,10 @@ export function TimeSlot({
                     {appointment.notes || (appointment.client?.name || 'No description')}
 
                     {/* Показываем информацию о типе записи */}
-                    {appointment.type === 'group' && appointment.clientIds && appointment.clientIds.length > 0 &&
-                      ` (Группа: ${appointment.clientIds.length} чел.)`
-                    }
+                    {appointment.type === 'group' && (() => {
+                      const groupSize = appointment.clientIds?.length || appointment.clients?.length || 0;
+                      return groupSize > 0 ? ` (Группа: ${groupSize} чел.)` : '';
+                    })()}
 
                     {/* Показываем длительность */}
                     {appointment.duration! > 60 && ` (${Math.floor(appointment.duration! / 60)}h ${appointment.duration! % 60 > 0 ? `${appointment.duration! % 60}min` : ''})`}
