@@ -97,6 +97,16 @@ export async function GET() {
               userId: true,
             },
           },
+          clients: {
+            include: {
+              client: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
         },
         orderBy: {
           date: 'asc',
@@ -107,8 +117,19 @@ export async function GET() {
       const ownAppointments = appointments.filter((appointment) => appointment.clientId === client.id);
       const busySlots = appointments.filter((appointment) => appointment.clientId !== client.id);
 
+      // Трансформируем данные для включения информации о групповых клиентах
+      const transformedOwnAppointments = ownAppointments.map(appointment => ({
+        ...appointment,
+        clientIds: appointment.clients?.map(c => c.client.id) || [],
+      }));
+
+      const transformedBusySlots = busySlots.map(appointment => ({
+        ...appointment,
+        clientIds: appointment.clients?.map(c => c.client.id) || [],
+      }));
+
       // Для календаря: объединяем свои встречи и занятые слоты
-      const calendarSlots = [...ownAppointments, ...busySlots].map((appointment) => ({
+      const calendarSlots = [...transformedOwnAppointments, ...transformedBusySlots].map((appointment) => ({
         ...appointment,
         clientId: appointment.clientId === client.id ? 'self' : appointment.clientId,
         client:
@@ -123,7 +144,7 @@ export async function GET() {
 
       // Возвращаем разные данные для разных целей
       return NextResponse.json({
-        list: ownAppointments,
+        list: transformedOwnAppointments,
         calendar: calendarSlots,
       });
     }
@@ -144,13 +165,29 @@ export async function GET() {
             name: true,
           },
         },
+        clients: {
+          include: {
+            client: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         date: 'asc',
       },
     });
 
-    return NextResponse.json(appointments);
+    // Трансформируем данные для включения информации о групповых клиентах
+    const transformedAppointments = appointments.map(appointment => ({
+      ...appointment,
+      clientIds: appointment.clients?.map(c => c.client.id) || [],
+    }));
+
+    return NextResponse.json(transformedAppointments);
   } catch (error) {
     console.error('Error fetching appointments:', error);
     return NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 });

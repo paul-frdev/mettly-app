@@ -23,9 +23,14 @@ export interface Appointment {
   duration: number; // in minutes
   client?: Client; // Optional client reference
   clientId?: string; // Alternative to client object, just the ID
+  clientIds?: string[]; // For group appointments
   status: string;
   notes?: string;
   description?: string;
+  type?: 'individual' | 'group'; // Type of appointment
+  isPaid?: boolean; // Whether the appointment is paid
+  price?: number; // Price for the appointment
+  maxClients?: number; // Maximum clients for group appointments
   cancelledAt?: Date;
   cancellationReason?: string;
   cancelledById?: string; // ID of the user who cancelled the appointment

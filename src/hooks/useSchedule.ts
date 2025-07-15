@@ -24,6 +24,7 @@ export function useSchedule({ appointments, onAppointmentCreated, isClient = fal
 
   const [selectedDate, setSelectedDate] = useState<Date>(propSelectedDate);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [duration, setDuration] = useState<number>(60);
   const [notes, setNotes] = useState<string>('');
@@ -38,6 +39,7 @@ export function useSchedule({ appointments, onAppointmentCreated, isClient = fal
   const [price, setPrice] = useState(0);
   const [currentClientId, setCurrentClientId] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(selectedDate);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 
   // Sync with parent component's selected date
   useEffect(() => {
@@ -278,6 +280,108 @@ export function useSchedule({ appointments, onAppointmentCreated, isClient = fal
     }
   };
 
+  const handleEditAppointment = (appointment: Appointment) => {
+    setEditingAppointment(appointment);
+    setSelectedTimeSlot(format(new Date(appointment.date), 'h:mm a'));
+    setDuration(appointment.duration);
+    setNotes(appointment.notes || '');
+    
+    // Определяем тип записи более надежно
+    const isGroupAppointment = appointment.type === 'group' || 
+                              (appointment.clientIds && appointment.clientIds.length > 0) ||
+                              appointment.maxClients;
+    
+    setAppointmentType(isGroupAppointment ? 'group' : 'individual');
+    setIsPaid(appointment.isPaid || false);
+    setPrice(appointment.price || 0);
+    
+    if (isGroupAppointment) {
+      // Для групповых записей
+      setSelectedClients(appointment.clientIds || []);
+      setGroupCapacity(appointment.maxClients || 2);
+      setSelectedClientId(''); // Очищаем индивидуального клиента
+    } else {
+      // Для индивидуальных записей
+      setSelectedClientId(appointment.clientId || '');
+      setSelectedClients([]); // Очищаем групповых клиентов
+    }
+    
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateAppointment = async () => {
+    if (!editingAppointment) {
+      showError('No appointment selected for editing');
+      return;
+    }
+
+    if (!selectedTimeSlot) {
+      showError('Please select a time slot');
+      return;
+    }
+
+    if (!isClient && appointmentType === 'individual' && !selectedClientId) {
+      showError('Please select a client');
+      return;
+    }
+
+    if (!isClient && appointmentType === 'group' && (!selectedClients || selectedClients.length === 0)) {
+      showError('Please select at least one client for group session');
+      return;
+    }
+
+    const appointmentDate = parse(selectedTimeSlot, 'h:mm a', selectedDate);
+    const requestData = {
+      date: appointmentDate.toISOString(),
+      duration,
+      notes,
+      type: appointmentType,
+      isPaid,
+      price: isPaid ? price : undefined,
+      maxClients: appointmentType === 'group' ? groupCapacity : undefined,
+      clientId: appointmentType === 'individual' ? (isClient ? 'self' : selectedClientId) : undefined,
+      clientIds: appointmentType === 'group' ? selectedClients : undefined,
+    };
+
+    try {
+      const response = await fetch(`/api/appointments/${editingAppointment.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        const errorMessage = responseData?.message || 'Failed to update appointment';
+        throw new Error(errorMessage);
+      }
+
+      const currentSelectedDate = new Date(selectedDate);
+      setIsEditDialogOpen(false);
+      setEditingAppointment(null);
+      setNotes('');
+      setSelectedClientId('');
+      setDuration(60);
+      setSelectedTimeSlot('');
+
+      if (onAppointmentCreated) {
+        onAppointmentCreated();
+      }
+      if (calendarUpdate) {
+        calendarUpdate();
+      }
+
+      showSuccess('Appointment updated successfully');
+      setSelectedDate(currentSelectedDate);
+      if (onDateChange) {
+        onDateChange(currentSelectedDate);
+      }
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Failed to update appointment');
+    }
+  };
+
   const isTimeSlotBooked = (timeSlot: string) => {
     const slotTime = parse(timeSlot, 'h:mm a', selectedDate);
     const slotEndTime = new Date(slotTime.getTime() + (settings?.slotDuration || 30) * 60000);
@@ -342,6 +446,10 @@ export function useSchedule({ appointments, onAppointmentCreated, isClient = fal
     setSelectedDate,
     isCreateDialogOpen,
     setIsCreateDialogOpen,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
+    editingAppointment,
+    setEditingAppointment,
     selectedTimeSlot,
     setSelectedTimeSlot,
     duration,
@@ -371,6 +479,8 @@ export function useSchedule({ appointments, onAppointmentCreated, isClient = fal
     handleNextDay,
     timeSlots,
     handleCreateAppointment,
+    handleEditAppointment,
+    handleUpdateAppointment,
     isTimeSlotBooked,
     getAppointmentForTimeSlot,
     availableDurations,

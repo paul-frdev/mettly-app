@@ -31,6 +31,9 @@ export function Schedule({
     selectedDate,
     isCreateDialogOpen,
     setIsCreateDialogOpen,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
+    editingAppointment,
     selectedTimeSlot,
     setSelectedTimeSlot,
     duration,
@@ -60,6 +63,8 @@ export function Schedule({
     handleNextDay,
     timeSlots,
     handleCreateAppointment,
+    handleEditAppointment,
+    handleUpdateAppointment,
     isTimeSlotBooked,
     getAppointmentForTimeSlot,
     availableDurations,
@@ -71,12 +76,6 @@ export function Schedule({
     selectedDate: propSelectedDate,
     onDateChange,
   });
-
-  // Function to handle editing an appointment
-  const handleEditAppointment = (appointment: Appointment) => {
-    // TODO: Implement edit functionality
-    console.log('Edit appointment:', appointment.id);
-  };
 
   const handleDeleteAppointment = (appointment: Appointment) => {
     onAppointmentCancelled(appointment);
@@ -195,6 +194,37 @@ export function Schedule({
             timeLabel={selectedTimeSlot}
             dateLabel={format(selectedDate, 'PPP')}
             isEditing={false}
+            appointmentType={appointmentType}
+            onAppointmentTypeChange={setAppointmentType}
+            selectedClients={selectedClients}
+            onSelectedClientsChange={setSelectedClients}
+            groupCapacity={groupCapacity}
+            onGroupCapacityChange={setGroupCapacity}
+            isPaid={isPaid}
+            onIsPaidChange={setIsPaid}
+            price={price}
+            onPriceChange={setPrice}
+          />
+
+          <AppointmentDialog
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            clients={clients}
+            isClient={isClient}
+            selectedClientId={selectedClientId}
+            onClientChange={setSelectedClientId}
+            notes={notes}
+            onNotesChange={setNotes}
+            duration={duration}
+            onDurationChange={setDuration}
+            availableDurations={availableDurations}
+            maxAvailableDuration={availableDurations.length > 0 ? Math.max(...availableDurations) : 120}
+            onSubmit={handleUpdateAppointment}
+            onCancel={() => setIsEditDialogOpen(false)}
+            onDelete={() => editingAppointment && handleDeleteAppointment(editingAppointment)}
+            timeLabel={selectedTimeSlot}
+            dateLabel={format(selectedDate, 'PPP')}
+            isEditing={true}
             appointmentType={appointmentType}
             onAppointmentTypeChange={setAppointmentType}
             selectedClients={selectedClients}
