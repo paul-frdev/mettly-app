@@ -152,7 +152,9 @@
 .custom-calendar-event:hover {
   background: #f3f4f6 !important;
   transform: none;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
 }
 
 .custom-calendar-event .event-dot {
@@ -185,4 +187,153 @@
 }
 .custom-calendar-event.selected .event-dot {
   background: #fff !important;
+}
+
+/* Стили для временных слотов React Big Calendar */
+.rbc-time-slot,
+.rbc-day-slot,
+.rbc-time-slot > *,
+.rbc-day-slot > * {
+  transition: all 0.2s ease-in-out !important;
+}
+
+/* Прошедшее время - диагональные полосы */
+.rbc-time-view .rbc-time-slot.past-time-slot,
+.rbc-time-view .rbc-time-slot.past-time-slot > *,
+.rbc-month-view .rbc-day-bg.past-time-slot,
+.rbc-agenda-view .rbc-day-slot.past-time-slot {
+  background-color: #f3f4f6 !important;
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  position: relative;
+}
+
+.rbc-time-view .rbc-time-slot.past-time-slot::before,
+.rbc-month-view .rbc-day-bg.past-time-slot::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(156, 163, 175, 0.3) 4px,
+    rgba(156, 163, 175, 0.3) 8px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Нерабочие часы */
+.rbc-time-view .rbc-time-slot.non-business-slot,
+.rbc-time-view .rbc-time-slot.non-business-slot > *,
+.rbc-month-view .rbc-day-bg.non-business-slot {
+  background-color: #f8fafc !important;
+  opacity: 0.7 !important;
+  cursor: not-allowed !important;
+}
+
+/* Доступные слоты - зеленая подсветка ТОЛЬКО для временных слотов (week/day view) */
+.rbc-time-view .rbc-time-slot.available-slot,
+.rbc-time-view .rbc-time-slot.available-slot > *,
+.rbc-time-view .rbc-time-slot.available-slot *,
+.rbc-time-view .rbc-timeslot-group .rbc-time-slot.available-slot,
+.rbc-time-view .rbc-timeslot-group .rbc-time-slot.available-slot *,
+.rbc-time-content .rbc-time-slot.available-slot,
+.rbc-time-content .rbc-time-slot.available-slot * {
+  cursor: pointer !important;
+  transition: background-color 0.2s ease-in-out !important;
+}
+
+/* Принудительный курсор для всей области слота */
+.rbc-calendar .rbc-time-view .available-slot,
+.rbc-calendar .rbc-time-view .available-slot *,
+.rbc-calendar .rbc-time-view .available-slot::before,
+.rbc-calendar .rbc-time-view .available-slot::after,
+.rbc-calendar .rbc-time-slot.available-slot,
+.rbc-calendar .rbc-time-slot.available-slot *,
+.rbc-calendar .rbc-time-slot.available-slot::before,
+.rbc-calendar .rbc-time-slot.available-slot::after {
+  cursor: pointer !important;
+}
+
+/* ПРИНУДИТЕЛЬНЫЕ СТИЛИ ДЛЯ КУРСОРА - МАКСИМАЛЬНАЯ СПЕЦИФИЧНОСТЬ */
+.rbc-calendar .rbc-time-view .rbc-time-content .rbc-timeslot-group .rbc-time-slot.available-slot,
+.rbc-calendar .rbc-time-view .rbc-time-content .rbc-timeslot-group .rbc-time-slot.available-slot *,
+.rbc-calendar .rbc-time-view .rbc-time-content .rbc-timeslot-group .rbc-time-slot.available-slot div,
+.rbc-calendar .rbc-time-view .rbc-time-content .rbc-timeslot-group .rbc-time-slot.available-slot span {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+/* Убираем любые базовые курсоры календаря для доступных слотов */
+.rbc-time-slot.available-slot {
+  cursor: pointer !important;
+}
+
+.rbc-time-slot.available-slot * {
+  cursor: pointer !important;
+}
+
+/* Принудительно для всех состояний */
+.available-slot,
+.available-slot *,
+.available-slot div,
+.available-slot span,
+.available-slot::before,
+.available-slot::after {
+  cursor: pointer !important;
+}
+
+/* Основной hover эффект ТОЛЬКО для week/day view */
+.rbc-time-view .rbc-time-slot.available-slot:hover,
+.rbc-time-view .rbc-time-slot.available-slot:hover > *,
+.rbc-time-view .rbc-time-slot.available-slot > *:hover {
+  background-color: #dcfce7 !important;
+  border-color: #22c55e !important;
+  transform: scale(1.01) !important;
+  cursor: pointer !important;
+}
+
+/* Специфичные селекторы для всех дочерних элементов */
+.rbc-timeslot-group .rbc-time-slot.available-slot:hover,
+.rbc-timeslot-group .rbc-time-slot.available-slot:hover *,
+.rbc-time-content .rbc-time-slot.available-slot:hover,
+.rbc-time-content .rbc-time-slot.available-slot:hover * {
+  background-color: #dcfce7 !important;
+  box-shadow: inset 0 0 0 2px #22c55e !important;
+}
+
+/* Месячный вид - БЕЗ hover эффектов для дней */
+.rbc-month-view .rbc-day-bg.available-slot {
+  cursor: pointer !important;
+  /* НЕ добавляем hover эффекты для месячного вида */
+}
+
+/* Убираем любые стандартные hover эффекты для недоступных слотов */
+.past-time-slot:hover,
+.past-time-slot:hover *,
+.past-time-slot *:hover,
+.non-business-slot:hover,
+.non-business-slot:hover *,
+.non-business-slot *:hover {
+  background-color: inherit !important;
+  transform: none !important;
+  cursor: not-allowed !important;
+}
+
+/* Принудительное применение стилей ТОЛЬКО для week/day view */
+.rbc-time-view .available-slot:hover {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%) !important;
+}
+
+/* Дополнительные селекторы для полного покрытия области слота ТОЛЬКО в week/day view */
+.rbc-time-view .rbc-time-slot.available-slot,
+.rbc-time-view .rbc-time-slot.available-slot * {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
 }

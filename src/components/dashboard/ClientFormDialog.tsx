@@ -9,10 +9,17 @@ import {
 } from '@/components/ui/dialog';
 import ClientForm from '../forms/ClientForm';
 
+interface ClientFormData {
+  // Define the expected fields for the client form data
+  name: string;
+  email: string;
+  // Add other fields as needed
+}
+
 interface ClientFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: ClientFormData) => Promise<void>;
 }
 
 export function ClientFormDialog({ isOpen, onClose, onSubmit }: ClientFormDialogProps) {
@@ -25,12 +32,12 @@ export function ClientFormDialog({ isOpen, onClose, onSubmit }: ClientFormDialog
             Add a new client to your system. Fill in the required information below.
           </DialogDescription>
         </DialogHeader>
-        <ClientForm 
+        <ClientForm
           onSubmit={async (data) => {
             await onSubmit(data);
             onClose();
-          }} 
-          onCancel={onClose} 
+          }}
+          onCancel={onClose}
         />
       </DialogContent>
     </Dialog>

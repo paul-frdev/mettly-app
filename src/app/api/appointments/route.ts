@@ -30,17 +30,15 @@ export async function GET() {
     if (client) {
       // Если это клиент, обновляем статусы его встреч
       const now = new Date();
-      // Получаем текущее время в локальной временной зоне
-      const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
 
       // Обновляем статус прошедших встреч
-      const updatedAppointments = await prisma.appointment.updateMany({
+      await prisma.appointment.updateMany({
         where: {
           clientId: client.id,
           AND: [
             {
               date: {
-                lt: localNow,
+                lt: now, // Используем текущее время сервера
               },
             },
             {
@@ -97,6 +95,16 @@ export async function GET() {
               userId: true,
             },
           },
+          clients: {
+            include: {
+              client: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
         },
         orderBy: {
           date: 'asc',
@@ -107,8 +115,19 @@ export async function GET() {
       const ownAppointments = appointments.filter((appointment) => appointment.clientId === client.id);
       const busySlots = appointments.filter((appointment) => appointment.clientId !== client.id);
 
+      // Трансформируем данные для включения информации о групповых клиентах
+      const transformedOwnAppointments = ownAppointments.map((appointment) => ({
+        ...appointment,
+        clientIds: appointment.clients?.map((c) => c.client.id) || [],
+      }));
+
+      const transformedBusySlots = busySlots.map((appointment) => ({
+        ...appointment,
+        clientIds: appointment.clients?.map((c) => c.client.id) || [],
+      }));
+
       // Для календаря: объединяем свои встречи и занятые слоты
-      const calendarSlots = [...ownAppointments, ...busySlots].map((appointment) => ({
+      const calendarSlots = [...transformedOwnAppointments, ...transformedBusySlots].map((appointment) => ({
         ...appointment,
         clientId: appointment.clientId === client.id ? 'self' : appointment.clientId,
         client:
@@ -123,7 +142,7 @@ export async function GET() {
 
       // Возвращаем разные данные для разных целей
       return NextResponse.json({
-        list: ownAppointments,
+        list: transformedOwnAppointments,
         calendar: calendarSlots,
       });
     }
@@ -144,13 +163,29 @@ export async function GET() {
             name: true,
           },
         },
+        clients: {
+          include: {
+            client: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         date: 'asc',
       },
     });
 
-    return NextResponse.json(appointments);
+    // Трансформируем данные для включения информации о групповых клиентах
+    const transformedAppointments = appointments.map((appointment) => ({
+      ...appointment,
+      clientIds: appointment.clients?.map((c) => c.client.id) || [],
+    }));
+
+    return NextResponse.json(transformedAppointments);
   } catch (error) {
     console.error('Error fetching appointments:', error);
     return NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 });
@@ -167,15 +202,28 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { date, clientId, duration, notes } = body;
+    const { date, clientId, duration, notes, type, isPaid, price, maxClients, clientIds } = body;
 
     // Validate required fields
     if (!date) {
       return NextResponse.json({ error: 'Date and time are required' }, { status: 400 });
     }
 
-    if (!clientId) {
-      return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
+    if (type !== 'group' && !clientId) {
+      return NextResponse.json({ error: 'Client ID is required for individual appointments' }, { status: 400 });
+    }
+
+    if (type === 'group' && (!clientIds || !Array.isArray(clientIds) || clientIds.length === 0)) {
+      return NextResponse.json({ error: 'At least one client ID is required for group appointments' }, { status: 400 });
+    }
+
+    // Check if the current user is a client trying to create a group appointment
+    const isClientUser = await prisma.client.findUnique({
+      where: { email: session.user.email || '' },
+    });
+
+    if (type === 'group' && isClientUser) {
+      return NextResponse.json({ error: 'Only trainers can create group appointments' }, { status: 403 });
     }
 
     let client;
@@ -212,21 +260,23 @@ export async function POST(req: NextRequest) {
       });
     } else {
       // For trainer booking, find the client and trainer as before
-      client = await prisma.client.findUnique({
-        where: {
-          id: clientId,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
+      if (clientId) {
+        client = await prisma.client.findUnique({
+          where: {
+            id: clientId,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      if (!client) {
-        return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+        if (!client) {
+          return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+        }
       }
 
       trainer = await prisma.user.findUnique({
@@ -245,23 +295,25 @@ export async function POST(req: NextRequest) {
     const appointmentEnd = new Date(appointmentDate.getTime() + (duration || 30) * 60000);
 
     // First check if client already has an appointment at this time
-    const existingClientAppointment = await prisma.appointment.findFirst({
-      where: {
-        clientId: client.id,
-        date: appointmentDate,
-        status: {
-          not: 'cancelled',
-        },
-        attendance: {
+    if (client && type === 'individual') {
+      const existingClientAppointment = await prisma.appointment.findFirst({
+        where: {
+          clientId: client.id,
+          date: appointmentDate,
           status: {
-            not: 'declined',
+            not: 'cancelled',
+          },
+          attendance: {
+            status: {
+              not: 'declined',
+            },
           },
         },
-      },
-    });
+      });
 
-    if (existingClientAppointment) {
-      return NextResponse.json({ error: 'Client already has an appointment at this time' }, { status: 400 });
+      if (existingClientAppointment) {
+        return NextResponse.json({ error: 'Client already has an appointment at this time' }, { status: 400 });
+      }
     }
 
     // Then check for overlapping appointments with other clients
@@ -302,24 +354,56 @@ export async function POST(req: NextRequest) {
     }
 
     // Create the appointment
-    const appointment = await prisma.appointment.create({
-      data: {
-        date: appointmentDate,
-        duration: duration || 30,
-        notes: notes,
-        userId: trainer.id,
-        clientId: client.id,
-      },
-      include: {
-        client: {
-          select: {
-            name: true,
+    if (type === 'group') {
+      const appointment = await prisma.appointment.create({
+        data: {
+          date: appointmentDate,
+          duration: duration || 30,
+          notes: notes,
+          userId: trainer.id,
+          type: 'group',
+          isPaid: isPaid || false,
+          price: isPaid ? price : null,
+          maxClients: maxClients || null,
+        },
+      });
+
+      // Add all selected clients to the group appointment
+      if (clientIds && Array.isArray(clientIds) && clientIds.length > 0) {
+        const clientAppointments = clientIds.map((clientId) => ({
+          appointmentId: appointment.id,
+          clientId: clientId,
+          status: 'confirmed',
+        }));
+
+        await prisma.clientOnAppointment.createMany({
+          data: clientAppointments,
+        });
+      }
+
+      return NextResponse.json(appointment);
+    } else if (client) {
+      const appointment = await prisma.appointment.create({
+        data: {
+          date: appointmentDate,
+          duration: duration || 30,
+          notes: notes,
+          userId: trainer.id,
+          clientId: client.id,
+          type: 'individual',
+          isPaid: isPaid || false,
+          price: isPaid ? price : null,
+        },
+        include: {
+          client: {
+            select: {
+              name: true,
+            },
           },
         },
-      },
-    });
-
-    return NextResponse.json(appointment);
+      });
+      return NextResponse.json(appointment);
+    }
   } catch (error) {
     console.error('Error creating appointment:', error);
     return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });

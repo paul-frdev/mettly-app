@@ -184,8 +184,6 @@ export function AppointmentForm(props: AppointmentFormProps) {
         throw new Error(errorData.error || 'Failed to create appointment');
       }
 
-      const responseData = await response.json();
-
       showSuccess('Appointment created successfully');
       form.reset();
       props.onClose();

@@ -66,8 +66,6 @@ export function DashboardContent() {
     if (!appointmentToCancel) return;
 
     try {
-      console.log('Cancelling appointment:', appointmentToCancel);
-      console.log('Session:', session);
 
       const response = await fetch(`/api/appointments/${appointmentToCancel.id}`, {
         method: 'DELETE',
@@ -77,7 +75,6 @@ export function DashboardContent() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Failed to cancel appointment:', response.status, errorData);
         throw new Error(errorData.error || 'Failed to cancel appointment');
       }
 
