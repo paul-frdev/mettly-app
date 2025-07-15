@@ -150,73 +150,73 @@ export function Calendar() {
    */
   const handleSelectSlot = useCallback((slotInfo: { start: Date; end: Date; slots?: Date[]; action?: string }) => {
     if (!session?.user) return;
-    
+
     const now = new Date();
     const slotDayName = format(slotInfo.start, 'EEEE');
     const slotDaySchedule = settings?.workingHours[slotDayName];
-    
+
     // Шаг 1: Проверяем, что это рабочий день
     if (!slotDaySchedule?.enabled) {
       toast.error('Этот день не является рабочим');
       return;
     }
-    
+
     // Шаг 2: Проверяем праздники
     if (isHoliday && isHoliday(slotInfo.start)) {
       toast.error('Нельзя создавать события в праздничные дни');
       return;
     }
-    
+
     let startTime = new Date(slotInfo.start);
     const isMonthViewDayClick = view === 'month' && startTime.getHours() === 0 && startTime.getMinutes() === 0;
-    
+
     if (isMonthViewDayClick) {
       // Сценарий: Клик на день в месячном виде
-      
+
       // Шаг 3a: Проверяем только дату (не время)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const selectedDay = new Date(slotInfo.start);
       selectedDay.setHours(0, 0, 0, 0);
-      
+
       if (selectedDay < today) {
         toast.error('Нельзя создавать события в прошлом');
         return;
       }
-      
+
       // Шаг 4a: Устанавливаем время начала рабочего дня
       const [h, m] = slotDaySchedule.start.split(':').map(Number);
       startTime = setHours(setMinutes(new Date(slotInfo.start), m), h);
       setManualTime(slotDaySchedule.start);
-      
+
       // Дополнительная проверка: если сегодняшний день, но рабочее время уже прошло
       if (selectedDay.getTime() === today.getTime() && startTime < now) {
         toast.error('Рабочее время на сегодня уже прошло');
         return;
       }
-      
+
     } else {
       // Сценарий: Клик на конкретное время в недельном/дневном виде
       setManualTime(null);
-      
+
       // Шаг 3b: Проверяем точное время (с визуальной подсказкой)
       if (startTime < now) {
         toast.error('Это время уже прошло (выберите будущее время)');
         return;
       }
-      
+
       // Шаг 4b: Проверяем, что время в рабочих часах (с визуальной подсказкой)
       if (!isBusinessSlot(startTime)) {
         toast.error('Выберите время в рабочих часах');
         return;
       }
     }
-    
+
     // Шаг 5: Находим ближайшее событие после выбранного времени
     const nextEvent = events
       .filter(event => event.status !== 'cancelled' && event.start > startTime)
       .sort((a, b) => a.start.getTime() - b.start.getTime())[0];
-      
+
     // Шаг 6: Вычисляем максимальную доступную длительность
     let maxDuration = 120;
 
@@ -236,7 +236,7 @@ export function Calendar() {
     // Устанавливаем длительность встречи (по умолчанию 60 минут, но не больше доступного времени)
     setEventDuration(Math.min(60, maxDuration));
     setMaxAvailableDuration(maxDuration);
-    
+
     // Шаг 7: Проверяем, что есть достаточно времени для создания события (минимум 15 минут)
     if (maxDuration < 15) {
       toast.error('Недостаточно времени для создания события (минимум 15 минут)');
@@ -357,7 +357,7 @@ export function Calendar() {
         (element as HTMLElement).style.cursor = 'pointer';
       });
     }, 100);
-    
+
     return () => clearTimeout(timer);
   }, [view, date, events]);
 
@@ -404,10 +404,10 @@ export function Calendar() {
             const now = new Date();
             const isPastTime = date < now;
             const isBusinessTime = isBusinessSlot(date);
-            
+
             // Определяем CSS классы для слота
             let slotClassName = "";
-            
+
             if (isPastTime) {
               slotClassName = "past-time-slot";
             } else if (!isBusinessTime) {
@@ -415,10 +415,10 @@ export function Calendar() {
             } else {
               slotClassName = "available-slot";
             }
-            
+
             // Добавляем JavaScript hover только для week/day view (не для month view)
             const shouldAddHover = (view === 'week' || view === 'day') && slotClassName === "available-slot";
-            
+
             return {
               className: slotClassName,
               ...(shouldAddHover && {
@@ -453,24 +453,24 @@ export function Calendar() {
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const selectedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-            
+
             if (isWorkingDay(date)) {
               if (selectedDay < today) {
                 // рабочий, но в прошлом
-                return { 
+                return {
                   className: 'past-time-slot',
-                  style: { backgroundColor: '#f3f4f6', opacity: 0.7 } 
+                  style: { backgroundColor: '#f3f4f6', opacity: 0.7 }
                 };
               }
               // рабочий, не в прошлом - доступный (без hover в месячном виде)
-              return { 
+              return {
                 className: 'available-slot'
               };
             }
             // нерабочий день
-            return { 
+            return {
               className: 'non-business-slot',
-              style: { backgroundColor: '#f8fafc', opacity: 0.7 } 
+              style: { backgroundColor: '#f8fafc', opacity: 0.7 }
             };
           }}
           components={{
