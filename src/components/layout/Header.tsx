@@ -41,6 +41,9 @@ export default function Header() {
     }
   };
 
+  // Check if we're on the landing page
+  const isLandingPage = pathname === '/' || pathname === '/en' || pathname === '/uk';
+
   const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
     if (href.startsWith('#') && pathname === '/') {
@@ -70,7 +73,7 @@ export default function Header() {
             </Link>
 
             {/* Main Navigation */}
-            {!session ? (
+            {!session || isLandingPage ? (
               <nav className="hidden md:flex items-center space-x-8 ml-8">
                 <Link
                   href="#features"
@@ -130,23 +133,48 @@ export default function Header() {
 
           {/* Right Side Navigation */}
           <div className="flex items-center space-x-6">
-            {!session && <LanguageSwitcher />}
-            {!session ? (
+            {(!session || isLandingPage) && <LanguageSwitcher />}
+            {!session || isLandingPage ? (
               <>
-                <Link
-                  href="/auth/login"
-                  onClick={(e) => handleNavigation(e, '/auth/login')}
-                  className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
-                >
-                  {tAuth('login')}
-                </Link>
-                <Link
-                  href="/auth/register"
-                  onClick={(e) => handleNavigation(e, '/auth/register')}
-                  className="bg-[#e42627] hover:bg-[#d41f20] text-white px-6 py-2 rounded-lg font-sans font-semibold transition-colors"
-                >
-                  {tAuth('getStarted')}
-                </Link>
+                {session && isLandingPage ? (
+                  /* If logged in but on landing page, show Dashboard link */
+                  <Link
+                    href="/dashboard"
+                    onClick={(e) => handleNavigation(e, '/dashboard')}
+                    className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
+                  >
+                    {t('dashboard')}
+                  </Link>
+                ) : (
+                  /* If not logged in, show login link */
+                  <Link
+                    href="/auth/login"
+                    onClick={(e) => handleNavigation(e, '/auth/login')}
+                    className="text-[#0f0880] font-sans font-normal hover:text-[#e42627] transition-colors"
+                  >
+                    {tAuth('login')}
+                  </Link>
+                )}
+
+                {session && isLandingPage ? (
+                  /* If logged in but on landing page, show logout button */
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-2 text-[#0f0880] hover:text-[#e42627] transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>{tAuth('logout')}</span>
+                  </button>
+                ) : (
+                  /* If not logged in, show register button */
+                  <Link
+                    href="/auth/register"
+                    onClick={(e) => handleNavigation(e, '/auth/register')}
+                    className="bg-[#e42627] hover:bg-[#d41f20] text-white px-6 py-2 rounded-lg font-sans font-semibold transition-colors"
+                  >
+                    {tAuth('getStarted')}
+                  </Link>
+                )}
               </>
             ) : (
               <>
