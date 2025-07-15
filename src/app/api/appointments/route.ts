@@ -118,14 +118,14 @@ export async function GET() {
       const busySlots = appointments.filter((appointment) => appointment.clientId !== client.id);
 
       // Трансформируем данные для включения информации о групповых клиентах
-      const transformedOwnAppointments = ownAppointments.map(appointment => ({
+      const transformedOwnAppointments = ownAppointments.map((appointment) => ({
         ...appointment,
-        clientIds: appointment.clients?.map(c => c.client.id) || [],
+        clientIds: appointment.clients?.map((c) => c.client.id) || [],
       }));
 
-      const transformedBusySlots = busySlots.map(appointment => ({
+      const transformedBusySlots = busySlots.map((appointment) => ({
         ...appointment,
-        clientIds: appointment.clients?.map(c => c.client.id) || [],
+        clientIds: appointment.clients?.map((c) => c.client.id) || [],
       }));
 
       // Для календаря: объединяем свои встречи и занятые слоты
@@ -182,9 +182,9 @@ export async function GET() {
     });
 
     // Трансформируем данные для включения информации о групповых клиентах
-    const transformedAppointments = appointments.map(appointment => ({
+    const transformedAppointments = appointments.map((appointment) => ({
       ...appointment,
-      clientIds: appointment.clients?.map(c => c.client.id) || [],
+      clientIds: appointment.clients?.map((c) => c.client.id) || [],
     }));
 
     return NextResponse.json(transformedAppointments);

@@ -285,16 +285,14 @@ export function useSchedule({ appointments, onAppointmentCreated, isClient = fal
     setSelectedTimeSlot(format(new Date(appointment.date), 'h:mm a'));
     setDuration(appointment.duration);
     setNotes(appointment.notes || '');
-    
+
     // Определяем тип записи более надежно
-    const isGroupAppointment = appointment.type === 'group' || 
-                              (appointment.clientIds && appointment.clientIds.length > 0) ||
-                              appointment.maxClients;
-    
+    const isGroupAppointment = appointment.type === 'group' || (appointment.clientIds && appointment.clientIds.length > 0) || appointment.maxClients;
+
     setAppointmentType(isGroupAppointment ? 'group' : 'individual');
     setIsPaid(appointment.isPaid || false);
     setPrice(appointment.price || 0);
-    
+
     if (isGroupAppointment) {
       // Для групповых записей
       setSelectedClients(appointment.clientIds || []);
@@ -305,7 +303,7 @@ export function useSchedule({ appointments, onAppointmentCreated, isClient = fal
       setSelectedClientId(appointment.clientId || '');
       setSelectedClients([]); // Очищаем групповых клиентов
     }
-    
+
     setIsEditDialogOpen(true);
   };
 

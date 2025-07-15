@@ -87,12 +87,12 @@ export function TimeSlot({
                   <span className="text-sm text-black">
                     {/* Отображаем описание записи */}
                     {appointment.notes || (appointment.client?.name || 'No description')}
-                    
+
                     {/* Показываем информацию о типе записи */}
-                    {appointment.type === 'group' && appointment.clientIds && appointment.clientIds.length > 0 && 
+                    {appointment.type === 'group' && appointment.clientIds && appointment.clientIds.length > 0 &&
                       ` (Группа: ${appointment.clientIds.length} чел.)`
                     }
-                    
+
                     {/* Показываем длительность */}
                     {appointment.duration! > 60 && ` (${Math.floor(appointment.duration! / 60)}h ${appointment.duration! % 60 > 0 ? `${appointment.duration! % 60}min` : ''})`}
                     {appointment.duration! <= 60 && appointment.duration! > 0 && ` (${appointment.duration}min)`}

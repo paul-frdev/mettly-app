@@ -275,12 +275,12 @@ export function Calendar() {
     const start = selectedEvent.start;
     const isClient = !!session?.user?.isClient;
     const appointmentDate = start;
-    
+
     if (isSlotBooked(start, new Date(start.getTime() + durationMinutes * 60000), selectedEvent.id)) {
       toast.error('Этот слот уже занят');
       return;
     }
-    
+
     const appointmentData = {
       date: appointmentDate.toISOString(),
       duration: durationMinutes,
@@ -292,23 +292,23 @@ export function Calendar() {
       clientId: appointmentType === 'individual' ? (isClient ? 'self' : selectedClientId) : undefined,
       clientIds: appointmentType === 'group' ? selectedClients : undefined,
     };
-    
+
     try {
       const isEditing = !!selectedEvent.id;
       const url = isEditing ? `/api/appointments/${selectedEvent.id}` : '/api/appointments';
       const method = isEditing ? 'PUT' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(appointmentData),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Failed to ${isEditing ? 'update' : 'create'} appointment`);
       }
-      
+
       toast.success(`Appointment ${isEditing ? 'updated' : 'created'} successfully`);
       await fetchEvents();
       setIsDialogOpen(false);

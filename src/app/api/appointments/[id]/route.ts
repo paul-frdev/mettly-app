@@ -74,7 +74,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // Трансформируем данные для включения информации о групповых клиентах
     const transformedAppointment = {
       ...appointment,
-      clientIds: appointment.clients?.map(c => c.client.id) || [],
+      clientIds: appointment.clients?.map((c) => c.client.id) || [],
     };
 
     return NextResponse.json(transformedAppointment);
@@ -348,12 +348,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     // Permission check: trainers can update their appointments, clients can only update their own
     const isTrainer = !client;
-    const isOwnAppointment = client && (
-      existingAppointment.clientId === client.id ||
-      existingAppointment.clientId === 'self' ||
-      existingAppointment.client?.email === session.user.email ||
-      existingAppointment.client?.userId === session.user.id
-    );
+    const isOwnAppointment = client && (existingAppointment.clientId === client.id || existingAppointment.clientId === 'self' || existingAppointment.client?.email === session.user.email || existingAppointment.client?.userId === session.user.id);
 
     if (!isTrainer && !isOwnAppointment) {
       return NextResponse.json({ error: 'Forbidden: You can only update your own appointments' }, { status: 403 });
@@ -380,14 +375,14 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       notes: notes || null,
       type: type || 'individual',
       isPaid: isPaid || false,
-      price: isPaid ? (price || 0) : null,
-      maxClients: type === 'group' ? (maxClients || 2) : null,
+      price: isPaid ? price || 0 : null,
+      maxClients: type === 'group' ? maxClients || 2 : null,
     };
 
     // Handle client assignment for different appointment types
     if (type === 'group') {
       updateData.clientId = null;
-      
+
       // Validate group appointment data
       if (!clientIds || !Array.isArray(clientIds) || clientIds.length === 0) {
         return NextResponse.json({ error: 'Group appointments require at least one client' }, { status: 400 });
@@ -473,7 +468,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     // Transform the result to include clientIds
     const transformedResult = {
       ...result,
-      clientIds: result.clients?.map(c => c.client.id) || [],
+      clientIds: result.clients?.map((c) => c.client.id) || [],
     };
 
     return NextResponse.json(transformedResult);
